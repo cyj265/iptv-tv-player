@@ -4,17 +4,65 @@ Daemon will be stopped at the end of the build
 > Task :app:checkKotlinGradlePluginConfigurationErrors
 > Task :app:preBuild UP-TO-DATE
 > Task :app:preReleaseBuild UP-TO-DATE
-> Task :app:dataBindingMergeDependencyArtifactsRelease FAILED
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_2-1789053460274.json
+> Task :app:dataBindingMergeDependencyArtifactsRelease
+> Task :app:generateReleaseResValues FROM-CACHE
+> Task :app:generateReleaseResources
+> Task :app:packageReleaseResources
+> Task :app:generateReleaseBuildConfig
+> Task :app:mapReleaseSourceSetPaths
+> Task :app:parseReleaseLocalResources
+> Task :app:createReleaseCompatibleScreenManifests
+> Task :app:checkReleaseAarMetadata
+> Task :app:extractDeepLinksRelease FROM-CACHE
+> Task :app:mergeReleaseResources
+> Task :app:processReleaseMainManifest
+> Task :app:dataBindingGenBaseClassesRelease
+> Task :app:processReleaseManifest
+> Task :app:processReleaseManifestForPackage
+> Task :app:javaPreCompileRelease FROM-CACHE
+> Task :app:extractProguardFiles
+> Task :app:mergeReleaseJniLibFolders
+> Task :app:mergeReleaseNativeLibs NO-SOURCE
+> Task :app:stripReleaseDebugSymbols NO-SOURCE
+> Task :app:extractReleaseNativeSymbolTables NO-SOURCE
+> Task :app:mergeReleaseNativeDebugMetadata NO-SOURCE
+> Task :app:checkReleaseDuplicateClasses
+> Task :app:processReleaseResources
+> Task :app:desugarReleaseFileDependencies FROM-CACHE
+> Task :app:mergeReleaseStartupProfile
+> Task :app:mergeExtDexRelease FROM-CACHE
+> Task :app:mergeReleaseShaders
+> Task :app:mergeReleaseArtProfile
+> Task :app:compileReleaseShaders NO-SOURCE
+> Task :app:generateReleaseAssets UP-TO-DATE
+> Task :app:mergeReleaseAssets
+> Task :app:compressReleaseAssets FROM-CACHE
+> Task :app:extractReleaseVersionControlInfo
+> Task :app:collectReleaseDependencies
+> Task :app:sdkReleaseDependencyData
+> Task :app:validateSigningRelease
+> Task :app:writeReleaseAppMetadata
+> Task :app:writeReleaseSigningConfigVersions
+> Task :app:optimizeReleaseResources
+
+> Task :app:compileReleaseKotlin FAILED
+e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:14:45 Unresolved reference: DecoderInfo
+e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:168:13 Object 'HardwareOnlySelector' is not abstract and does not implement abstract member public abstract fun getDecoderInfos(p0: String, p1: Boolean, p2: Boolean): (Mutable)List<MediaCodecInfo> defined in androidx.media3.exoplayer.mediacodec.MediaCodecSelector
+e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:169:9 'getDecoderInfos' overrides nothing
+e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:172:17 Unresolved reference: DecoderInfo
+e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:173:61 No value passed for parameter 'p2'
+e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:179:13 Object 'SoftwareOnlySelector' is not abstract and does not implement abstract member public abstract fun getDecoderInfos(p0: String, p1: Boolean, p2: Boolean): (Mutable)List<MediaCodecInfo> defined in androidx.media3.exoplayer.mediacodec.MediaCodecSelector
+e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:180:9 'getDecoderInfos' overrides nothing
+e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:183:17 Unresolved reference: DecoderInfo
+e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:184:61 No value passed for parameter 'p2'
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_2-1789056348738.json
 
 FAILURE: Build failed with an exception.
 
 * What went wrong:
-Execution failed for task ':app:dataBindingMergeDependencyArtifactsRelease'.
-> Could not resolve all files for configuration ':app:releaseCompileClasspath'.
-   > Could not find androidx.media3:media3-decoder-ffmpeg:1.4.1.
-     Required by:
-         project :app
+Execution failed for task ':app:compileReleaseKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+   > Compilation error. See log for more details
 
 * Try:
 > Run with --stacktrace option to get the stack trace.
@@ -22,5 +70,5 @@ Execution failed for task ':app:dataBindingMergeDependencyArtifactsRelease'.
 > Run with --scan to get full insights.
 > Get more help at https://help.gradle.org.
 
-BUILD FAILED in 24s
-3 actionable tasks: 3 executed
+BUILD FAILED in 33s
+37 actionable tasks: 31 executed, 6 from cache
