@@ -4,59 +4,51 @@ Daemon will be stopped at the end of the build
 > Task :app:checkKotlinGradlePluginConfigurationErrors
 > Task :app:preBuild UP-TO-DATE
 > Task :app:preReleaseBuild UP-TO-DATE
-> Task :app:generateReleaseResValues
 > Task :app:dataBindingMergeDependencyArtifactsRelease
-> Task :app:generateReleaseResources
-> Task :app:packageReleaseResources
-> Task :app:mergeReleaseResources
+> Task :app:generateReleaseResValues FROM-CACHE
+> Task :app:generateReleaseResources FROM-CACHE
+> Task :app:mergeReleaseResources FROM-CACHE
+> Task :app:packageReleaseResources FROM-CACHE
+> Task :app:parseReleaseLocalResources FROM-CACHE
+> Task :app:dataBindingGenBaseClassesRelease FROM-CACHE
 > Task :app:generateReleaseBuildConfig
-> Task :app:parseReleaseLocalResources
-> Task :app:checkReleaseAarMetadata
-> Task :app:dataBindingGenBaseClassesRelease
 > Task :app:mapReleaseSourceSetPaths
+> Task :app:checkReleaseAarMetadata
 > Task :app:createReleaseCompatibleScreenManifests
-> Task :app:extractDeepLinksRelease
+> Task :app:extractDeepLinksRelease FROM-CACHE
 > Task :app:processReleaseMainManifest
 > Task :app:processReleaseManifest
-> Task :app:javaPreCompileRelease
+> Task :app:javaPreCompileRelease FROM-CACHE
 > Task :app:extractProguardFiles
 > Task :app:mergeReleaseJniLibFolders
 > Task :app:mergeReleaseNativeLibs NO-SOURCE
 > Task :app:stripReleaseDebugSymbols NO-SOURCE
 > Task :app:extractReleaseNativeSymbolTables NO-SOURCE
 > Task :app:mergeReleaseNativeDebugMetadata NO-SOURCE
-> Task :app:checkReleaseDuplicateClasses
-> Task :app:desugarReleaseFileDependencies
-> Task :app:mergeReleaseStartupProfile
 > Task :app:processReleaseManifestForPackage
-> Task :app:mergeExtDexRelease
-> Task :app:mergeReleaseArtProfile
+> Task :app:checkReleaseDuplicateClasses
+> Task :app:desugarReleaseFileDependencies FROM-CACHE
+> Task :app:mergeReleaseStartupProfile
+> Task :app:processReleaseResources
+> Task :app:mergeExtDexRelease FROM-CACHE
 > Task :app:mergeReleaseShaders
 > Task :app:compileReleaseShaders NO-SOURCE
 > Task :app:generateReleaseAssets UP-TO-DATE
+> Task :app:mergeReleaseArtProfile
 > Task :app:mergeReleaseAssets
-> Task :app:compressReleaseAssets
+> Task :app:compressReleaseAssets FROM-CACHE
 > Task :app:extractReleaseVersionControlInfo
 > Task :app:collectReleaseDependencies
 > Task :app:sdkReleaseDependencyData
 > Task :app:validateSigningRelease
 > Task :app:writeReleaseAppMetadata
-> Task :app:writeReleaseSigningConfigVersions
-> Task :app:processReleaseResources
 > Task :app:optimizeReleaseResources
+> Task :app:writeReleaseSigningConfigVersions
 
 > Task :app:compileReleaseKotlin FAILED
-e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:14:45 Unresolved reference: DecoderInfo
-e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:90:59 Type mismatch: inferred type is String? but String was expected
-e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:184:13 Object 'HardwareOnlySelector' is not abstract and does not implement abstract member public abstract fun getDecoderInfos(p0: String, p1: Boolean, p2: Boolean): (Mutable)List<MediaCodecInfo> defined in androidx.media3.exoplayer.mediacodec.MediaCodecSelector
-e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:185:9 'getDecoderInfos' overrides nothing
-e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:188:17 Unresolved reference: DecoderInfo
-e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:189:61 No value passed for parameter 'p2'
-e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:195:13 Object 'SoftwareOnlySelector' is not abstract and does not implement abstract member public abstract fun getDecoderInfos(p0: String, p1: Boolean, p2: Boolean): (Mutable)List<MediaCodecInfo> defined in androidx.media3.exoplayer.mediacodec.MediaCodecSelector
-e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:196:9 'getDecoderInfos' overrides nothing
-e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:199:17 Unresolved reference: DecoderInfo
-e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:200:61 No value passed for parameter 'p2'
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_2-1789057152321.json
+e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:159:14 Unresolved reference: setMediaCodecAdapterFactory
+e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:160:51 Unresolved reference: setEnableAsync
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_2-1789059483212.json
 
 FAILURE: Build failed with an exception.
 
@@ -71,5 +63,5 @@ Execution failed for task ':app:compileReleaseKotlin'.
 > Run with --scan to get full insights.
 > Get more help at https://help.gradle.org.
 
-BUILD FAILED in 1m 27s
-37 actionable tasks: 37 executed
+BUILD FAILED in 33s
+37 actionable tasks: 26 executed, 11 from cache
