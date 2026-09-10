@@ -11,7 +11,7 @@ import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.exoplayer.mediacodec.DecoderInfo
+import androidx.media3.exoplayer.mediacodec.MediaCodecInfo
 import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
 import androidx.media3.exoplayer.mediacodec.MediaCodecUtil
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
@@ -35,9 +35,6 @@ import java.io.StringWriter
  * 提到 15s、卡顿重缓冲 30s，明显改善网络抖动下的流畅度。
  *
  * 失败自动重试：解码/网络瞬时错误自动重播（最多 2 次），避免偶尔抽风直接报错。
- *
- * Media3 1.8.0：修复了老设备（Amlogic/Android 7 等）HEVC 轨道被能力评估
- * 误判为超出能力、硬解初始化失败的已知问题（androidx/media issue #966）。
  */
 class PlaybackManager(
     private val context: Context,
@@ -87,7 +84,7 @@ class PlaybackManager(
                 val delay = 1500L * retryCount
                 val name = currentChannelName
                 listener.onPlaybackError("播放失败，${retryCount} 秒后自动重试…")
-                retryHandler.postDelayed({ retryPlay(url, name) }, delay)
+                retryHandler.postDelayed({ retryPlay(url, name ?: url) }, delay)
                 return
             }
             retryCount = 0
@@ -184,9 +181,10 @@ class PlaybackManager(
     private object HardwareOnlySelector : MediaCodecSelector {
         override fun getDecoderInfos(
             mimeType: String,
-            requiresSecureDecoder: Boolean
-        ): List<DecoderInfo> {
-            return MediaCodecUtil.getDecoderInfos(mimeType, requiresSecureDecoder)
+            requiresSecureDecoder: Boolean,
+            requiresTunnelingDecoder: Boolean
+        ): List<MediaCodecInfo> {
+            return MediaCodecUtil.getDecoderInfos(mimeType, requiresSecureDecoder, requiresTunnelingDecoder)
                 .filter { !it.softwareOnly }
         }
     }
@@ -195,9 +193,10 @@ class PlaybackManager(
     private object SoftwareOnlySelector : MediaCodecSelector {
         override fun getDecoderInfos(
             mimeType: String,
-            requiresSecureDecoder: Boolean
-        ): List<DecoderInfo> {
-            return MediaCodecUtil.getDecoderInfos(mimeType, requiresSecureDecoder)
+            requiresSecureDecoder: Boolean,
+            requiresTunnelingDecoder: Boolean
+        ): List<MediaCodecInfo> {
+            return MediaCodecUtil.getDecoderInfos(mimeType, requiresSecureDecoder, requiresTunnelingDecoder)
                 .filter { it.softwareOnly }
         }
     }
