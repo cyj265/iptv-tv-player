@@ -35,6 +35,10 @@
     <string name="aspect_zoom">缩放裁剪（填满）</string>
     <string name="aspect_fill">拉伸全屏</string>
     <string name="auto_resume">打开应用时自动恢复上次频道</string>
+    <string name="decoder_mode">解码方式（高清报错时切换试试）</string>
+    <string name="decoder_auto">自动（硬解优先，失败自动回退）</string>
+    <string name="decoder_hardware">仅硬件解码（硬解失败不再回退软解）</string>
+    <string name="decoder_software">仅软件解码（兼容性最好，较费 CPU）</string>
     <string name="about">关于</string>
     <string name="close">关闭</string>
     <string name="cleared">已清除</string>
