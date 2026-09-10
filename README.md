@@ -49,7 +49,7 @@ gradle assembleRelease
 ## 使用
 
 1. 打开应用 → 点右上角**设置**（齿轮）
-2. 填入播放列表地址（M3U/TXT），或点**选择文件** 从本地导入
+2. 填入播放列表地址（M3U/TXT），或点**选择文件**从本地导入
 3. 可选：填入 EPG 节目单地址
 4. 返回主界面，从左侧频道列表选频道播放
 5. 遥控器：**左右键**切频道、**OK/播放键**暂停、**CH+/CH-** 换台
@@ -59,6 +59,16 @@ gradle assembleRelease
 - Kotlin + AndroidX (AppCompat / RecyclerView / ViewBinding)
 - **Media3 ExoPlayer**（HLS 专业支持，H.265/HEVC 硬解）
 - minSdk 21 / targetSdk 34
+
+## 致谢与许可
+
+- 播放内核：**Media3 ExoPlayer**（Google 开源，Apache License 2.0）
+  仓库：https://github.com/androidx/media
+- 界面图标：**Material Design Icons**（Apache License 2.0）
+- 解码兼容性方案参考：**lemonTV**（MIT License）
+  仓库：https://github.com/jia070310/lemonTV
+  参考内容：其播放器开启解码器回退（Decoder Fallback）以兼容 H.265 高清源的配置思路；本项目代码为独立编写，未复制其源码。
+- 本播放器不内置任何直播源，仅播放用户提供的播放列表。
 
 ## 说明
 
