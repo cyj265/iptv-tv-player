@@ -8,7 +8,7 @@
 
 | 全屏播放 | 频道列表（OK 键唤出） | 设置面板（菜单键唤出） |
 | --- | --- | --- |
-| ![全屏播放](docs/screenshot-play.jpg) | ![频道列表](docs/screenshot-channels.jpg) | ![设置面板](docs/screenshot-settings.jpg) |
+| ![全屏播放](docs/screenshot-play.svg) | ![频道列表](docs/screenshot-channels.svg) | ![设置面板](docs/screenshot-settings.svg) |
 
 ## 功能
 
