@@ -17,6 +17,9 @@ import androidx.media3.exoplayer.mediacodec.MediaCodecUtil
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
+import java.io.File
+import java.io.PrintWriter
+import java.io.StringWriter
 
 /**
  * 基于 Media3 ExoPlayer 的播放内核。
@@ -32,6 +35,9 @@ import androidx.media3.ui.PlayerView
  * 提到 15s、卡顿重缓冲 30s，明显改善网络抖动下的流畅度。
  *
  * 失败自动重试：解码/网络瞬时错误自动重播（最多 2 次），避免偶尔抽风直接报错。
+ *
+ * Media3 1.8.0：修复了老设备（Amlogic/Android 7 等）HEVC 轨道被能力评估
+ * 误判为超出能力、硬解初始化失败的已知问题（androidx/media issue #966）。
  */
 class PlaybackManager(
     private val context: Context,
@@ -64,6 +70,16 @@ class PlaybackManager(
         }
 
         override fun onPlayerError(error: PlaybackException) {
+            // 诊断日志：完整堆栈写入 crash.log（设置→调试 可查看，便于真机定位解码问题）
+            try {
+                val sw = StringWriter()
+                error.printStackTrace(PrintWriter(sw))
+                File(context.filesDir, "crash.log").appendText(
+                    "\n--- 播放错误 " + System.currentTimeMillis() + " ---\n" +
+                        "errorCode=" + error.errorCodeName + "\n" + sw.toString() + "\n"
+                )
+            } catch (ignored: Exception) {
+            }
             // 自动重试最多 2 次，间隔递增（1.5s / 3s）
             val url = currentUrl
             if (retryCount < 2 && url != null) {
@@ -71,7 +87,7 @@ class PlaybackManager(
                 val delay = 1500L * retryCount
                 val name = currentChannelName
                 listener.onPlaybackError("播放失败，${retryCount} 秒后自动重试…")
-                retryHandler.postDelayed({ retryPlay(url, name ?: url) }, delay)
+                retryHandler.postDelayed({ retryPlay(url, name) }, delay)
                 return
             }
             retryCount = 0
