@@ -22,6 +22,24 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      # 固定 debug 签名：缓存 ~/.android/debug.keystore，保证所有构建使用同一签名，
+      # 新版本才能覆盖安装旧版本（否则每次构建签名都不同，必须卸载重装）。
+      - name: Cache Android debug keystore
+        id: keystore-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.android
+          key: android-debug-keystore-v1
+
+      - name: Generate fixed debug keystore (first build only)
+        if: steps.keystore-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/.android
+          keytool -genkeypair -v -keystore ~/.android/debug.keystore \
+            -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass android -keypass android \
+            -dname "CN=Android Debug,O=Android,C=US"
+
       - name: Setup Gradle 8.9
         uses: gradle/actions/setup-gradle@v4
         with:

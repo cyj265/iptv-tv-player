@@ -2,6 +2,8 @@ package com.cyj265.iptvplayer
 
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.KeyEvent
@@ -39,6 +41,10 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     private var showFavoritesOnly = false
     private var currentChannel: Channel? = null
     private var epgPrograms: Map<String, List<EpgProgram>> = emptyMap()
+
+    // 覆盖层自动隐藏：4 秒无操作淡出顶部信息条与底部控制条（TiviMate 风格）
+    private val overlayHandler = Handler(Looper.getMainLooper())
+    private val overlayHideRunnable = Runnable { hideOverlay() }
 
     private val openDocument =
         registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -84,6 +90,46 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         if (repository.autoResume) {
             resumeLastChannel()
         }
+
+        // 启动时显示覆盖层，随后自动淡出
+        showOverlay()
+    }
+
+    // ---------- 覆盖层自动隐藏 ----------
+
+    private fun showOverlay() {
+        overlayHandler.removeCallbacks(overlayHideRunnable)
+        val bar = binding.nowPlayingBar
+        val ctrl = binding.controlBar
+        if (bar.visibility != View.VISIBLE) {
+            bar.visibility = View.VISIBLE
+            bar.animate().cancel()
+            bar.alpha = 0f
+            bar.animate().alpha(1f).setDuration(200).start()
+        }
+        if (ctrl.visibility != View.VISIBLE) {
+            ctrl.visibility = View.VISIBLE
+            ctrl.animate().cancel()
+            ctrl.alpha = 0f
+            ctrl.animate().alpha(1f).setDuration(200).start()
+        }
+        overlayHandler.removeCallbacks(overlayHideRunnable)
+        overlayHandler.postDelayed(overlayHideRunnable, 4000L)
+    }
+
+    private fun hideOverlay() {
+        val bar = binding.nowPlayingBar
+        val ctrl = binding.controlBar
+        if (bar.visibility == View.VISIBLE) {
+            bar.animate().cancel()
+            bar.animate().alpha(0f).setDuration(300)
+                .withEndAction { bar.visibility = View.GONE }
+        }
+        if (ctrl.visibility == View.VISIBLE) {
+            ctrl.animate().cancel()
+            ctrl.animate().alpha(0f).setDuration(300)
+                .withEndAction { ctrl.visibility = View.GONE }
+        }
     }
 
     // ---------- 面板显隐 ----------
@@ -95,6 +141,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         get() = binding.settingsPanel.visibility == View.VISIBLE
 
     private fun showChannelPanel() {
+        overlayHandler.removeCallbacks(overlayHideRunnable)
         binding.settingsPanel.visibility = View.GONE
         binding.channelPanel.visibility = View.VISIBLE
         binding.channelPanel.alpha = 0f
@@ -104,9 +151,11 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
 
     private fun hideChannelPanel() {
         binding.channelPanel.visibility = View.GONE
+        showOverlay()
     }
 
     private fun showSettingsPanel() {
+        overlayHandler.removeCallbacks(overlayHideRunnable)
         binding.channelPanel.visibility = View.GONE
         binding.settingsPanel.visibility = View.VISIBLE
         binding.settingsPanel.alpha = 0f
@@ -116,6 +165,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
 
     private fun hideSettingsPanel() {
         binding.settingsPanel.visibility = View.GONE
+        showOverlay()
     }
 
     // ---------- UI 初始化 ----------
@@ -482,7 +532,8 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                 else -> super.onKeyDown(keyCode, event)
             }
         }
-        // 全屏播放态
+        // 全屏播放态：任何按键都重新显示覆盖层并重置自动隐藏计时
+        showOverlay()
         return when (keyCode) {
             KeyEvent.KEYCODE_DPAD_UP -> {
                 switchChannel(-1); true
@@ -511,6 +562,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     }
 
     override fun onDestroy() {
+        overlayHandler.removeCallbacks(overlayHideRunnable)
         super.onDestroy()
         playback.release()
     }
