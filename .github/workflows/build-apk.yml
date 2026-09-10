@@ -33,26 +33,7 @@ jobs:
           gradle-version: '8.9'
 
       - name: Build release APK
-        run: |
-          set +e
-          gradle assembleRelease --no-daemon 2>&1 | tee build.log
-          status=${PIPESTATUS[0]}
-          echo "BUILD_EXIT=$status" >> $GITHUB_ENV
-          exit 0
-
-      - name: Publish build log on failure
-        if: env.BUILD_EXIT != '0'
-        run: |
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
-          cp build.log build-errors.txt
-          git add build-errors.txt
-          git commit -m "chore: publish build errors" || true
-          git push origin HEAD:main || true
-
-      - name: Fail job on build error
-        if: env.BUILD_EXIT != '0'
-        run: exit 1
+        run: gradle assembleRelease --no-daemon
 
       - name: Rename APK with version
         run: |
