@@ -8,5 +8,7 @@
     <color name="text_secondary">#9AA3B0</color>
     <color name="accent">#2F7CF6</color>
     <color name="accent_dim">#1F5CC8</color>
+    <color name="bg_overlay">#CC101216</color>
+    <color name="bg_overlay_strong">#F2101216</color>
     <color name="ic_launcher_background">#0E1116</color>
 </resources>

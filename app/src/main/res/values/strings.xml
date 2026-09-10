@@ -27,4 +27,16 @@
     <string name="direct_stream_hint">无需播放列表，输入单个直播流地址即可播放</string>
     <string name="play_direct">播放</string>
     <string name="importing">正在读取文件…</string>
+    <string name="playback_options">播放选项</string>
+    <string name="aspect_ratio">画面比例</string>
+    <string name="aspect_fit">原始比例</string>
+    <string name="aspect_16_9">16:9</string>
+    <string name="aspect_4_3">4:3</string>
+    <string name="aspect_zoom">缩放裁剪（填满）</string>
+    <string name="aspect_fill">拉伸全屏</string>
+    <string name="auto_resume">打开应用时自动恢复上次频道</string>
+    <string name="about">关于</string>
+    <string name="close">关闭</string>
+    <string name="cleared">已清除</string>
+    <string name="playback_hint">方向键换台 · OK 频道列表 · 菜单键设置</string>
 </resources>
