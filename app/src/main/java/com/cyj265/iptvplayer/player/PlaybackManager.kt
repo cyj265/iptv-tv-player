@@ -16,7 +16,6 @@ import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.hls.HlsMediaSource
-import androidx.media3.exoplayer.mediacodec.DefaultMediaCodecAdapterFactory
 import androidx.media3.exoplayer.mediacodec.MediaCodecInfo
 import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
 import androidx.media3.exoplayer.mediacodec.MediaCodecUtil
@@ -154,12 +153,10 @@ class PlaybackManager(
             .build()
 
         val renderersFactory = DefaultRenderersFactory(context)
-            // 强制同步 MediaCodecAdapter：Amlogic（斐讯 T1 S912）Android 7 的
+            // 强制同步 MediaCodec 队列：Amlogic（斐讯 T1 S912）Android 7 的
             // 硬件解码器对异步模式支持不佳，Media3 默认 async 优先会导致
             // HEVC 解码器初始化失败（DECODER_INIT_FAILED）。同步模式最稳。
-            .setMediaCodecAdapterFactory(
-                DefaultMediaCodecAdapterFactory().setEnableAsync(false)
-            )
+            .forceDisableMediaCodecAsynchronousQueueing()
         when (decoderMode) {
             "hardware" -> {
                 // 仅硬件解码：硬解失败直接报错，不回退软解（避免软解 1080p 卡死）
