@@ -1,5 +1,6 @@
 package com.cyj265.iptvplayer
 
+import android.app.AlertDialog
 import android.content.Intent
 import android.graphics.Color
 import android.net.Uri
@@ -8,6 +9,7 @@ import android.os.Handler
 import android.os.Looper
 import android.text.Editable
 import android.text.TextWatcher
+import android.util.Log
 import android.view.KeyEvent
 import android.view.View
 import android.widget.Toast
@@ -60,8 +62,11 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     private val clockHandler = Handler(Looper.getMainLooper())
     private val clockRunnable = object : Runnable {
         override fun run() {
-            binding.tvClock.text =
-                SimpleDateFormat("yyyy/MM/dd\nHH:mm:ss", Locale.getDefault()).format(Date())
+            try {
+                binding.tvClock.text =
+                    SimpleDateFormat("yyyy/MM/dd\nHH:mm:ss", Locale.getDefault()).format(Date())
+            } catch (ignored: Throwable) {
+            }
             clockHandler.postDelayed(this, 1000L)
         }
     }
@@ -74,6 +79,15 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         installCrashHandler()
+        try {
+            initApp()
+        } catch (t: Throwable) {
+            reportStartupCrash(t)
+        }
+    }
+
+    /** 启动主体：任何异常都会走 reportStartupCrash 弹窗显示，不再静默闪退。 */
+    private fun initApp() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
@@ -116,6 +130,31 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
 
         // 启动时显示覆盖层，随后自动淡出
         showOverlay()
+    }
+
+    /** 启动失败：记录日志并弹窗显示堆栈，方便在电视上直接截图反馈。 */
+    private fun reportStartupCrash(t: Throwable) {
+        try {
+            val sw = StringWriter()
+            t.printStackTrace(PrintWriter(sw))
+            crashFile().writeText(
+                "startup=" + System.currentTimeMillis() + "\n" + sw.toString(),
+                Charsets.UTF_8
+            )
+        } catch (ignored: Exception) {
+        }
+        try {
+            AlertDialog.Builder(this)
+                .setTitle("启动失败（已记录日志）")
+                .setMessage(
+                    "请把此弹窗截图发给开发者，或在设置→调试中查看完整日志：\n\n" +
+                        Log.getStackTraceString(t)
+                )
+                .setPositiveButton("知道了", null)
+                .setCancelable(false)
+                .show()
+        } catch (ignored: Exception) {
+        }
     }
 
     override fun onResume() {
@@ -448,17 +487,29 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                 if (channels.isNotEmpty()) {
                     repository.saveChannels(channels)
                 }
-                runOnUiThread { onChannelsLoaded(channels) }
+                runOnUiThread {
+                    try {
+                        onChannelsLoaded(channels)
+                    } catch (e: Throwable) {
+                        binding.tvStatus.text =
+                            getString(R.string.load_failed) + "：" + (e.message ?: "列表渲染失败")
+                    }
+                }
             } catch (e: Throwable) {
                 val cached = repository.loadCachedChannels()
                 val detail = e.message ?: e.javaClass.simpleName
                 runOnUiThread {
-                    if (!cached.isNullOrEmpty()) {
-                        onChannelsLoaded(cached)
-                        binding.tvStatus.text = getString(R.string.load_failed) + "（已用缓存）"
-                    } else {
-                        binding.tvStatus.text = getString(R.string.load_failed) + "：" + detail
-                        Toast.makeText(this, R.string.load_failed, Toast.LENGTH_SHORT).show()
+                    try {
+                        if (!cached.isNullOrEmpty()) {
+                            onChannelsLoaded(cached)
+                            binding.tvStatus.text = getString(R.string.load_failed) + "（已用缓存）"
+                        } else {
+                            binding.tvStatus.text = getString(R.string.load_failed) + "：" + detail
+                            Toast.makeText(this, R.string.load_failed, Toast.LENGTH_SHORT).show()
+                        }
+                    } catch (e2: Throwable) {
+                        binding.tvStatus.text =
+                            getString(R.string.load_failed) + "：" + (e2.message ?: "未知错误")
                     }
                 }
             }
@@ -498,9 +549,13 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                 repository.playlistUrl = null
                 repository.saveChannels(channels)
                 runOnUiThread {
-                    onChannelsLoaded(channels)
-                    hideSettingsPanel()
-                    Toast.makeText(this, R.string.importing, Toast.LENGTH_SHORT).show()
+                    try {
+                        onChannelsLoaded(channels)
+                        hideSettingsPanel()
+                        Toast.makeText(this, R.string.importing, Toast.LENGTH_SHORT).show()
+                    } catch (e: Throwable) {
+                        Toast.makeText(this, R.string.load_failed, Toast.LENGTH_SHORT).show()
+                    }
                 }
             } catch (e: Exception) {
                 runOnUiThread { Toast.makeText(this, R.string.load_failed, Toast.LENGTH_SHORT).show() }
@@ -521,14 +576,17 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     // ---------- 频道筛选 ----------
 
     private fun applyFilter() {
-        val query = binding.searchInput.text.toString().trim().lowercase(Locale.getDefault())
-        val filtered = allChannels.filter { ch ->
-            val matchQuery = query.isEmpty() || ch.name.lowercase(Locale.getDefault()).contains(query)
-            val matchFav = !showFavoritesOnly || favorites.contains(ch.url)
-            matchQuery && matchFav
+        try {
+            val query = binding.searchInput.text.toString().trim().lowercase(Locale.getDefault())
+            val filtered = allChannels.filter { ch ->
+                val matchQuery = query.isEmpty() || ch.name.lowercase(Locale.getDefault()).contains(query)
+                val matchFav = !showFavoritesOnly || favorites.contains(ch.url)
+                matchQuery && matchFav
+            }
+            adapter.submitChannels(filtered)
+            adapter.setSelected(currentChannel?.id)
+        } catch (ignored: Throwable) {
         }
-        adapter.submitChannels(filtered)
-        adapter.setSelected(currentChannel?.id)
     }
 
     // ---------- 播放 ----------
@@ -614,7 +672,12 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                 val content = HttpLoader.fetch(epgUrl)
                 val data = EpgParser.parse(content)
                 epgPrograms = indexEpg(data)
-                runOnUiThread { updateNowPlaying() }
+                runOnUiThread {
+                    try {
+                        updateNowPlaying()
+                    } catch (ignored: Throwable) {
+                    }
+                }
             } catch (ignored: Exception) {
             }
         }.start()
@@ -634,37 +697,40 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     }
 
     private fun updateNowPlaying() {
-        val ch = currentChannel
-        if (ch == null) {
-            binding.tvChannelName.text = getString(R.string.no_channels)
-            binding.tvEpgNow.text = getString(R.string.no_epg)
-            binding.tvEpgNext.text = ""
-            binding.tvChannelMeta.text = ""
-            return
-        }
-        binding.tvChannelName.text = ch.name
+        try {
+            val ch = currentChannel
+            if (ch == null) {
+                binding.tvChannelName.text = getString(R.string.no_channels)
+                binding.tvEpgNow.text = getString(R.string.no_epg)
+                binding.tvEpgNext.text = ""
+                binding.tvChannelMeta.text = ""
+                return
+            }
+            binding.tvChannelName.text = ch.name
 
-        // 序号 / 总数 + 分辨率（柠檬TV 风格）
-        val idx = allChannels.indexOfFirst { it.id == ch.id }
-        val meta = StringBuilder()
-        if (idx >= 0) {
-            meta.append("第 ").append(idx + 1).append(" / ").append(allChannels.size).append(" 频道")
-        }
-        if (videoW > 0 && videoH > 0) {
-            if (meta.isNotEmpty()) meta.append(" · ")
-            meta.append("分辨率 ").append(videoW).append("×").append(videoH)
-        }
-        binding.tvChannelMeta.text = meta.toString()
+            // 序号 / 总数 + 分辨率（柠檬TV 风格）
+            val idx = allChannels.indexOfFirst { it.id == ch.id }
+            val meta = StringBuilder()
+            if (idx >= 0) {
+                meta.append("第 ").append(idx + 1).append(" / ").append(allChannels.size).append(" 频道")
+            }
+            if (videoW > 0 && videoH > 0) {
+                if (meta.isNotEmpty()) meta.append(" · ")
+                meta.append("分辨率 ").append(videoW).append("×").append(videoH)
+            }
+            binding.tvChannelMeta.text = meta.toString()
 
-        val programs = epgPrograms[ch.id] ?: emptyList()
-        val now = System.currentTimeMillis()
-        val current = programs.firstOrNull { now in it.start until it.end }
-        val next = programs.firstOrNull { it.start >= now }
-        binding.tvEpgNow.text =
-            if (current != null) "正在播放: " + current.title else getString(R.string.no_epg)
-        binding.tvEpgNext.text =
-            if (next != null) "稍后播放: " + next.title + "  " + formatTime(next.start) else ""
-        updateFavoriteIcon()
+            val programs = epgPrograms[ch.id] ?: emptyList()
+            val now = System.currentTimeMillis()
+            val current = programs.firstOrNull { now in it.start until it.end }
+            val next = programs.firstOrNull { it.start >= now }
+            binding.tvEpgNow.text =
+                if (current != null) "正在播放: " + current.title else getString(R.string.no_epg)
+            binding.tvEpgNext.text =
+                if (next != null) "稍后播放: " + next.title + "  " + formatTime(next.start) else ""
+            updateFavoriteIcon()
+        } catch (ignored: Throwable) {
+        }
     }
 
     private fun formatTime(ts: Long): String {
@@ -674,24 +740,36 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     // ---------- PlaybackManager.Listener ----------
 
     override fun onPlaybackReady(channelName: String) {
-        binding.tvChannelName.text = channelName
-        updateNowPlaying()
+        try {
+            binding.tvChannelName.text = channelName
+            updateNowPlaying()
+        } catch (ignored: Throwable) {
+        }
     }
 
     override fun onPlaybackError(message: String) {
-        binding.tvEpgNow.text = "播放失败: $message"
+        try {
+            binding.tvEpgNow.text = "播放失败: $message"
+        } catch (ignored: Throwable) {
+        }
     }
 
     override fun onPlaybackStateChanged(isPlaying: Boolean) {
-        binding.btnPlayPause.setImageResource(
-            if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play
-        )
+        try {
+            binding.btnPlayPause.setImageResource(
+                if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play
+            )
+        } catch (ignored: Throwable) {
+        }
     }
 
     override fun onVideoSizeChanged(width: Int, height: Int) {
-        videoW = width
-        videoH = height
-        updateNowPlaying()
+        try {
+            videoW = width
+            videoH = height
+            updateNowPlaying()
+        } catch (ignored: Throwable) {
+        }
     }
 
     // ---------- 遥控器按键 ----------

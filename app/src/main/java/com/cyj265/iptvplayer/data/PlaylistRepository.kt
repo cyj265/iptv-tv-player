@@ -1,65 +1,108 @@
 package com.cyj265.iptvplayer.data
 
 import android.content.Context
+import android.content.SharedPreferences
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 
 /**
  * 播放列表与偏好存储。
+ * 所有 SharedPreferences 读取都带异常兜底：盒子存储异常导致 SP 文件损坏时，
+ * 自动重置为空数据，保证应用能正常启动（否则会"启动即崩、打不开"）。
  */
 class PlaylistRepository(private val context: Context) {
 
-    private val prefs = context.getSharedPreferences("iptv_prefs", Context.MODE_PRIVATE)
+    private val prefs: SharedPreferences =
+        context.getSharedPreferences("iptv_prefs", Context.MODE_PRIVATE)
+
+    private fun safeGetString(key: String, def: String?): String? {
+        return try {
+            prefs.getString(key, def)
+        } catch (e: Throwable) {
+            resetPrefs()
+            def
+        }
+    }
+
+    private fun safeGetBoolean(key: String, def: Boolean): Boolean {
+        return try {
+            prefs.getBoolean(key, def)
+        } catch (e: Throwable) {
+            resetPrefs()
+            def
+        }
+    }
+
+    private fun safeGetStringSet(key: String): MutableSet<String> {
+        return try {
+            prefs.getStringSet(key, HashSet())!!.toMutableSet()
+        } catch (e: Throwable) {
+            resetPrefs()
+            HashSet()
+        }
+    }
+
+    private fun resetPrefs() {
+        try {
+            prefs.edit().clear().commit()
+        } catch (ignored: Exception) {
+        }
+    }
+
+    private fun safeApply(block: SharedPreferences.Editor.() -> Unit) {
+        try {
+            val editor = prefs.edit()
+            block(editor)
+            editor.apply()
+        } catch (ignored: Exception) {
+        }
+    }
 
     var playlistUrl: String?
-        get() = prefs.getString("playlist_url", null)
-        set(value) = prefs.edit().putString("playlist_url", value).apply()
+        get() = safeGetString("playlist_url", null)
+        set(value) = safeApply { putString("playlist_url", value) }
 
     var epgUrl: String?
-        get() = prefs.getString("epg_url", null)
-        set(value) = prefs.edit().putString("epg_url", value).apply()
+        get() = safeGetString("epg_url", null)
+        set(value) = safeApply { putString("epg_url", value) }
 
     // ---------- 播放偏好 ----------
 
     /** 画面比例：fit / fill / zoom / 16:9 / 4:3 */
     var aspectRatio: String
-        get() = prefs.getString("aspect_ratio", "fit")!!
-        set(value) = prefs.edit().putString("aspect_ratio", value).apply()
+        get() = safeGetString("aspect_ratio", "fit") ?: "fit"
+        set(value) = safeApply { putString("aspect_ratio", value) }
 
     /** 打开应用时自动恢复上次频道 */
     var autoResume: Boolean
-        get() = prefs.getBoolean("auto_resume", true)
-        set(value) = prefs.edit().putBoolean("auto_resume", value).apply()
+        get() = safeGetBoolean("auto_resume", true)
+        set(value) = safeApply { putBoolean("auto_resume", value) }
 
     /** 顶部信息条/底部控制条无操作自动隐藏 */
     var autoHideOverlay: Boolean
-        get() = prefs.getBoolean("auto_hide_overlay", true)
-        set(value) = prefs.edit().putBoolean("auto_hide_overlay", value).apply()
+        get() = safeGetBoolean("auto_hide_overlay", true)
+        set(value) = safeApply { putBoolean("auto_hide_overlay", value) }
 
     /** 上次播放的频道 id */
     var lastChannelId: String?
-        get() = prefs.getString("last_channel_id", null)
-        set(value) = prefs.edit().putString("last_channel_id", value).apply()
+        get() = safeGetString("last_channel_id", null)
+        set(value) = safeApply { putString("last_channel_id", value) }
 
     // ---------- 收藏 ----------
 
-    fun getFavorites(): MutableSet<String> {
-        return prefs.getStringSet("favorites", HashSet())!!.toMutableSet()
-    }
+    fun getFavorites(): MutableSet<String> = safeGetStringSet("favorites")
 
     fun setFavorites(favorites: Set<String>) {
-        prefs.edit().putStringSet("favorites", favorites).apply()
+        safeApply { putStringSet("favorites", favorites) }
     }
 
     // ---------- 分组折叠状态 ----------
 
-    fun getCollapsedGroups(): MutableSet<String> {
-        return prefs.getStringSet("collapsed_groups", HashSet())!!.toMutableSet()
-    }
+    fun getCollapsedGroups(): MutableSet<String> = safeGetStringSet("collapsed_groups")
 
     fun saveCollapsedGroups(groups: Set<String>) {
-        prefs.edit().putStringSet("collapsed_groups", groups).apply()
+        safeApply { putStringSet("collapsed_groups", groups) }
     }
 
     // ---------- 频道缓存（离线快速启动 / 网络失败兜底） ----------
