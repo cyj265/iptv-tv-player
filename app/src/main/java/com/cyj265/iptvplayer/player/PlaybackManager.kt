@@ -32,10 +32,9 @@ import java.io.StringWriter
  * 自动识别 HLS / 渐进式流，与 TiviMate 同源的内核家族，对标准 HLS 支持最好。
  *
  * 解码策略（设置中可切换）：
- * - auto：硬解优先，解码器初始化失败自动回退其他解码器（默认）；
- * - hardware：只允许硬件解码器（斐讯 T1 的 H.265 硬解本身没问题，
- *   此模式可避免自动回退误选软解导致 1080p 卡顿/报错）；
- * - software：只允许软件解码器（兼容性最好，但 1080p HEVC 较费 CPU）。
+ * - auto：硬解优先，解码器初始化失败自动降级软解（默认，影视仓同款行为）；
+ * - hardware：只允许硬件解码器；
+ * - software：只允许软件解码器。
  *
  * 直播缓冲：起播 1.5s、重缓冲 3s、持续 15s、上限 45s——秒开且能吸收网络抖动。
  *
@@ -61,6 +60,9 @@ class PlaybackManager(
     private var retryCount = 0
     private val retryHandler = Handler(Looper.getMainLooper())
 
+    /** 当前频道是否已从硬解自动降级到软解（每个频道重置一次） */
+    private var degradedToSoftware = false
+
     /** 解码方式：auto / hardware / software */
     private var decoderMode: String =
         context.getSharedPreferences("iptv_prefs", Context.MODE_PRIVATE)
@@ -82,8 +84,34 @@ class PlaybackManager(
                 )
             } catch (ignored: Exception) {
             }
-            // 自动重试最多 2 次，间隔递增（1.5s / 3s）
+            // 硬解解码器初始化/解码失败时，自动降级到软解重试（影视仓同款行为）：
+            // Amlogic 老硬解对个别 HEVC 流会 init failed，Media3 的 fallback 只覆盖
+            // 解码器查询阶段，configure 阶段失败不会自动换软解，这里手动补上。
             val url = currentUrl
+            if (!degradedToSoftware && decoderMode == "auto" && url != null &&
+                (error.errorCode == PlaybackException.ERROR_CODE_DECODER_INIT_FAILED ||
+                    error.errorCode == PlaybackException.ERROR_CODE_DECODING_FAILED)
+            ) {
+                degradedToSoftware = true
+                val name = currentChannelName
+                listener.onPlaybackError("硬解失败，正在切换到软件解码…")
+                retryHandler.postDelayed({
+                    val pv = playerView ?: return@postDelayed
+                    decoderMode = "software"
+                    context.getSharedPreferences("iptv_prefs", Context.MODE_PRIVATE)
+                        .edit().putString("decoder_mode", "software").apply()
+                    player?.removeListener(this@PlaybackManager.playerListener)
+                    player?.release()
+                    pv.player = null
+                    player = buildPlayer()
+                    pv.player = player
+                    player?.addListener(this@PlaybackManager.playerListener)
+                    retryCount = 0
+                    play(url, name ?: url)
+                }, 800)
+                return
+            }
+            // 自动重试最多 2 次，间隔递增（1.5s / 3s）
             if (retryCount < 2 && url != null) {
                 retryCount++
                 val delay = 1500L * retryCount
@@ -195,10 +223,9 @@ class PlaybackManager(
     private object HardwareOnlySelector : MediaCodecSelector {
         override fun getDecoderInfos(
             mimeType: String,
-            requiresSecureDecoder: Boolean,
-            requiresTunnelingDecoder: Boolean
+            requiresSecureDecoder: Boolean
         ): List<MediaCodecInfo> {
-            return MediaCodecUtil.getDecoderInfos(mimeType, requiresSecureDecoder, requiresTunnelingDecoder)
+            return MediaCodecUtil.getDecoderInfos(mimeType, requiresSecureDecoder)
                 .filter { !it.softwareOnly }
         }
     }
@@ -207,10 +234,9 @@ class PlaybackManager(
     private object SoftwareOnlySelector : MediaCodecSelector {
         override fun getDecoderInfos(
             mimeType: String,
-            requiresSecureDecoder: Boolean,
-            requiresTunnelingDecoder: Boolean
+            requiresSecureDecoder: Boolean
         ): List<MediaCodecInfo> {
-            return MediaCodecUtil.getDecoderInfos(mimeType, requiresSecureDecoder, requiresTunnelingDecoder)
+            return MediaCodecUtil.getDecoderInfos(mimeType, requiresSecureDecoder)
                 .filter { it.softwareOnly }
         }
     }
@@ -240,6 +266,7 @@ class PlaybackManager(
         currentUrl = url
         currentChannelName = channelName
         retryCount = 0
+        degradedToSoftware = false
         p.setMediaSource(buildMediaSource(url, channelName))
         p.prepare()
         p.playWhenReady = true
