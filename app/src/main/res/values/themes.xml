@@ -8,6 +8,10 @@
         <item name="android:statusBarColor">@color/bg_dark</item>
         <item name="android:navigationBarColor">@color/bg_dark</item>
         <item name="android:windowFullscreen">true</item>
-        <item name="android:fontFamily">sans-serif</item>
+        <!-- 注意：不要在此设置 android:fontFamily 字面值。
+             这是 Android 7 (Nougat) 的已知崩溃 (Google issue 64053344)：
+             主题里直接写 fontFamily 会在 inflate TextView 时抛
+             ArrayIndexOutOfBoundsException: StringBlock.get() 越界，导致启动即崩。
+             sans-serif 本就是系统默认字体，无需显式设置。 -->
     </style>
 </resources>
