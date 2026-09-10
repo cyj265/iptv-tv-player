@@ -11,7 +11,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:focusable="false"
-        app:useController="false"
+        app:use_controller="false"
         app:resize_mode="fit" />
 
     <!-- ===== 顶部：当前频道信息（覆盖层） ===== -->
