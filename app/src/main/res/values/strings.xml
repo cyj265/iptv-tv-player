@@ -39,4 +39,18 @@
     <string name="close">关闭</string>
     <string name="cleared">已清除</string>
     <string name="playback_hint">方向键换台 · OK 频道列表 · 菜单键设置</string>
+    <string name="nav_source">直播源</string>
+    <string name="nav_player">播放器</string>
+    <string name="nav_ui">界面</string>
+    <string name="nav_fav">收藏</string>
+    <string name="nav_update">更新</string>
+    <string name="nav_debug">调试</string>
+    <string name="auto_hide_overlay">无操作时自动隐藏信息条与按钮</string>
+    <string name="ui_hint">关闭后信息条与底部按钮将常驻显示</string>
+    <string name="current_version">当前版本</string>
+    <string name="check_update">检查更新（打开 GitHub 发布页）</string>
+    <string name="crash_log">崩溃日志（真机问题定位用）</string>
+    <string name="clear_crash_log">清空崩溃日志</string>
+    <string name="cleared_crash_log">崩溃日志已清空</string>
+    <string name="fav_count">已收藏 %1$d 个频道</string>
 </resources>

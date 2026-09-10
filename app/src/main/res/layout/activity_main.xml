@@ -14,7 +14,7 @@
         app:use_controller="false"
         app:resize_mode="fit" />
 
-    <!-- ===== 顶部：当前频道信息（覆盖层） ===== -->
+    <!-- ===== 顶部：当前频道信息（覆盖层，柠檬TV 风格） ===== -->
     <LinearLayout
         android:id="@+id/nowPlayingBar"
         android:layout_width="match_parent"
@@ -27,27 +27,68 @@
         android:paddingTop="14dp"
         android:paddingBottom="12dp">
 
-        <TextView
-            android:id="@+id/tvChannelName"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textColor="@color/text_primary"
-            android:textSize="22sp"
-            android:textStyle="bold"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/tvChannelName"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textColor="@color/text_primary"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:text="@string/no_channels" />
+
+            <TextView
+                android:id="@+id/tvClock"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="12dp"
+                android:textColor="@color/text_secondary"
+                android:textSize="14sp"
+                android:gravity="end"
+                android:maxLines="2"
+                android:text="" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvChannelMeta"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="3dp"
+            android:textColor="@color/text_secondary"
+            android:textSize="13sp"
             android:maxLines="1"
             android:ellipsize="end"
-            android:text="@string/no_channels" />
+            android:text="" />
 
         <TextView
             android:id="@+id/tvEpgNow"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:textColor="@color/text_secondary"
+            android:layout_marginTop="3dp"
+            android:textColor="@color/text_primary"
             android:textSize="14sp"
-            android:maxLines="2"
+            android:maxLines="1"
             android:ellipsize="end"
             android:text="@string/no_epg" />
+
+        <TextView
+            android:id="@+id/tvEpgNext"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textColor="@color/text_secondary"
+            android:textSize="13sp"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:text="" />
     </LinearLayout>
 
     <!-- ===== 底部：精简控制条（覆盖层，直播语义） ===== -->
@@ -112,6 +153,17 @@
             android:src="@drawable/ic_star"
             android:scaleType="centerInside"
             android:layout_marginLeft="16dp" />
+
+        <!-- 更多设置（菜单键等价入口，柠檬TV 底部也有“更多设置”） -->
+        <ImageButton
+            android:id="@+id/btnSettings"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:contentDescription="@string/settings"
+            android:background="@drawable/bg_control"
+            android:src="@drawable/ic_settings"
+            android:scaleType="centerInside"
+            android:layout_marginLeft="16dp" />
     </LinearLayout>
 
     <!-- ===== 左侧：频道列表悬浮层（OK 唤出，默认隐藏） ===== -->
@@ -124,7 +176,7 @@
         android:background="@color/bg_overlay_strong"
         android:visibility="gone">
 
-        <!-- 工具条：搜索 + 收藏 + 设置 -->
+        <!-- 工具条：搜索 + 收藏 -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -157,16 +209,6 @@
                 android:src="@drawable/ic_star"
                 android:scaleType="centerInside"
                 android:layout_marginLeft="8dp" />
-
-            <ImageButton
-                android:id="@+id/btnSettings"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:contentDescription="@string/settings"
-                android:background="?attr/selectableItemBackground"
-                android:src="@drawable/ic_settings"
-                android:scaleType="centerInside"
-                android:layout_marginLeft="4dp" />
         </LinearLayout>
 
         <TextView
@@ -189,220 +231,460 @@
             android:paddingBottom="8dp" />
     </LinearLayout>
 
-    <!-- ===== 右侧：设置悬浮层（菜单键唤出，默认隐藏） ===== -->
-    <ScrollView
+    <!-- ===== 右侧：设置悬浮层（菜单键唤出，柠檬TV 风格：左侧导航 + 右侧详情） ===== -->
+    <LinearLayout
         android:id="@+id/settingsPanel"
-        android:layout_width="430dp"
+        android:layout_width="640dp"
         android:layout_height="match_parent"
         android:layout_gravity="right"
+        android:orientation="vertical"
         android:background="@color/bg_overlay_strong"
-        android:fillViewport="true"
         android:visibility="gone">
 
+        <!-- 标题栏 -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
             android:paddingLeft="20dp"
             android:paddingRight="20dp"
-            android:paddingTop="18dp"
-            android:paddingBottom="24dp">
+            android:paddingTop="16dp"
+            android:paddingBottom="12dp">
 
-            <!-- 标题 -->
             <TextView
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_weight="1"
                 android:text="@string/settings"
                 android:textColor="@color/text_primary"
                 android:textSize="22sp"
-                android:textStyle="bold"
-                android:paddingBottom="16dp" />
-
-            <!-- ===== 分区：播放列表 ===== -->
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/playlist_url"
-                android:textColor="@color/text_secondary"
-                android:textSize="14sp" />
-
-            <EditText
-                android:id="@+id/inputPlaylistUrl"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_marginTop="6dp"
-                android:background="@drawable/bg_search"
-                android:paddingLeft="14dp"
-                android:paddingRight="14dp"
-                android:textColor="@color/text_primary"
-                android:textColorHint="@color/text_secondary"
-                android:textSize="15sp"
-                android:inputType="textUri"
-                android:hint="https://example.com/list.m3u 或 list.txt" />
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:orientation="horizontal">
-
-                <Button
-                    android:id="@+id/btnImportFile"
-                    android:layout_width="0dp"
-                    android:layout_height="46dp"
-                    android:layout_weight="1"
-                    android:text="@string/choose_file"
-                    android:textSize="14sp"
-                    android:backgroundTint="@color/bg_item"
-                    android:textColor="@color/text_primary" />
-
-                <Button
-                    android:id="@+id/btnLoadPlaylist"
-                    android:layout_width="0dp"
-                    android:layout_height="46dp"
-                    android:layout_weight="1"
-                    android:layout_marginLeft="10dp"
-                    android:text="@string/load"
-                    android:textSize="14sp"
-                    android:backgroundTint="@color/accent"
-                    android:textColor="#FFFFFF" />
-            </LinearLayout>
-
-            <!-- ===== 分区：节目指南 ===== -->
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="18dp"
-                android:text="@string/epg_url"
-                android:textColor="@color/text_secondary"
-                android:textSize="14sp" />
-
-            <EditText
-                android:id="@+id/inputEpgUrl"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_marginTop="6dp"
-                android:background="@drawable/bg_search"
-                android:paddingLeft="14dp"
-                android:paddingRight="14dp"
-                android:textColor="@color/text_primary"
-                android:textColorHint="@color/text_secondary"
-                android:textSize="15sp"
-                android:inputType="textUri"
-                android:hint="https://example.com/epg.xml（可选）" />
-
-            <!-- ===== 分区：直播流链接 ===== -->
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="18dp"
-                android:text="@string/direct_stream"
-                android:textColor="@color/text_secondary"
-                android:textSize="14sp" />
-
-            <EditText
-                android:id="@+id/inputDirectUrl"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_marginTop="6dp"
-                android:background="@drawable/bg_search"
-                android:paddingLeft="14dp"
-                android:paddingRight="14dp"
-                android:textColor="@color/text_primary"
-                android:textColorHint="@color/text_secondary"
-                android:textSize="15sp"
-                android:inputType="textUri"
-                android:hint="http://example.com/live.m3u8" />
-
-            <Button
-                android:id="@+id/btnPlayDirect"
-                android:layout_width="match_parent"
-                android:layout_height="46dp"
-                android:layout_marginTop="8dp"
-                android:text="@string/play_direct"
-                android:textSize="14sp"
-                android:backgroundTint="@color/accent"
-                android:textColor="#FFFFFF" />
-
-            <!-- ===== 分区：播放选项 ===== -->
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="22dp"
-                android:text="@string/playback_options"
-                android:textColor="@color/text_primary"
-                android:textSize="17sp"
                 android:textStyle="bold" />
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:text="@string/aspect_ratio"
-                android:textColor="@color/text_secondary"
-                android:textSize="14sp" />
-
-            <Button
-                android:id="@+id/btnAspectRatio"
-                android:layout_width="match_parent"
-                android:layout_height="46dp"
-                android:layout_marginTop="6dp"
-                android:text="@string/aspect_fit"
-                android:textSize="14sp"
-                android:backgroundTint="@color/bg_item"
-                android:textColor="@color/text_primary" />
-
-            <CheckBox
-                android:id="@+id/chkAutoResume"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:text="@string/auto_resume"
-                android:textColor="@color/text_primary"
-                android:textSize="15sp"
-                android:focusable="true"
-                android:clickable="true"
-                android:padding="6dp" />
-
-            <!-- ===== 分区：收藏 ===== -->
-            <Button
-                android:id="@+id/btnClearFavorites"
-                android:layout_width="match_parent"
-                android:layout_height="46dp"
-                android:layout_marginTop="22dp"
-                android:text="@string/clear_favorites"
-                android:textSize="14sp"
-                android:backgroundTint="@color/bg_item"
-                android:textColor="@color/text_primary" />
-
-            <!-- ===== 分区：关于 ===== -->
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="22dp"
-                android:text="@string/about"
-                android:textColor="@color/text_primary"
-                android:textSize="17sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/tvAbout"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:textColor="@color/text_secondary"
-                android:textSize="13sp"
-                android:lineSpacingExtra="3dp" />
 
             <Button
                 android:id="@+id/btnCloseSettings"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_marginTop="22dp"
+                android:layout_width="72dp"
+                android:layout_height="42dp"
                 android:text="@string/close"
-                android:textSize="15sp"
-                android:backgroundTint="@color/accent"
-                android:textColor="#FFFFFF" />
+                android:textSize="14sp"
+                android:backgroundTint="@color/bg_item"
+                android:textColor="@color/text_primary" />
         </LinearLayout>
-    </ScrollView>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="horizontal">
+
+            <!-- 左侧导航列 -->
+            <LinearLayout
+                android:layout_width="160dp"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:background="@color/bg_item"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp">
+
+                <TextView
+                    android:id="@+id/navSource"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:gravity="center_vertical"
+                    android:paddingLeft="20dp"
+                    android:focusable="true"
+                    android:clickable="true"
+                    android:background="?attr/selectableItemBackground"
+                    android:text="@string/nav_source"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:id="@+id/navPlayer"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:gravity="center_vertical"
+                    android:paddingLeft="20dp"
+                    android:focusable="true"
+                    android:clickable="true"
+                    android:background="?attr/selectableItemBackground"
+                    android:text="@string/nav_player"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:id="@+id/navUi"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:gravity="center_vertical"
+                    android:paddingLeft="20dp"
+                    android:focusable="true"
+                    android:clickable="true"
+                    android:background="?attr/selectableItemBackground"
+                    android:text="@string/nav_ui"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:id="@+id/navFav"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:gravity="center_vertical"
+                    android:paddingLeft="20dp"
+                    android:focusable="true"
+                    android:clickable="true"
+                    android:background="?attr/selectableItemBackground"
+                    android:text="@string/nav_fav"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:id="@+id/navUpdate"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:gravity="center_vertical"
+                    android:paddingLeft="20dp"
+                    android:focusable="true"
+                    android:clickable="true"
+                    android:background="?attr/selectableItemBackground"
+                    android:text="@string/nav_update"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:id="@+id/navDebug"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:gravity="center_vertical"
+                    android:paddingLeft="20dp"
+                    android:focusable="true"
+                    android:clickable="true"
+                    android:background="?attr/selectableItemBackground"
+                    android:text="@string/nav_debug"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:id="@+id/navAbout"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:gravity="center_vertical"
+                    android:paddingLeft="20dp"
+                    android:focusable="true"
+                    android:clickable="true"
+                    android:background="?attr/selectableItemBackground"
+                    android:text="@string/about"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="16sp" />
+            </LinearLayout>
+
+            <!-- 右侧内容区（各分区按导航切换显示） -->
+            <ScrollView
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:fillViewport="true">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:paddingLeft="20dp"
+                    android:paddingRight="20dp"
+                    android:paddingTop="14dp"
+                    android:paddingBottom="24dp">
+
+                    <!-- ===== 分区：直播源 ===== -->
+                    <LinearLayout
+                        android:id="@+id/sectionSource"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/playlist_url"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="14sp" />
+
+                        <EditText
+                            android:id="@+id/inputPlaylistUrl"
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:layout_marginTop="6dp"
+                            android:background="@drawable/bg_search"
+                            android:paddingLeft="14dp"
+                            android:paddingRight="14dp"
+                            android:textColor="@color/text_primary"
+                            android:textColorHint="@color/text_secondary"
+                            android:textSize="15sp"
+                            android:inputType="textUri"
+                            android:hint="https://example.com/list.m3u 或 list.txt" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:orientation="horizontal">
+
+                            <Button
+                                android:id="@+id/btnImportFile"
+                                android:layout_width="0dp"
+                                android:layout_height="46dp"
+                                android:layout_weight="1"
+                                android:text="@string/choose_file"
+                                android:textSize="14sp"
+                                android:backgroundTint="@color/bg_item"
+                                android:textColor="@color/text_primary" />
+
+                            <Button
+                                android:id="@+id/btnLoadPlaylist"
+                                android:layout_width="0dp"
+                                android:layout_height="46dp"
+                                android:layout_weight="1"
+                                android:layout_marginLeft="10dp"
+                                android:text="@string/load"
+                                android:textSize="14sp"
+                                android:backgroundTint="@color/accent"
+                                android:textColor="#FFFFFF" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="18dp"
+                            android:text="@string/epg_url"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="14sp" />
+
+                        <EditText
+                            android:id="@+id/inputEpgUrl"
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:layout_marginTop="6dp"
+                            android:background="@drawable/bg_search"
+                            android:paddingLeft="14dp"
+                            android:paddingRight="14dp"
+                            android:textColor="@color/text_primary"
+                            android:textColorHint="@color/text_secondary"
+                            android:textSize="15sp"
+                            android:inputType="textUri"
+                            android:hint="https://example.com/epg.xml（可选）" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="18dp"
+                            android:text="@string/direct_stream"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="14sp" />
+
+                        <EditText
+                            android:id="@+id/inputDirectUrl"
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:layout_marginTop="6dp"
+                            android:background="@drawable/bg_search"
+                            android:paddingLeft="14dp"
+                            android:paddingRight="14dp"
+                            android:textColor="@color/text_primary"
+                            android:textColorHint="@color/text_secondary"
+                            android:textSize="15sp"
+                            android:inputType="textUri"
+                            android:hint="http://example.com/live.m3u8" />
+
+                        <Button
+                            android:id="@+id/btnPlayDirect"
+                            android:layout_width="match_parent"
+                            android:layout_height="46dp"
+                            android:layout_marginTop="8dp"
+                            android:text="@string/play_direct"
+                            android:textSize="14sp"
+                            android:backgroundTint="@color/accent"
+                            android:textColor="#FFFFFF" />
+                    </LinearLayout>
+
+                    <!-- ===== 分区：播放器 ===== -->
+                    <LinearLayout
+                        android:id="@+id/sectionPlayer"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/aspect_ratio"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="14sp" />
+
+                        <Button
+                            android:id="@+id/btnAspectRatio"
+                            android:layout_width="match_parent"
+                            android:layout_height="46dp"
+                            android:layout_marginTop="6dp"
+                            android:text="@string/aspect_fit"
+                            android:textSize="14sp"
+                            android:backgroundTint="@color/bg_item"
+                            android:textColor="@color/text_primary" />
+
+                        <CheckBox
+                            android:id="@+id/chkAutoResume"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="10dp"
+                            android:text="@string/auto_resume"
+                            android:textColor="@color/text_primary"
+                            android:textSize="15sp"
+                            android:focusable="true"
+                            android:clickable="true"
+                            android:padding="6dp" />
+                    </LinearLayout>
+
+                    <!-- ===== 分区：界面 ===== -->
+                    <LinearLayout
+                        android:id="@+id/sectionUi"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <CheckBox
+                            android:id="@+id/chkAutoHide"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/auto_hide_overlay"
+                            android:textColor="@color/text_primary"
+                            android:textSize="15sp"
+                            android:focusable="true"
+                            android:clickable="true"
+                            android:padding="6dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:text="@string/ui_hint"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+
+                    <!-- ===== 分区：收藏 ===== -->
+                    <LinearLayout
+                        android:id="@+id/sectionFav"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:id="@+id/tvFavCount"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="14sp" />
+
+                        <Button
+                            android:id="@+id/btnClearFavorites"
+                            android:layout_width="match_parent"
+                            android:layout_height="46dp"
+                            android:layout_marginTop="12dp"
+                            android:text="@string/clear_favorites"
+                            android:textSize="14sp"
+                            android:backgroundTint="@color/bg_item"
+                            android:textColor="@color/text_primary" />
+                    </LinearLayout>
+
+                    <!-- ===== 分区：更新 ===== -->
+                    <LinearLayout
+                        android:id="@+id/sectionUpdate"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/current_version"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="14sp" />
+
+                        <TextView
+                            android:id="@+id/tvVersion"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:textColor="@color/text_primary"
+                            android:textSize="16sp" />
+
+                        <Button
+                            android:id="@+id/btnCheckUpdate"
+                            android:layout_width="match_parent"
+                            android:layout_height="46dp"
+                            android:layout_marginTop="14dp"
+                            android:text="@string/check_update"
+                            android:textSize="14sp"
+                            android:backgroundTint="@color/accent"
+                            android:textColor="#FFFFFF" />
+                    </LinearLayout>
+
+                    <!-- ===== 分区：调试 ===== -->
+                    <LinearLayout
+                        android:id="@+id/sectionDebug"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/crash_log"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="14sp" />
+
+                        <TextView
+                            android:id="@+id/tvCrashLog"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:textColor="@color/text_primary"
+                            android:textSize="12sp"
+                            android:lineSpacingExtra="2dp"
+                            android:text="无" />
+
+                        <Button
+                            android:id="@+id/btnClearCrashLog"
+                            android:layout_width="match_parent"
+                            android:layout_height="46dp"
+                            android:layout_marginTop="12dp"
+                            android:text="@string/clear_crash_log"
+                            android:textSize="14sp"
+                            android:backgroundTint="@color/bg_item"
+                            android:textColor="@color/text_primary" />
+                    </LinearLayout>
+
+                    <!-- ===== 分区：关于 ===== -->
+                    <LinearLayout
+                        android:id="@+id/sectionAbout"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:id="@+id/tvAbout"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="13sp"
+                            android:lineSpacingExtra="3dp" />
+                    </LinearLayout>
+                </LinearLayout>
+            </ScrollView>
+        </LinearLayout>
+    </LinearLayout>
 </FrameLayout>
