@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace = "com.cyj265.iptvplayer"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.cyj265.iptvplayer"
@@ -61,7 +61,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4")
 
     // Media3 (ExoPlayer) 播放内核：1.8.0 修复了老设备 HEVC 轨道被误判为“超出能力”
-    // 导致硬解失败的问题（androidx/media issue #966 系列）。
+    // 导致硬解失败的问题（androidx/media issue #966 系列）。compileSdk 需 35。
     implementation("androidx.media3:media3-exoplayer:1.8.0")
     implementation("androidx.media3:media3-exoplayer-hls:1.8.0")
     implementation("androidx.media3:media3-ui:1.8.0")
