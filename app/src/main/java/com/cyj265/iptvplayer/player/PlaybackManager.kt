@@ -8,6 +8,7 @@ import androidx.media3.common.Player
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 
 /**
@@ -26,6 +27,7 @@ class PlaybackManager(
     }
 
     private var player: ExoPlayer? = null
+    private var playerView: PlayerView? = null
     private var currentUrl: String? = null
 
     private val playerListener = object : Player.Listener {
@@ -44,6 +46,7 @@ class PlaybackManager(
 
     fun attach(playerView: PlayerView) {
         if (player != null) return
+        this.playerView = playerView
         val dataSourceFactory = DefaultHttpDataSource.Factory()
             .setUserAgent("ExoPlayer/IPTVPlayer")
             .setConnectTimeoutMs(15_000)
@@ -58,6 +61,26 @@ class PlaybackManager(
         p.addListener(playerListener)
         playerView.player = p
         player = p
+    }
+
+    /** 画面比例：fit / fill / zoom / 16:9 / 4:3 */
+    fun setAspectRatio(mode: String) {
+        val pv = playerView ?: return
+        when (mode) {
+            "fill" -> pv.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FILL
+            "zoom" -> pv.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+            "16:9", "4:3" -> {
+                pv.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+                try {
+                    val frame = pv.findViewById<AspectRatioFrameLayout>(
+                        androidx.media3.ui.R.id.exo_content_frame
+                    )
+                    frame?.setAspectRatio(if (mode == "16:9") 16f / 9f else 4f / 3f)
+                } catch (ignored: Exception) {
+                }
+            }
+            else -> pv.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+        }
     }
 
     fun play(url: String, channelName: String) {
@@ -82,16 +105,9 @@ class PlaybackManager(
         }
     }
 
-    fun stop() {
-        val p = player ?: return
-        p.stop()
-        p.clearMediaItems()
-        currentUrl = null
-        listener.onPlaybackStateChanged(false)
-    }
-
     fun release() {
         player?.release()
         player = null
+        playerView = null
     }
 }

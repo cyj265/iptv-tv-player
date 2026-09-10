@@ -20,12 +20,41 @@ class PlaylistRepository(private val context: Context) {
         get() = prefs.getString("epg_url", null)
         set(value) = prefs.edit().putString("epg_url", value).apply()
 
+    // ---------- 播放偏好 ----------
+
+    /** 画面比例：fit / fill / zoom / 16:9 / 4:3 */
+    var aspectRatio: String
+        get() = prefs.getString("aspect_ratio", "fit")!!
+        set(value) = prefs.edit().putString("aspect_ratio", value).apply()
+
+    /** 打开应用时自动恢复上次频道 */
+    var autoResume: Boolean
+        get() = prefs.getBoolean("auto_resume", true)
+        set(value) = prefs.edit().putBoolean("auto_resume", value).apply()
+
+    /** 上次播放的频道 id */
+    var lastChannelId: String?
+        get() = prefs.getString("last_channel_id", null)
+        set(value) = prefs.edit().putString("last_channel_id", value).apply()
+
+    // ---------- 收藏 ----------
+
     fun getFavorites(): MutableSet<String> {
         return prefs.getStringSet("favorites", HashSet())!!.toMutableSet()
     }
 
     fun setFavorites(favorites: Set<String>) {
         prefs.edit().putStringSet("favorites", favorites).apply()
+    }
+
+    // ---------- 分组折叠状态 ----------
+
+    fun getCollapsedGroups(): MutableSet<String> {
+        return prefs.getStringSet("collapsed_groups", HashSet())!!.toMutableSet()
+    }
+
+    fun saveCollapsedGroups(groups: Set<String>) {
+        prefs.edit().putStringSet("collapsed_groups", groups).apply()
     }
 
     // ---------- 频道缓存（离线快速启动 / 网络失败兜底） ----------

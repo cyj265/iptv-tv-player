@@ -13,10 +13,11 @@ import com.cyj265.iptvplayer.databinding.ItemChannelBinding
 import com.cyj265.iptvplayer.databinding.ItemGroupHeaderBinding
 
 /**
- * 频道列表适配器：分组头 + 频道项。
+ * 频道列表适配器：可折叠分组头 + 频道项。
  */
 class ChannelAdapter(
-    private val onChannelClick: (Channel) -> Unit
+    private val onChannelClick: (Channel) -> Unit,
+    private val onCollapsedChanged: (Set<String>) -> Unit = {}
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     companion object {
@@ -27,6 +28,9 @@ class ChannelAdapter(
     data class Row(val isHeader: Boolean, val group: String = "", val channel: Channel? = null)
 
     private val rows = ArrayList<Row>()
+    private val collapsedGroups = HashSet<String>()
+    private var groups = listOf<String>()
+
     var favorites: Set<String> = emptySet()
         set(value) {
             field = value
@@ -34,19 +38,50 @@ class ChannelAdapter(
         }
     private var selectedChannelId: String? = null
 
+    /** 恢复折叠状态 */
+    fun setCollapsedGroups(collapsed: Set<String>) {
+        collapsedGroups.clear()
+        collapsedGroups.addAll(collapsed)
+        rebuild()
+    }
+
+    fun collapsedState(): Set<String> = HashSet(collapsedGroups)
+
     fun setChannels(channels: List<Channel>) {
+        groups = channels.map { it.group }.distinct()
+        rebuild()
+    }
+
+    private fun rebuild() {
         rows.clear()
+        for (g in groups) {
+            val list = groupCache[g] ?: emptyList()
+            rows.add(Row(isHeader = true, group = g))
+            if (!collapsedGroups.contains(g)) {
+                for (c in list) {
+                    rows.add(Row(isHeader = false, channel = c))
+                }
+            }
+        }
+        notifyDataSetChanged()
+    }
+
+    private val groupCache = HashMap<String, List<Channel>>()
+    private var allChannels: List<Channel> = emptyList()
+
+    /** 入口：先存全量，再重建分组缓存 */
+    fun submitChannels(channels: List<Channel>) {
+        allChannels = channels
+        groupCache.clear()
         val byGroup = LinkedHashMap<String, MutableList<Channel>>()
         for (c in channels) {
             byGroup.getOrPut(c.group) { ArrayList() }.add(c)
         }
-        for ((group, list) in byGroup) {
-            rows.add(Row(isHeader = true, group = group))
-            for (c in list) {
-                rows.add(Row(isHeader = false, channel = c))
-            }
+        for ((g, list) in byGroup) {
+            groupCache[g] = list
         }
-        notifyDataSetChanged()
+        groups = byGroup.keys.toList()
+        rebuild()
     }
 
     fun setSelected(channelId: String?) {
@@ -72,7 +107,12 @@ class ChannelAdapter(
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         val row = rows[position]
         if (holder is HeaderHolder) {
-            holder.binding.groupTitle.text = row.group
+            val count = groupCache[row.group]?.size ?: 0
+            holder.binding.groupTitle.text = row.group + "  (" + count + ")"
+            holder.binding.groupArrow.text = if (collapsedGroups.contains(row.group)) "▸" else "▾"
+            holder.binding.root.setOnClickListener {
+                toggleGroup(row.group)
+            }
         } else if (holder is ChannelHolder) {
             val ch = row.channel ?: return
             holder.binding.tvChannelName.text = ch.name
@@ -85,6 +125,16 @@ class ChannelAdapter(
             holder.binding.root.isSelected = ch.id == selectedChannelId
             holder.binding.root.setOnClickListener { onChannelClick(ch) }
         }
+    }
+
+    private fun toggleGroup(group: String) {
+        if (collapsedGroups.contains(group)) {
+            collapsedGroups.remove(group)
+        } else {
+            collapsedGroups.add(group)
+        }
+        rebuild()
+        onCollapsedChanged(collapsedState())
     }
 
     class HeaderHolder(val binding: ItemGroupHeaderBinding) :
