@@ -21,6 +21,9 @@ import com.cyj265.iptvplayer.data.PlaylistRepository
 import com.cyj265.iptvplayer.databinding.ActivityMainBinding
 import com.cyj265.iptvplayer.player.PlaybackManager
 import com.cyj265.iptvplayer.ui.ChannelAdapter
+import java.io.File
+import java.io.PrintWriter
+import java.io.StringWriter
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -53,8 +56,11 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        installCrashHandler()
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        showLastCrashIfAny()
 
         repository = PlaylistRepository(this)
         favorites = repository.getFavorites().toMutableSet()
@@ -93,6 +99,44 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
 
         // 启动时显示覆盖层，随后自动淡出
         showOverlay()
+    }
+
+    // ---------- 崩溃日志（真机定位用） ----------
+
+    private fun crashFile(): File = File(filesDir, "crash.log")
+
+    private fun installCrashHandler() {
+        val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            try {
+                val sw = StringWriter()
+                throwable.printStackTrace(PrintWriter(sw))
+                crashFile().writeText(
+                    "time=" + System.currentTimeMillis() + "\nthread=" + thread.name +
+                        "\n" + sw.toString(),
+                    Charsets.UTF_8
+                )
+            } catch (ignored: Exception) {
+            }
+            defaultHandler?.uncaughtException(thread, throwable)
+        }
+    }
+
+    private fun showLastCrashIfAny() {
+        val f = crashFile()
+        if (!f.exists()) return
+        val log = try {
+            f.readText(Charsets.UTF_8)
+        } catch (e: Exception) {
+            return
+        }
+        val brief = log.lineSequence().take(6).joinToString("\n")
+        runOnUiThread {
+            Toast.makeText(this, "上次运行崩溃：\n$brief", Toast.LENGTH_LONG).show()
+        }
+        binding.tvAbout.post {
+            binding.tvAbout.append("\n\n—— 上次崩溃 ——\n$log")
+        }
     }
 
     // ---------- 覆盖层自动隐藏 ----------
@@ -200,7 +244,16 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         binding.inputEpgUrl.setText(repository.epgUrl.orEmpty())
 
         binding.btnImportFile.setOnClickListener {
-            openDocument.launch(arrayOf("*/*"))
+            try {
+                openDocument.launch(arrayOf("*/*"))
+            } catch (e: Exception) {
+                // 部分精简电视系统没有文件管理器/文档提供者，会抛 ActivityNotFoundException
+                Toast.makeText(
+                    this,
+                    "无法打开文件选择器（系统无文件管理），请改用播放列表 URL 加载",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
         }
         binding.btnLoadPlaylist.setOnClickListener { saveAndReload() }
         binding.btnPlayDirect.setOnClickListener { playDirectFromPanel() }
@@ -279,14 +332,15 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                     repository.saveChannels(channels)
                 }
                 runOnUiThread { onChannelsLoaded(channels) }
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 val cached = repository.loadCachedChannels()
+                val detail = e.message ?: e.javaClass.simpleName
                 runOnUiThread {
                     if (!cached.isNullOrEmpty()) {
                         onChannelsLoaded(cached)
                         binding.tvStatus.text = getString(R.string.load_failed) + "（已用缓存）"
                     } else {
-                        binding.tvStatus.text = getString(R.string.load_failed)
+                        binding.tvStatus.text = getString(R.string.load_failed) + "：" + detail
                         Toast.makeText(this, R.string.load_failed, Toast.LENGTH_SHORT).show()
                     }
                 }
