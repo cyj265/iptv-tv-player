@@ -378,6 +378,9 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         binding.btnAspectRatio.setOnClickListener { cycleAspectRatio() }
         updateAspectRatioLabel()
 
+        binding.btnDecoderMode.setOnClickListener { cycleDecoderMode() }
+        updateDecoderModeLabel()
+
         updateFavCount()
 
         binding.tvVersion.text = "v" + BuildConfig.VERSION_NAME
@@ -437,6 +440,29 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     // ---------- 画面比例 ----------
 
     private val ratioCycle = listOf("fit", "16:9", "4:3", "zoom", "fill")
+
+    // ---------- 解码方式 ----------
+
+    private val decoderModeCycle = listOf("auto", "hardware", "software")
+
+    private fun cycleDecoderMode() {
+        val current = playback.currentDecoderMode()
+        val idx = decoderModeCycle.indexOf(current)
+        val next = decoderModeCycle[(idx + 1 + decoderModeCycle.size) % decoderModeCycle.size]
+        playback.applyDecoderMode(next)
+        updateDecoderModeLabel()
+        Toast.makeText(this, getString(R.string.decoder_mode) + "：" + labelForMode(next), Toast.LENGTH_SHORT).show()
+    }
+
+    private fun labelForMode(mode: String): String = when (mode) {
+        "hardware" -> getString(R.string.decoder_hardware)
+        "software" -> getString(R.string.decoder_software)
+        else -> getString(R.string.decoder_auto)
+    }
+
+    private fun updateDecoderModeLabel() {
+        binding.btnDecoderMode.text = labelForMode(playback.currentDecoderMode())
+    }
 
     private fun cycleAspectRatio() {
         val current = repository.aspectRatio
