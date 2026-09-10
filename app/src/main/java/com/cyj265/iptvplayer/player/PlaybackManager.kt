@@ -16,10 +16,10 @@ import androidx.media3.ui.PlayerView
  * 基于 Media3 ExoPlayer 的播放内核。
  * 自动识别 HLS / 渐进式流，与 TiviMate 同源的内核家族，对标准 HLS 支持最好。
  *
- * 解码策略（应对 Android 7 / 老电视盒子解码器差异）：
- * 1. 默认使用平台硬解 + 解码器回退（硬解失败会尝试其他可用 MediaCodec）；
- * 2. 若仍报 DECODER_INIT_FAILED（如 H.265 Main10、特殊音频格式硬解不支持），
- *    自动切换到 FFmpeg 软解模式重试，保证能出画面。
+ * 解码策略：
+ * - 默认平台硬解（HEVC/H.264 等由系统 MediaCodec 完成，斐讯 T1 支持 H.265 硬解）；
+ * - 开启解码器回退（enableDecoderFallback）：首选解码器初始化失败时，
+ *   自动尝试其他可用 MediaCodec，避免直接报 DECODER_INIT_FAILED。
  */
 class PlaybackManager(
     private val context: Context,
@@ -36,8 +36,6 @@ class PlaybackManager(
     private var player: ExoPlayer? = null
     private var playerView: PlayerView? = null
     private var currentUrl: String? = null
-    private var currentChannelName: String? = null
-    private var softwareMode = false
 
     private val playerListener = object : Player.Listener {
         override fun onPlaybackStateChanged(playbackState: Int) {
@@ -45,19 +43,7 @@ class PlaybackManager(
         }
 
         override fun onPlayerError(error: PlaybackException) {
-            val url = currentUrl
-            if (url == null) {
-                listener.onPlaybackError(error.errorCodeName)
-                return
-            }
-            // 硬解失败 -> 自动降级软解，只降级一次
-            if (error.errorCode == PlaybackException.ERROR_CODE_DECODER_INIT_FAILED && !softwareMode) {
-                softwareMode = true
-                listener.onPlaybackError("硬解失败，已自动切换软解重试")
-                switchToSoftwareDecoder(url)
-            } else {
-                listener.onPlaybackError(error.errorCodeName)
-            }
+            listener.onPlaybackError(error.errorCodeName)
         }
 
         override fun onIsPlayingChanged(isPlaying: Boolean) {
@@ -74,13 +60,12 @@ class PlaybackManager(
     fun attach(playerView: PlayerView) {
         if (player != null) return
         this.playerView = playerView
-        playerView.player = buildPlayer(forceSoftware = false)
+        playerView.player = buildPlayer()
         player = playerView.player as ExoPlayer
         player?.addListener(playerListener)
     }
 
-    /** 构建播放器；forceSoftware=true 时仅用 FFmpeg 软解（media3-decoder-ffmpeg）。 */
-    private fun buildPlayer(forceSoftware: Boolean): ExoPlayer {
+    private fun buildPlayer(): ExoPlayer {
         val dataSourceFactory = DefaultHttpDataSource.Factory()
             .setUserAgent("ExoPlayer/IPTVPlayer")
             .setConnectTimeoutMs(15_000)
@@ -89,37 +74,14 @@ class PlaybackManager(
 
         val mediaSourceFactory = DefaultMediaSourceFactory(context).setDataSourceFactory(dataSourceFactory)
 
+        // 开启解码器回退：硬解初始化失败时自动尝试其他可用解码器
         val renderersFactory = DefaultRenderersFactory(context)
             .setEnableDecoderFallback(true)
-        if (forceSoftware) {
-            renderersFactory.setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
-        }
 
         return ExoPlayer.Builder(context)
             .setRenderersFactory(renderersFactory)
             .setMediaSourceFactory(mediaSourceFactory)
             .build()
-    }
-
-    private fun switchToSoftwareDecoder(url: String) {
-        try {
-            player?.release()
-            player = null
-            playerView?.player = null
-            val p = buildPlayer(forceSoftware = true)
-            p.addListener(playerListener)
-            playerView?.player = p
-            player = p
-            val mediaItem = MediaItem.Builder()
-                .setUri(Uri.parse(url))
-                .setMediaId(currentChannelName ?: "")
-                .build()
-            p.setMediaItem(mediaItem)
-            p.prepare()
-            p.playWhenReady = true
-        } catch (e: Exception) {
-            listener.onPlaybackError("软解切换失败：" + (e.message ?: "未知错误"))
-        }
     }
 
     /** 画面比例：fit / fill / zoom / 16:9 / 4:3 */
@@ -145,7 +107,6 @@ class PlaybackManager(
     fun play(url: String, channelName: String) {
         val p = player ?: return
         currentUrl = url
-        currentChannelName = channelName
         val mediaItem = MediaItem.Builder()
             .setUri(Uri.parse(url))
             .setMediaId(channelName)
