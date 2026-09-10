@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:background="@color/bg_dark">
+
+    <!-- ===== 左侧：频道列表面板 ===== -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="0.38"
+        android:orientation="vertical"
+        android:background="@color/bg_panel">
+
+        <!-- 工具条：搜索 + 收藏 + 设置 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:padding="12dp">
+
+            <EditText
+                android:id="@+id/searchInput"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                android:hint="@string/search_hint"
+                android:singleLine="true"
+                android:background="@drawable/bg_search"
+                android:paddingLeft="14dp"
+                android:paddingRight="14dp"
+                android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_secondary"
+                android:textSize="15sp"
+                android:imeOptions="actionSearch" />
+
+            <ImageButton
+                android:id="@+id/btnFavorites"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:contentDescription="@string/favorites"
+                android:background="?attr/selectableItemBackground"
+                android:src="@drawable/ic_star"
+                android:scaleType="centerInside"
+                android:layout_marginLeft="8dp" />
+
+            <ImageButton
+                android:id="@+id/btnSettings"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:contentDescription="@string/settings"
+                android:background="?attr/selectableItemBackground"
+                android:src="@drawable/ic_settings"
+                android:scaleType="centerInside"
+                android:layout_marginLeft="4dp" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingLeft="16dp"
+            android:paddingRight="16dp"
+            android:paddingBottom="8dp"
+            android:text="@string/channel_list"
+            android:textColor="@color/text_secondary"
+            android:textSize="13sp" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/channelList"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:clipToPadding="false"
+            android:paddingBottom="8dp" />
+    </LinearLayout>
+
+    <!-- ===== 右侧：播放器区 ===== -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="0.62"
+        android:orientation="vertical">
+
+        <!-- 顶部：当前频道信息 + 节目 -->
+        <LinearLayout
+            android:id="@+id/nowPlayingBar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@color/bg_panel"
+            android:padding="14dp">
+
+            <TextView
+                android:id="@+id/tvChannelName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/text_primary"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:text="@string/no_channels" />
+
+            <TextView
+                android:id="@+id/tvEpgNow"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textColor="@color/text_secondary"
+                android:textSize="14sp"
+                android:maxLines="2"
+                android:ellipsize="end"
+                android:text="@string/no_epg" />
+        </LinearLayout>
+
+        <!-- 视频画面 -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:background="#000000">
+
+            <androidx.media3.ui.PlayerView
+                android:id="@+id/playerView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:focusable="false" />
+        </FrameLayout>
+
+        <!-- 底部控制条 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:background="@color/bg_panel"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp">
+
+            <ImageButton
+                android:id="@+id/btnPrev"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:contentDescription="@string/prev_channel"
+                android:background="@drawable/bg_control"
+                android:src="@drawable/ic_prev"
+                android:scaleType="centerInside" />
+
+            <ImageButton
+                android:id="@+id/btnPlayPause"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:contentDescription="@string/play_pause"
+                android:background="@drawable/bg_control_accent"
+                android:src="@drawable/ic_pause"
+                android:scaleType="centerInside"
+                android:layout_marginLeft="16dp"
+                android:layout_marginRight="16dp" />
+
+            <ImageButton
+                android:id="@+id/btnNext"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:contentDescription="@string/next_channel"
+                android:background="@drawable/bg_control"
+                android:src="@drawable/ic_next"
+                android:scaleType="centerInside" />
+
+            <ImageButton
+                android:id="@+id/btnFavoriteCurrent"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:contentDescription="@string/favorite_hint"
+                android:background="@drawable/bg_control"
+                android:src="@drawable/ic_star"
+                android:scaleType="centerInside"
+                android:layout_marginLeft="24dp" />
+
+            <ImageButton
+                android:id="@+id/btnStop"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:contentDescription="@string/stop"
+                android:background="@drawable/bg_control"
+                android:src="@drawable/ic_stop"
+                android:scaleType="centerInside"
+                android:layout_marginLeft="12dp" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

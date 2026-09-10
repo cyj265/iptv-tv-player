@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">IPTV 播放器</string>
+    <string name="settings">设置</string>
+    <string name="playlist_url">播放列表地址 (M3U URL)</string>
+    <string name="epg_url">节目指南地址 (EPG/XMLTV URL，可选)</string>
+    <string name="load">加载</string>
+    <string name="loading_playlist">正在加载播放列表…</string>
+    <string name="load_failed">加载失败，请检查地址</string>
+    <string name="no_channels">未找到频道</string>
+    <string name="search_hint">搜索频道…</string>
+    <string name="favorites">收藏</string>
+    <string name="all_channels">全部频道</string>
+    <string name="now">现在</string>
+    <string name="next">下一个</string>
+    <string name="no_epg">暂无节目信息</string>
+    <string name="channel_list">频道列表</string>
+    <string name="favorite_hint">收藏</string>
+    <string name="play_pause">播放/暂停</string>
+    <string name="stop">停止</string>
+    <string name="prev_channel">上一个频道</string>
+    <string name="next_channel">下一个频道</string>
+    <string name="clear_favorites">清除收藏</string>
+    <string name="import_local_file">本地文件导入（支持 .m3u / .m3u8 / .txt）</string>
+    <string name="choose_file">选择文件</string>
+    <string name="direct_stream">直播流链接直接播放</string>
+    <string name="direct_stream_hint">无需播放列表，输入单个直播流地址即可播放</string>
+    <string name="play_direct">播放</string>
+    <string name="importing">正在读取文件…</string>
+</resources>
