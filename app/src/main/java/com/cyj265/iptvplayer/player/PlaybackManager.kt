@@ -21,6 +21,7 @@ import androidx.media3.exoplayer.mediacodec.MediaCodecInfo
 import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
 import androidx.media3.exoplayer.mediacodec.MediaCodecUtil
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
+import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import java.io.File
@@ -176,8 +177,19 @@ class PlaybackManager(
             }
         }
 
+        // 强制选择最高码率/最高分辨率轨道（TVBox 系播放器同款做法）：
+        // HLS 多码率流默认按带宽估计选 variant，软解/网络抖动时会被"降级"到
+        // 低分辨率（如 4K 变 720×576）。固定最高档，保证分辨率不缩水。
+        val trackSelector = DefaultTrackSelector(context)
+        trackSelector.setParameters(
+            DefaultTrackSelector.Parameters.Builder(context)
+                .setForceHighestSupportedBitrate(true)
+                .build()
+        )
+
         return ExoPlayer.Builder(context)
             .setRenderersFactory(renderersFactory)
+            .setTrackSelector(trackSelector)
             .setLoadControl(loadControl)
             .build()
     }
