@@ -1,5 +1,7 @@
 package com.cyj265.iptvplayer
 
+import android.content.Intent
+import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
@@ -11,6 +13,7 @@ import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.cyj265.iptvplayer.data.Channel
 import com.cyj265.iptvplayer.data.EpgParser
@@ -45,9 +48,23 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     private var currentChannel: Channel? = null
     private var epgPrograms: Map<String, List<EpgProgram>> = emptyMap()
 
+    private var videoW = 0
+    private var videoH = 0
+    private var currentSettingsTab = 0
+
     // 覆盖层自动隐藏：4 秒无操作淡出顶部信息条与底部控制条（TiviMate 风格）
     private val overlayHandler = Handler(Looper.getMainLooper())
     private val overlayHideRunnable = Runnable { hideOverlay() }
+
+    // 右上角时钟（柠檬TV 风格）
+    private val clockHandler = Handler(Looper.getMainLooper())
+    private val clockRunnable = object : Runnable {
+        override fun run() {
+            binding.tvClock.text =
+                SimpleDateFormat("yyyy/MM/dd\nHH:mm:ss", Locale.getDefault()).format(Date())
+            clockHandler.postDelayed(this, 1000L)
+        }
+    }
 
     private val openDocument =
         registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -101,6 +118,16 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         showOverlay()
     }
 
+    override fun onResume() {
+        super.onResume()
+        clockHandler.post(clockRunnable)
+    }
+
+    override fun onPause() {
+        clockHandler.removeCallbacks(clockRunnable)
+        super.onPause()
+    }
+
     // ---------- 崩溃日志（真机定位用） ----------
 
     private fun crashFile(): File = File(filesDir, "crash.log")
@@ -134,9 +161,6 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         runOnUiThread {
             Toast.makeText(this, "上次运行崩溃：\n$brief", Toast.LENGTH_LONG).show()
         }
-        binding.tvAbout.post {
-            binding.tvAbout.append("\n\n—— 上次崩溃 ——\n$log")
-        }
     }
 
     // ---------- 覆盖层自动隐藏 ----------
@@ -158,7 +182,9 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             ctrl.animate().alpha(1f).setDuration(200).start()
         }
         overlayHandler.removeCallbacks(overlayHideRunnable)
-        overlayHandler.postDelayed(overlayHideRunnable, 4000L)
+        if (repository.autoHideOverlay) {
+            overlayHandler.postDelayed(overlayHideRunnable, 4000L)
+        }
     }
 
     private fun hideOverlay() {
@@ -204,7 +230,8 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         binding.settingsPanel.visibility = View.VISIBLE
         binding.settingsPanel.alpha = 0f
         binding.settingsPanel.animate().alpha(1f).setDuration(160).start()
-        binding.settingsPanel.requestFocus()
+        val navs = settingsNavs()
+        navs[currentSettingsTab].requestFocus()
     }
 
     private fun hideSettingsPanel() {
@@ -239,7 +266,39 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         binding.btnFavoriteCurrent.setOnClickListener { toggleFavoriteCurrent() }
     }
 
+    private fun settingsNavs(): List<View> = listOf(
+        binding.navSource, binding.navPlayer, binding.navUi,
+        binding.navFav, binding.navUpdate, binding.navDebug, binding.navAbout
+    )
+
+    private fun settingsSections(): List<View> = listOf(
+        binding.sectionSource, binding.sectionPlayer, binding.sectionUi,
+        binding.sectionFav, binding.sectionUpdate, binding.sectionDebug, binding.sectionAbout
+    )
+
+    private fun selectSettingsTab(index: Int) {
+        currentSettingsTab = index
+        val navs = settingsNavs()
+        val sections = settingsSections()
+        sections.forEachIndexed { i, s ->
+            s.visibility = if (i == index) View.VISIBLE else View.GONE
+        }
+        navs.forEachIndexed { i, n ->
+            if (i == index) {
+                n.setBackgroundColor(ContextCompat.getColor(this, R.color.accent_dim))
+                (n as android.widget.TextView).setTextColor(Color.WHITE)
+            } else {
+                n.setBackgroundColor(Color.TRANSPARENT)
+                (n as android.widget.TextView).setTextColor(
+                    ContextCompat.getColor(this, R.color.text_secondary)
+                )
+            }
+        }
+    }
+
     private fun setupSettingsPanel() {
+        setupSettingsTabs()
+
         binding.inputPlaylistUrl.setText(repository.playlistUrl.orEmpty())
         binding.inputEpgUrl.setText(repository.epgUrl.orEmpty())
 
@@ -262,6 +321,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             favorites.clear()
             repository.setFavorites(favorites)
             adapter.favorites = favorites
+            updateFavCount()
             Toast.makeText(this, R.string.cleared, Toast.LENGTH_SHORT).show()
         }
 
@@ -270,12 +330,69 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             repository.autoResume = checked
         }
 
+        binding.chkAutoHide.isChecked = repository.autoHideOverlay
+        binding.chkAutoHide.setOnCheckedChangeListener { _, checked ->
+            repository.autoHideOverlay = checked
+            if (checked) showOverlay()
+        }
+
         binding.btnAspectRatio.setOnClickListener { cycleAspectRatio() }
         updateAspectRatioLabel()
 
+        updateFavCount()
+
+        binding.tvVersion.text = "v" + BuildConfig.VERSION_NAME
+        binding.btnCheckUpdate.setOnClickListener {
+            try {
+                startActivity(
+                    Intent(
+                        Intent.ACTION_VIEW,
+                        Uri.parse("https://github.com/cyj265/iptv-tv-player/releases")
+                    )
+                )
+            } catch (e: Exception) {
+                Toast.makeText(this, "无法打开浏览器", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        refreshCrashLog()
+        binding.btnClearCrashLog.setOnClickListener {
+            crashFile().delete()
+            binding.tvCrashLog.text = "无"
+            Toast.makeText(this, R.string.cleared_crash_log, Toast.LENGTH_SHORT).show()
+        }
+
         binding.tvAbout.text = getString(R.string.app_name) + " v" + BuildConfig.VERSION_NAME +
             "\n播放内核：Media3 ExoPlayer（HLS / H.265 硬解）" +
+            "\n代码仓库：https://github.com/cyj265/iptv-tv-player" +
             "\n开源许可：Apache-2.0 / MIT，来源致谢见仓库 README"
+    }
+
+    private fun setupSettingsTabs() {
+        val navs = settingsNavs()
+        navs.forEachIndexed { i, nav ->
+            nav.setOnFocusChangeListener { _, focused ->
+                if (focused) selectSettingsTab(i)
+            }
+        }
+        selectSettingsTab(0)
+    }
+
+    private fun updateFavCount() {
+        binding.tvFavCount.text = getString(R.string.fav_count, favorites.size)
+    }
+
+    private fun refreshCrashLog() {
+        val f = crashFile()
+        binding.tvCrashLog.text = if (f.exists()) {
+            try {
+                f.readText(Charsets.UTF_8)
+            } catch (e: Exception) {
+                "读取失败"
+            }
+        } else {
+            "无"
+        }
     }
 
     // ---------- 画面比例 ----------
@@ -476,6 +593,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         repository.setFavorites(favorites)
         adapter.favorites = favorites
         updateFavoriteIcon()
+        updateFavCount()
     }
 
     private fun updateFavoriteIcon() {
@@ -520,23 +638,32 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         if (ch == null) {
             binding.tvChannelName.text = getString(R.string.no_channels)
             binding.tvEpgNow.text = getString(R.string.no_epg)
+            binding.tvEpgNext.text = ""
+            binding.tvChannelMeta.text = ""
             return
         }
         binding.tvChannelName.text = ch.name
+
+        // 序号 / 总数 + 分辨率（柠檬TV 风格）
+        val idx = allChannels.indexOfFirst { it.id == ch.id }
+        val meta = StringBuilder()
+        if (idx >= 0) {
+            meta.append("第 ").append(idx + 1).append(" / ").append(allChannels.size).append(" 频道")
+        }
+        if (videoW > 0 && videoH > 0) {
+            if (meta.isNotEmpty()) meta.append(" · ")
+            meta.append("分辨率 ").append(videoW).append("×").append(videoH)
+        }
+        binding.tvChannelMeta.text = meta.toString()
+
         val programs = epgPrograms[ch.id] ?: emptyList()
         val now = System.currentTimeMillis()
         val current = programs.firstOrNull { now in it.start until it.end }
         val next = programs.firstOrNull { it.start >= now }
-        val sb = StringBuilder()
-        if (current != null) {
-            sb.append("▶ ").append(current.title)
-        } else {
-            sb.append(getString(R.string.no_epg))
-        }
-        if (next != null) {
-            sb.append("  |  下一个: ").append(next.title).append(" ").append(formatTime(next.start))
-        }
-        binding.tvEpgNow.text = sb.toString()
+        binding.tvEpgNow.text =
+            if (current != null) "正在播放: " + current.title else getString(R.string.no_epg)
+        binding.tvEpgNext.text =
+            if (next != null) "稍后播放: " + next.title + "  " + formatTime(next.start) else ""
         updateFavoriteIcon()
     }
 
@@ -559,6 +686,12 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         binding.btnPlayPause.setImageResource(
             if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play
         )
+    }
+
+    override fun onVideoSizeChanged(width: Int, height: Int) {
+        videoW = width
+        videoH = height
+        updateNowPlaying()
     }
 
     // ---------- 遥控器按键 ----------
@@ -617,6 +750,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
 
     override fun onDestroy() {
         overlayHandler.removeCallbacks(overlayHideRunnable)
+        clockHandler.removeCallbacks(clockRunnable)
         super.onDestroy()
         playback.release()
     }

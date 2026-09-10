@@ -24,6 +24,7 @@ class PlaybackManager(
         fun onPlaybackReady(channelName: String)
         fun onPlaybackError(message: String)
         fun onPlaybackStateChanged(isPlaying: Boolean)
+        fun onVideoSizeChanged(width: Int, height: Int)
     }
 
     private var player: ExoPlayer? = null
@@ -41,6 +42,12 @@ class PlaybackManager(
 
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             listener.onPlaybackStateChanged(isPlaying)
+        }
+
+        override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) {
+            if (videoSize.width > 0 && videoSize.height > 0) {
+                listener.onVideoSizeChanged(videoSize.width, videoSize.height)
+            }
         }
     }
 

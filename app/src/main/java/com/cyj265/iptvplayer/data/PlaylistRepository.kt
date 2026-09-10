@@ -32,6 +32,11 @@ class PlaylistRepository(private val context: Context) {
         get() = prefs.getBoolean("auto_resume", true)
         set(value) = prefs.edit().putBoolean("auto_resume", value).apply()
 
+    /** 顶部信息条/底部控制条无操作自动隐藏 */
+    var autoHideOverlay: Boolean
+        get() = prefs.getBoolean("auto_hide_overlay", true)
+        set(value) = prefs.edit().putBoolean("auto_hide_overlay", value).apply()
+
     /** 上次播放的频道 id */
     var lastChannelId: String?
         get() = prefs.getString("last_channel_id", null)
