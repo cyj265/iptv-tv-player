@@ -11,8 +11,8 @@ android {
         applicationId = "com.cyj265.iptvplayer"
         minSdk = 21
         targetSdk = 34
-        versionCode = 11
-        versionName = "1.1.0"
+        versionCode = 12
+        versionName = "1.2.0"
     }
 
     buildTypes {
@@ -60,8 +60,7 @@ dependencies {
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4")
 
-    // Media3 (ExoPlayer) 播放内核：1.8.0 修复了老设备 HEVC 轨道被误判为“超出能力”
-    // 导致硬解失败的问题（androidx/media issue #966 系列）。compileSdk 需 35。
+    // Media3 (ExoPlayer) 播放内核
     implementation("androidx.media3:media3-exoplayer:1.8.0")
     implementation("androidx.media3:media3-exoplayer-hls:1.8.0")
     implementation("androidx.media3:media3-ui:1.8.0")

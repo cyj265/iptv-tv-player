@@ -4,17 +4,23 @@ import android.content.Context
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
+import androidx.annotation.OptIn
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.common.util.Util
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.hls.HlsMediaSource
+import androidx.media3.exoplayer.mediacodec.DefaultMediaCodecAdapterFactory
 import androidx.media3.exoplayer.mediacodec.MediaCodecInfo
 import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
 import androidx.media3.exoplayer.mediacodec.MediaCodecUtil
-import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import java.io.File
@@ -31,8 +37,7 @@ import java.io.StringWriter
  *   此模式可避免自动回退误选软解导致 1080p 卡顿/报错）；
  * - software：只允许软件解码器（兼容性最好，但 1080p HEVC 较费 CPU）。
  *
- * 直播缓冲调大：TS 分片 10s 一段，缓冲不足会导致一卡一卡，这里把起播缓冲
- * 提到 15s、卡顿重缓冲 30s，明显改善网络抖动下的流畅度。
+ * 直播缓冲：起播 1.5s、重缓冲 3s、持续 15s、上限 45s——秒开且能吸收网络抖动。
  *
  * 失败自动重试：解码/网络瞬时错误自动重播（最多 2 次），避免偶尔抽风直接报错。
  */
@@ -133,26 +138,27 @@ class PlaybackManager(
 
     fun currentDecoderMode(): String = decoderMode
 
+    @OptIn(UnstableApi::class)
     private fun buildPlayer(): ExoPlayer {
-        val dataSourceFactory = DefaultHttpDataSource.Factory()
-            .setUserAgent("ExoPlayer/IPTVPlayer")
-            .setConnectTimeoutMs(15_000)
-            .setReadTimeoutMs(20_000)
-            .setAllowCrossProtocolRedirects(true)
-
-        val mediaSourceFactory = DefaultMediaSourceFactory(context).setDataSourceFactory(dataSourceFactory)
-
-        // 直播缓冲调大：起播 15s、重缓冲 30s、上限 180s，直播源网络抖动不再一卡一卡
+        // 直播缓冲：起播 1.5s、卡顿后 3s、持续目标 15s、上限 45s。
+        // 之前起播缓冲 15s 需要攒够两三个 TS 分片才开播，导致"等待播放时间太长"。
+        // 直播流（TS 10s 分片）缓冲越小起播越快、延迟越低；45s 上限足够吸收网络抖动。
         val loadControl = DefaultLoadControl.Builder()
             .setBufferDurationsMs(
-                60_000,   // minBufferMs：持续缓冲目标
-                180_000,  // maxBufferMs：缓冲上限
-                15_000,   // bufferForPlaybackMs：起播所需缓冲
-                30_000    // bufferForPlaybackAfterRebufferMs：卡顿后恢复所需缓冲
+                15_000,   // minBufferMs：持续缓冲目标
+                45_000,   // maxBufferMs：缓冲上限
+                1_500,    // bufferForPlaybackMs：起播所需缓冲（秒开）
+                3_000     // bufferForPlaybackAfterRebufferMs：卡顿后恢复所需缓冲
             )
             .build()
 
         val renderersFactory = DefaultRenderersFactory(context)
+            // 强制同步 MediaCodecAdapter：Amlogic（斐讯 T1 S912）Android 7 的
+            // 硬件解码器对异步模式支持不佳，Media3 默认 async 优先会导致
+            // HEVC 解码器初始化失败（DECODER_INIT_FAILED）。同步模式最稳。
+            .setMediaCodecAdapterFactory(
+                DefaultMediaCodecAdapterFactory().setEnableAsync(false)
+            )
         when (decoderMode) {
             "hardware" -> {
                 // 仅硬件解码：硬解失败直接报错，不回退软解（避免软解 1080p 卡死）
@@ -172,7 +178,6 @@ class PlaybackManager(
 
         return ExoPlayer.Builder(context)
             .setRenderersFactory(renderersFactory)
-            .setMediaSourceFactory(mediaSourceFactory)
             .setLoadControl(loadControl)
             .build()
     }
@@ -226,11 +231,7 @@ class PlaybackManager(
         currentUrl = url
         currentChannelName = channelName
         retryCount = 0
-        val mediaItem = MediaItem.Builder()
-            .setUri(Uri.parse(url))
-            .setMediaId(channelName)
-            .build()
-        p.setMediaItem(mediaItem)
+        p.setMediaSource(buildMediaSource(url, channelName))
         p.prepare()
         p.playWhenReady = true
         listener.onPlaybackReady(channelName)
@@ -238,16 +239,35 @@ class PlaybackManager(
 
     private fun retryPlay(url: String, channelName: String) {
         val p = player ?: return
+        p.stop()
+        p.clearMediaItems()
+        p.setMediaSource(buildMediaSource(url, channelName))
+        p.prepare()
+        p.playWhenReady = true
+        listener.onPlaybackReady(channelName)
+    }
+
+    /**
+     * 按内容类型显式构建媒体源（lemonTV 同款做法）：
+     * .m3u8 → HlsMediaSource；其余 → ProgressiveMediaSource。
+     * 比默认推断更稳，避免个别源被误判容器。
+     */
+    @OptIn(UnstableApi::class)
+    private fun buildMediaSource(url: String, channelName: String): androidx.media3.exoplayer.source.MediaSource {
+        val dataSourceFactory = DefaultHttpDataSource.Factory()
+            .setUserAgent("ExoPlayer/IPTVPlayer")
+            .setConnectTimeoutMs(15_000)
+            .setReadTimeoutMs(20_000)
+            .setAllowCrossProtocolRedirects(true)
         val mediaItem = MediaItem.Builder()
             .setUri(Uri.parse(url))
             .setMediaId(channelName)
             .build()
-        p.stop()
-        p.clearMediaItems()
-        p.setMediaItem(mediaItem)
-        p.prepare()
-        p.playWhenReady = true
-        listener.onPlaybackReady(channelName)
+        val type = Util.inferContentType(Uri.parse(url))
+        return when (type) {
+            C.CONTENT_TYPE_HLS -> HlsMediaSource.Factory(dataSourceFactory).createMediaSource(mediaItem)
+            else -> ProgressiveMediaSource.Factory(dataSourceFactory).createMediaSource(mediaItem)
+        }
     }
 
     fun togglePlayPause() {
