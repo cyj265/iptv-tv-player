@@ -530,6 +530,24 @@
                             android:backgroundTint="@color/bg_item"
                             android:textColor="@color/text_primary" />
 
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="10dp"
+                            android:text="@string/decoder_mode"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="14sp" />
+
+                        <Button
+                            android:id="@+id/btnDecoderMode"
+                            android:layout_width="match_parent"
+                            android:layout_height="46dp"
+                            android:layout_marginTop="6dp"
+                            android:text="@string/decoder_auto"
+                            android:textSize="14sp"
+                            android:backgroundTint="@color/bg_item"
+                            android:textColor="@color/text_primary" />
+
                         <CheckBox
                             android:id="@+id/chkAutoResume"
                             android:layout_width="match_parent"
