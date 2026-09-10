@@ -22,8 +22,8 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      # 固定 debug 签名：缓存 ~/.android/debug.keystore，保证所有构建使用同一签名，
-      # 新版本才能覆盖安装旧版本（否则每次构建签名都不同，必须卸载重装）。
+      # 固定 debug 签名：优先级 仓库内 b64 文件 > actions 缓存 > 首次生成。
+      # 仓库内 .github/debug-keystore.b64 一旦存在，签名永久不变，新版本必然可覆盖安装。
       - name: Cache Android debug keystore
         id: keystore-cache
         uses: actions/cache@v4
@@ -31,14 +31,26 @@ jobs:
           path: ~/.android
           key: android-debug-keystore-v1
 
-      - name: Generate fixed debug keystore (first build only)
-        if: steps.keystore-cache.outputs.cache-hit != 'true'
+      - name: Restore or generate debug keystore
+        id: keystore-setup
         run: |
           mkdir -p ~/.android
-          keytool -genkeypair -v -keystore ~/.android/debug.keystore \
-            -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 \
-            -storepass android -keypass android \
-            -dname "CN=Android Debug,O=Android,C=US"
+          if [ -f .github/debug-keystore.b64 ]; then
+            base64 -d .github/debug-keystore.b64 > ~/.android/debug.keystore
+            echo "source=repo-file"
+          elif [ -f ~/.android/debug.keystore ]; then
+            echo "source=cache"
+          else
+            keytool -genkeypair -v -keystore ~/.android/debug.keystore \
+              -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass android -keypass android \
+              -dname "CN=Android Debug,O=Android,C=US"
+            echo "source=generated"
+          fi
+
+      - name: Export debug keystore as base64 asset
+        run: |
+          base64 -w0 ~/.android/debug.keystore > debug-keystore.b64
 
       - name: Setup Gradle 8.9
         uses: gradle/actions/setup-gradle@v4
@@ -94,10 +106,12 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.TAG }}
-          files: dist/*.apk
+          files: |
+            dist/*.apk
+            debug-keystore.b64
           generate_release_notes: true
 
-      # 清理 Release 旧资产：只保留本次构建的 APK，避免资产越堆越多
+      # 清理 Release 旧资产：只保留本次构建的 APK 与 keystore b64，避免资产越堆越多
       - name: Clean old release assets
         if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
         env:
@@ -105,7 +119,7 @@ jobs:
         run: |
           CUR="iptv-player-v${{ github.run_number }}.apk"
           for asset in $(gh release view "$TAG" --json assets -q '.assets[].name'); do
-            if [ "$asset" != "$CUR" ]; then
+            if [ "$asset" != "$CUR" ] && [[ "$asset" != *.b64 ]]; then
               gh release delete-asset "$TAG" "$asset" --yes || true
             fi
           done
