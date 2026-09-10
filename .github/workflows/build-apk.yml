@@ -1,0 +1,55 @@
+name: Build APK
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'app/**'
+      - 'gradle/**'
+      - '*.gradle.kts'
+      - 'gradle.properties'
+      - '.github/workflows/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Build release APK
+        run: gradle assembleRelease --no-daemon
+
+      - name: Rename APK with version
+        run: |
+          mkdir -p dist
+          cp app/build/outputs/apk/release/app-release.apk dist/iptv-player-v${{ github.run_number }}.apk
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: iptv-player-apk
+          path: dist/*.apk
+          retention-days: 30
+
+      - name: Publish Release on tag
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.apk
+          generate_release_notes: true
