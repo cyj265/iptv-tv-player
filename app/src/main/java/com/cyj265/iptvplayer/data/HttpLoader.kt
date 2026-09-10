@@ -3,6 +3,7 @@ package com.cyj265.iptvplayer.data
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
+import java.nio.charset.Charset
 
 /**
  * 简单的网络加载器，负责下载 M3U / EPG。

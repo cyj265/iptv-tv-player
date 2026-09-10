@@ -11,6 +11,7 @@ import com.cyj265.iptvplayer.data.HttpLoader
 import com.cyj265.iptvplayer.data.PlaylistParser
 import com.cyj265.iptvplayer.data.PlaylistRepository
 import com.cyj265.iptvplayer.databinding.ActivitySettingsBinding
+import java.nio.charset.Charset
 
 /**
  * 设置：播放列表 URL / 本地文件导入 / EPG / 直播流链接。
