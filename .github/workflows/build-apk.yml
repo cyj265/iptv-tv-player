@@ -23,7 +23,9 @@ jobs:
           java-version: '17'
 
       # 固定 debug 签名：优先级 仓库内 b64 文件 > actions 缓存 > 首次生成。
-      # 仓库内 .github/debug-keystore.b64 一旦存在，签名永久不变，新版本必然可覆盖安装。
+      # 仓库内 .github/debug-keystore.b64 一旦存在且有效，签名永久不变，新版本必然可覆盖安装。
+      # 注意：必须用 keytool 验证（密码 android + alias androiddebugkey），
+      # 否则 Gradle 打不开会静默自动生成新 keystore，导致每次构建签名都变、无法覆盖安装。
       - name: Cache Android debug keystore
         id: keystore-cache
         uses: actions/cache@v4
@@ -37,7 +39,16 @@ jobs:
           mkdir -p ~/.android
           if [ -f .github/debug-keystore.b64 ]; then
             base64 -d .github/debug-keystore.b64 > ~/.android/debug.keystore
-            echo "source=repo-file"
+            if keytool -list -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey >/dev/null 2>&1; then
+              echo "source=repo-file"
+            else
+              echo "repo keystore invalid, regenerating"
+              keytool -genkeypair -v -keystore ~/.android/debug.keystore \
+                -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 \
+                -storepass android -keypass android \
+                -dname "CN=Android Debug,O=Android,C=US"
+              echo "source=repo-file-invalid-regenerated"
+            fi
           elif [ -f ~/.android/debug.keystore ]; then
             echo "source=cache"
           else

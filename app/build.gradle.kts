@@ -11,8 +11,8 @@ android {
         applicationId = "com.cyj265.iptvplayer"
         minSdk = 21
         targetSdk = 34
-        versionCode = 8
-        versionName = "1.0.7"
+        versionCode = 9
+        versionName = "1.0.8"
     }
 
     buildTypes {
@@ -23,8 +23,18 @@ android {
                 "proguard-rules.pro"
             )
             // 自用侧载：用 debug 密钥签名，保证 CI 产出的 APK 可直接安装。
-            // 如需正式发布，可在此配置自己的 release keystore。
+            // 显式指定 keystore 路径与口令：避免 Gradle 打不开时静默自动生成新 keystore
+            // 导致每次构建签名都变、无法覆盖安装。
             signingConfig = signingConfigs.getByName("debug")
+        }
+    }
+
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file(System.getProperty("user.home") + "/.android/debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
         }
     }
 
