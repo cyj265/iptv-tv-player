@@ -6,18 +6,17 @@ Daemon will be stopped at the end of the build
 > Task :app:preReleaseBuild UP-TO-DATE
 > Task :app:dataBindingMergeDependencyArtifactsRelease
 > Task :app:generateReleaseResValues FROM-CACHE
-> Task :app:generateReleaseResources FROM-CACHE
-> Task :app:mergeReleaseResources FROM-CACHE
-> Task :app:packageReleaseResources FROM-CACHE
-> Task :app:parseReleaseLocalResources FROM-CACHE
-> Task :app:dataBindingGenBaseClassesRelease
+> Task :app:generateReleaseResources
+> Task :app:packageReleaseResources
 > Task :app:generateReleaseBuildConfig FROM-CACHE
+> Task :app:parseReleaseLocalResources
 > Task :app:mapReleaseSourceSetPaths
 > Task :app:createReleaseCompatibleScreenManifests
 > Task :app:extractDeepLinksRelease FROM-CACHE
 > Task :app:checkReleaseAarMetadata FAILED
-> Task :app:processReleaseMainManifest
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_2-1789056579535.json
+> Task :app:processReleaseMainManifest FROM-CACHE
+> Task :app:mergeReleaseResources
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_2-1789056785756.json
 
 FAILURE: Build failed with an exception.
 
@@ -203,5 +202,5 @@ Execution failed for task ':app:checkReleaseAarMetadata'.
 > Run with --scan to get full insights.
 > Get more help at https://help.gradle.org.
 
-BUILD FAILED in 21s
-15 actionable tasks: 8 executed, 7 from cache
+BUILD FAILED in 11s
+14 actionable tasks: 10 executed, 4 from cache
