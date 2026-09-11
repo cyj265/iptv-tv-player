@@ -75,6 +75,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     private var allChannels: List<Channel> = emptyList()
     private lateinit var groupAdapter: GroupAdapter
     private var currentGroup: String? = null  // null = 全部频道
+    private var lastBackPressTime: Long = 0
     private var favorites: MutableSet<String> = HashSet()
     private var showFavoritesOnly = false
     private var currentChannel: Channel? = null
@@ -105,6 +106,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                 clockTick++
                 if (clockTick % 60 == 0 && epgPrograms.isNotEmpty()) {
                     adapter.epgNow = buildEpgNowMap()
+                    updateProgramInfo()
                 }
             } catch (ignored: Throwable) {
             }
@@ -159,6 +161,8 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         adapter.setCollapsedGroups(repository.getCollapsedGroups())
         binding.channelList.layoutManager = LinearLayoutManager(this)
         binding.channelList.adapter = adapter
+        // 双栏模式：右侧纯频道列表（带序号），不显示分组头
+        adapter.showGroupHeaders = false
 
         // 左侧分组列表
         groupAdapter = GroupAdapter { group ->
@@ -279,6 +283,8 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         } catch (e: Exception) {
             return
         }
+        // 显示后删除，避免每次启动都弹（只在崩溃后首次启动提示一次）
+        f.delete()
         val brief = log.lineSequence().take(6).joinToString("\n")
         runOnUiThread {
             Toast.makeText(this, "上次运行崩溃：\n$brief", Toast.LENGTH_LONG).show()
@@ -1203,6 +1209,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         currentChannel = channel
         repository.lastChannelId = channel.id
         adapter.setSelected(channel.id)
+        updateProgramInfo()
         playback.play(channel.sources.ifEmpty { listOf(channel.url) }, channel.name)
         updateNowPlaying()
         updateLineupLabel()
@@ -1316,6 +1323,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                     try {
                         updateNowPlaying()
                         adapter.epgNow = buildEpgNowMap()
+                    updateProgramInfo()
                         updateSourceStatus()
                     } catch (ignored: Throwable) {
                     }
@@ -1350,6 +1358,26 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             }
         }
         return map
+    }
+
+    /** 更新右侧节目信息栏（EPG 当前/下一个节目） */
+    private fun updateProgramInfo() {
+        try {
+            val ch = currentChannel ?: return
+            binding.tvInfoChannel.text = ch.name
+            val epgText = adapter.epgNow[ch.id] ?: ""
+            if (epgText.isNotEmpty()) {
+                binding.tvInfoNow.text = epgText
+            } else {
+                binding.tvInfoNow.text = "暂无节目单"
+            }
+            // 下一个节目：从 EPG 数据里找
+            binding.tvInfoNext.text = "—"
+            // 元信息：分组 + 线路数
+            val lineCount = playback.sourceCount()
+            binding.tvInfoMeta.text = (ch.group ?: "") + if (lineCount > 1) " · ${lineCount}条线路" else ""
+        } catch (ignored: Throwable) {
+        }
     }
 
     private fun updateNowPlaying() {
@@ -1497,7 +1525,34 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             KeyEvent.KEYCODE_CHANNEL_DOWN, KeyEvent.KEYCODE_MEDIA_PREVIOUS -> {
                 switchChannel(-1); true
             }
+            KeyEvent.KEYCODE_BACK -> {
+                // 双击返回退出
+                val now = System.currentTimeMillis()
+                if (now - lastBackPressTime < 2000) {
+                    showExitDialog()
+                } else {
+                    lastBackPressTime = now
+                    Toast.makeText(this, "再按一次返回键退出", Toast.LENGTH_SHORT).show()
+                }
+                true
+            }
             else -> super.onKeyDown(keyCode, event)
+        }
+    }
+
+    /** 退出确认弹窗 */
+    private fun showExitDialog() {
+        try {
+            AlertDialog.Builder(this)
+                .setTitle("退出揽星TV")
+                .setMessage("确定要退出应用吗？")
+                .setPositiveButton("退出") { _, _ ->
+                    finishAffinity()
+                    android.os.Process.killProcess(android.os.Process.myPid())
+                }
+                .setNegativeButton("取消", null)
+                .show()
+        } catch (ignored: Throwable) {
         }
     }
 
@@ -1552,7 +1607,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                 ellipsize = android.text.TextUtils.TruncateAt.END
                 gravity = android.view.Gravity.CENTER_VERTICAL
                 isFocusable = true
-                isClickable = true
+                isClickable = false
             }
             return VH(tv)
         }
