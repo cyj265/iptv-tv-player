@@ -11,8 +11,8 @@ android {
         applicationId = "com.cyj265.iptvplayer"
         minSdk = 21
         targetSdk = 34
-        versionCode = 15
-        versionName = "1.5.0"
+        versionCode = 16
+        versionName = "1.6.0"
     }
 
     buildTypes {
@@ -60,10 +60,13 @@ dependencies {
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4")
 
-    // VLC (libVLC) 播放内核
-    // 3.5.1 = VLC Android 稳定版，TiviMate/Kodi 系同族。HEVC/H.265 软硬解自动
-    // 切换（硬解失败自动回退软解），Amlogic T1 (Android 7) 实测全格式流畅。
-    // 之前 Media3 ExoPlayer 在 T1 上 HEVC 硬解反复失败（init failed / 只出声
-    // 不出画），故整体替换为 libVLC。
-    implementation("org.videolan.android:libvlc-all:3.5.1")
+    // Media3 (ExoPlayer) 播放内核
+    // 1.4.1 = 影视仓/TVBox 系播放器同代内核，行为最接近，Amlogic T1 兼容性最好
+    // （影视仓 EXO 硬解在 T1 上 4K HEVC 全流畅）。1.8.0 曾出现 HEVC 硬解
+    // DECODER_INIT_FAILED（解码器支持但创建失败），故固定此版本。
+    // 注：v1.5.0 曾尝试 libVLC 3.5.1 内核（83MB），T1 实测仅 1080P 正常、
+    // 4K 花屏/720P 黑屏，且体积过大，已回退纯 EXO 方案。
+    implementation("androidx.media3:media3-exoplayer:1.4.1")
+    implementation("androidx.media3:media3-exoplayer-hls:1.4.1")
+    implementation("androidx.media3:media3-ui:1.4.1")
 }
