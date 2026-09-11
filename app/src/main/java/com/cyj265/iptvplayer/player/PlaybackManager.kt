@@ -193,10 +193,9 @@ class PlaybackManager(
         if (currentSources.isNotEmpty()) {
             retryCount = 0
             playCurrentSource()
-        } else if (name != null) {
-            retryCount = 0
-            play(name, name)
         }
+        // 修复：currentSources 为空时不调用 play(name, name)——name 是频道名不是 URL，
+        // 必然播放失败。此时只重建播放器即可，等用户下次选台时再播。
     }
     fun currentDecoderMode(): String = decoderMode
     /**
@@ -224,7 +223,8 @@ class PlaybackManager(
         p.setMediaSource(buildMediaSource(url, channelName))
         p.prepare()
         p.playWhenReady = true
-        listener.onPlaybackReady(channelName)
+        // 修复：不在 prepare 后立即回调 onPlaybackReady（播放器还未 STATE_READY）。
+        // 频道名更新由 playCurrentSource 统一处理，真正就绪由 playerListener 回调。
     }
     @OptIn(UnstableApi::class)
     private fun buildPlayer(): ExoPlayer {
@@ -374,8 +374,10 @@ class PlaybackManager(
     fun switchToNextLine(): Boolean {
         if (currentSources.size <= 1) return false
         currentSourceIndex = (currentSourceIndex + 1) % currentSources.size
+        // 修复：手动切换后重置自动换源起始位置，避免 autoFail 提前判定"全部失败"
+        autoTryStartIndex = currentSourceIndex
         playCurrentSource()
-        listener.onPlaybackError("已切换到线路 ${currentSourceIndex + 1}/${currentSources.size}")
+        android.widget.Toast.makeText(context, "已切换到线路 ${currentSourceIndex + 1}/${currentSources.size}", android.widget.Toast.LENGTH_SHORT).show()
         return true
     }
 
@@ -383,8 +385,9 @@ class PlaybackManager(
     fun switchToPrevLine(): Boolean {
         if (currentSources.size <= 1) return false
         currentSourceIndex = (currentSourceIndex - 1 + currentSources.size) % currentSources.size
+        autoTryStartIndex = currentSourceIndex
         playCurrentSource()
-        listener.onPlaybackError("已切换到线路 ${currentSourceIndex + 1}/${currentSources.size}")
+        android.widget.Toast.makeText(context, "已切换到线路 ${currentSourceIndex + 1}/${currentSources.size}", android.widget.Toast.LENGTH_SHORT).show()
         return true
     }
     /** 自动失败换源：一圈全部失败则报错停止 */
@@ -443,7 +446,8 @@ class PlaybackManager(
         p.setMediaSource(buildMediaSource(url, channelName))
         p.prepare()
         p.playWhenReady = true
-        listener.onPlaybackReady(channelName)
+        // 修复：不在 prepare 后立即回调 onPlaybackReady（播放器还未 STATE_READY）。
+        // 频道名更新由 playCurrentSource 统一处理，真正就绪由 playerListener 回调。
     }
     /**
      * 按内容类型显式构建媒体源（lemonTV 同款做法）：
@@ -478,6 +482,8 @@ class PlaybackManager(
     fun release() {
         retryHandler.removeCallbacksAndMessages(null)
         sourceTimeoutHandler.removeCallbacksAndMessages(null)
+        // 修复：显式移除 listener，避免 player.release() 过程中回调已销毁的 Activity
+        player?.removeListener(playerListener)
         player?.release()
         player = null
         bandwidthMeter = null
