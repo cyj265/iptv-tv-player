@@ -8,57 +8,17 @@ Daemon will be stopped at the end of the build
 > Task :app:generateReleaseResValues FROM-CACHE
 > Task :app:generateReleaseResources
 > Task :app:packageReleaseResources
-> Task :app:generateReleaseBuildConfig FROM-CACHE
-> Task :app:mapReleaseSourceSetPaths
-> Task :app:createReleaseCompatibleScreenManifests
-> Task :app:extractDeepLinksRelease FROM-CACHE
+> Task :app:mergeReleaseResources FAILED
 > Task :app:parseReleaseLocalResources
-> Task :app:checkReleaseAarMetadata
-> Task :app:processReleaseMainManifest FROM-CACHE
-> Task :app:processReleaseManifest FROM-CACHE
-> Task :app:processReleaseManifestForPackage FROM-CACHE
-> Task :app:javaPreCompileRelease FROM-CACHE
-> Task :app:extractProguardFiles
-> Task :app:mergeReleaseJniLibFolders
-> Task :app:checkReleaseDuplicateClasses
-> Task :app:mergeReleaseResources
-> Task :app:mergeReleaseNativeLibs
-> Task :app:desugarReleaseFileDependencies FROM-CACHE
-> Task :app:dataBindingGenBaseClassesRelease
-> Task :app:mergeReleaseStartupProfile
-
-> Task :app:stripReleaseDebugSymbols
-Unable to strip the following libraries, packaging them as they are: libc++_shared.so, libvlc.so, libvlcjni.so.
-
-> Task :app:mergeExtDexRelease FROM-CACHE
-> Task :app:extractReleaseNativeSymbolTables FROM-CACHE
-> Task :app:mergeReleaseNativeDebugMetadata NO-SOURCE
-> Task :app:processReleaseResources
-> Task :app:mergeReleaseArtProfile
-> Task :app:mergeReleaseShaders
-> Task :app:compileReleaseShaders NO-SOURCE
-> Task :app:generateReleaseAssets UP-TO-DATE
-> Task :app:mergeReleaseAssets
-> Task :app:compressReleaseAssets FROM-CACHE
-> Task :app:extractReleaseVersionControlInfo
-> Task :app:collectReleaseDependencies
-> Task :app:sdkReleaseDependencyData
-> Task :app:validateSigningRelease
-> Task :app:writeReleaseAppMetadata
-> Task :app:writeReleaseSigningConfigVersions
-> Task :app:optimizeReleaseResources
-
-> Task :app:compileReleaseKotlin FAILED
-e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:68:24 Unresolved reference: setVideoTextureView
-e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:183:24 Unresolved reference: setVideoTextureView
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_2-1789087901156.json
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_3-1789094617690.json
 
 FAILURE: Build failed with an exception.
 
 * What went wrong:
-Execution failed for task ':app:compileReleaseKotlin'.
-> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
-   > Compilation error. See log for more details
+Execution failed for task ':app:mergeReleaseResources'.
+> A failure occurred while executing com.android.build.gradle.internal.res.Aapt2CompileRunnable
+   > AAPT2 aapt2-8.7.3-12006047-linux Daemon #0: Unexpected error during compile '/home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/res/mipmap-xxhdpi/ic_launcher.png', attempting to stop daemon.
+     This should not happen under normal circumstances, please file an issue if it does.
 
 * Try:
 > Run with --stacktrace option to get the stack trace.
@@ -66,5 +26,5 @@ Execution failed for task ':app:compileReleaseKotlin'.
 > Run with --scan to get full insights.
 > Get more help at https://help.gradle.org.
 
-BUILD FAILED in 26s
-40 actionable tasks: 29 executed, 11 from cache
+BUILD FAILED in 15s
+8 actionable tasks: 7 executed, 1 from cache
