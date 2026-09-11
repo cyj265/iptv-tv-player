@@ -187,8 +187,8 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             },
             onGroupFocused = { group ->
                 // 焦点移动到分组即切换右侧频道列表（不抢焦点、不换台）
+                // 注意：不能调用 groupAdapter.setSelected()，否则 notifyDataSetChanged 会重置焦点导致跳位/卡死
                 currentGroup = group
-                groupAdapter.setSelected(group)
                 rememberLastGroup(group ?: "")
                 applyFilter()
                 // 记录目标位置，右键进入右栏时才定位
@@ -2317,6 +2317,8 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                 gravity = android.view.Gravity.CENTER_VERTICAL
                 isFocusable = true
                 isClickable = true
+                // 阻止系统自动焦点搜索：右键交给 Activity.onKeyDown 处理（定位到当前频道）
+                nextFocusRight = View.NO_ID
             }
             return VH(tv)
         }
