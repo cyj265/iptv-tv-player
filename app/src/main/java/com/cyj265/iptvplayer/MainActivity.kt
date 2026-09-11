@@ -1942,7 +1942,10 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             if (mergedPrograms.isEmpty()) {
                 finalState = EpgLoadState.FAILED
             } else {
-                epgPrograms = indexEpg(EpgParser.EpgData(mergedNames, mergedPrograms))
+                // 修复：子线程中先取 allChannels 快照，避免与主线程 onChannelsLoaded
+                // 的赋值产生可见性问题（List 虽不可变，但显式快照更安全）
+                val channelsSnapshot = allChannels
+                epgPrograms = indexEpgWithChannels(EpgParser.EpgData(mergedNames, mergedPrograms), channelsSnapshot)
                 repository.epgProgramCount = totalPrograms
                 repository.epgUpdatedAt = System.currentTimeMillis()
                 epgLoadedCount = totalPrograms
@@ -2000,6 +2003,25 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             // 1) 精确匹配 tvgId / 频道名
             var list = byName[ch.tvgId] ?: byName[ch.name]
             // 2) 归一化匹配（覆盖"频道名带画质后缀"的常见情况）
+            if (list == null) {
+                list = byNorm[normalizeEpgName(ch.name)]
+            }
+            if (list != null) map[ch.id] = list.sortedBy { it.start }
+        }
+        return map
+    }
+
+    /** 带频道快照的 EPG 索引（子线程安全版本） */
+    private fun indexEpgWithChannels(data: EpgParser.EpgData, channels: List<Channel>): Map<String, List<EpgProgram>> {
+        val map = HashMap<String, List<EpgProgram>>()
+        val byName = HashMap<String, MutableList<EpgProgram>>()
+        val byNorm = HashMap<String, MutableList<EpgProgram>>()
+        for (p in data.programs) {
+            byName.getOrPut(p.channelId) { ArrayList() }.add(p)
+            byNorm.getOrPut(normalizeEpgName(p.channelId)) { ArrayList() }.add(p)
+        }
+        for (ch in channels) {
+            var list = byName[ch.tvgId] ?: byName[ch.name]
             if (list == null) {
                 list = byNorm[normalizeEpgName(ch.name)]
             }
@@ -2314,11 +2336,13 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             remoteServer?.stop()
         } catch (ignored: Exception) {
         }
-        super.onDestroy()
+        // 修复：必须在 super.onDestroy() 之前释放播放器，
+        // 否则 Activity 已销毁后再 release() 可能异常或资源泄漏。
         try {
             playback.release()
         } catch (ignored: Exception) {
         }
+        super.onDestroy()
     }
 
     // ---------- 左侧分组列表 Adapter ----------
