@@ -31,10 +31,10 @@ Daemon will be stopped at the end of the build
 > Task :app:desugarReleaseFileDependencies FROM-CACHE
 > Task :app:mergeReleaseStartupProfile
 > Task :app:mergeExtDexRelease FROM-CACHE
+> Task :app:mergeReleaseArtProfile
 > Task :app:mergeReleaseShaders
 > Task :app:compileReleaseShaders NO-SOURCE
 > Task :app:generateReleaseAssets UP-TO-DATE
-> Task :app:mergeReleaseArtProfile
 > Task :app:mergeReleaseAssets
 > Task :app:compressReleaseAssets FROM-CACHE
 > Task :app:extractReleaseVersionControlInfo
@@ -47,7 +47,7 @@ Daemon will be stopped at the end of the build
 
 > Task :app:compileReleaseKotlin FAILED
 e: file:///home/runner/work/lanxing-tv/lanxing-tv/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:289:32 Smart cast to 'DefaultBandwidthMeter' is impossible, because 'bandwidthMeter' is a mutable property that could have been changed by this time
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_3-1789106017989.json
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_3-1789106383372.json
 
 FAILURE: Build failed with an exception.
 
@@ -62,5 +62,5 @@ Execution failed for task ':app:compileReleaseKotlin'.
 > Run with --scan to get full insights.
 > Get more help at https://help.gradle.org.
 
-BUILD FAILED in 29s
+BUILD FAILED in 26s
 37 actionable tasks: 20 executed, 17 from cache
