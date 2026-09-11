@@ -2,6 +2,7 @@ package com.cyj265.iptvplayer
 
 import android.app.AlertDialog
 import android.content.Intent
+import android.graphics.Bitmap
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
@@ -12,30 +13,45 @@ import android.text.TextWatcher
 import android.util.Log
 import android.view.KeyEvent
 import android.view.View
+import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.cyj265.iptvplayer.data.Channel
 import com.cyj265.iptvplayer.data.EpgParser
 import com.cyj265.iptvplayer.data.EpgProgram
 import com.cyj265.iptvplayer.data.HttpLoader
+import com.cyj265.iptvplayer.data.LanRemoteServer
 import com.cyj265.iptvplayer.data.PlaylistParser
 import com.cyj265.iptvplayer.data.PlaylistRepository
 import com.cyj265.iptvplayer.databinding.ActivityMainBinding
 import com.cyj265.iptvplayer.player.PlaybackManager
 import com.cyj265.iptvplayer.ui.ChannelAdapter
+import com.cyj265.iptvplayer.util.QrCodeUtil
+import org.json.JSONArray
+import org.json.JSONObject
 import java.io.File
 import java.io.PrintWriter
 import java.io.StringWriter
+import java.net.HttpURLConnection
+import java.net.Inet4Address
+import java.net.NetworkInterface
+import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 /**
- * 主界面：全屏播放 + 悬浮频道列表（OK 唤出）+ 右侧设置面板（菜单键唤出）。
+ * 主界面：全屏播放 + 悬浮频道列表（OK 唤出，二级分组 + 源切换）+ 右侧设置面板（菜单键唤出）。
  * 遥控器：上下键换台、OK 频道列表、菜单键设置、CH+/CH- 换台。
+ *
+ * v1.7.0：多直播源（列表顶部 OK 快速切换）、扫码局域网手机管理、检查更新自动下载安装、
+ * 崩溃日志导出、二级分组默认收起、EPG 节目在频道列表中体现。
+ * 注意：播放/解码路径自 v1.6.4 起冻结，不再改动（用户多次要求"解码器别动"）。
  */
 class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
 
@@ -43,6 +59,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     private lateinit var repository: PlaylistRepository
     private lateinit var playback: PlaybackManager
     private lateinit var adapter: ChannelAdapter
+    private var remoteServer: LanRemoteServer? = null
 
     private var allChannels: List<Channel> = emptyList()
     private var favorites: MutableSet<String> = HashSet()
@@ -58,13 +75,18 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     private val overlayHandler = Handler(Looper.getMainLooper())
     private val overlayHideRunnable = Runnable { hideOverlay() }
 
-    // 右上角时钟（柠檬TV 风格）
+    // 右上角时钟，并每分钟刷新一次列表 EPG 节目文本
     private val clockHandler = Handler(Looper.getMainLooper())
+    private var clockTick = 0
     private val clockRunnable = object : Runnable {
         override fun run() {
             try {
                 binding.tvClock.text =
                     SimpleDateFormat("yyyy/MM/dd\nHH:mm:ss", Locale.getDefault()).format(Date())
+                clockTick++
+                if (clockTick % 60 == 0 && epgPrograms.isNotEmpty()) {
+                    adapter.epgNow = buildEpgNowMap()
+                }
             } catch (ignored: Throwable) {
             }
             clockHandler.postDelayed(this, 1000L)
@@ -74,6 +96,11 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     private val openDocument =
         registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
             uri?.let { importLocalFile(it) }
+        }
+
+    private val createLogDoc =
+        registerForActivityResult(ActivityResultContracts.CreateDocument("text/plain")) { uri ->
+            uri?.let { exportCrashLogTo(it) }
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -107,6 +134,8 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             onCollapsedChanged = { groups -> repository.saveCollapsedGroups(groups) }
         )
         adapter.favorites = favorites
+        // 从未手动折叠过时默认全部收起（二级分组体验）
+        adapter.setDefaultCollapsed(!repository.hasCollapsedPrefs())
         adapter.setCollapsedGroups(repository.getCollapsedGroups())
         binding.channelList.layoutManager = LinearLayoutManager(this)
         binding.channelList.adapter = adapter
@@ -114,13 +143,17 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         setupSearch()
         setupButtons()
         setupSettingsPanel()
+        setupSourceBar()
+        startRemoteServer()
 
         // 启动：先显示缓存，再尝试刷新
-        val cached = repository.loadCachedChannels()
+        val cached = repository.loadLocalChannels() ?: repository.loadCachedChannels(
+            repository.getActiveSource().orEmpty()
+        )
         if (!cached.isNullOrEmpty()) {
             onChannelsLoaded(cached)
         }
-        if (!repository.playlistUrl.isNullOrEmpty()) {
+        if (!repository.getActiveSource().isNullOrEmpty()) {
             reloadPlaylist()
         }
         loadEpgIfConfigured()
@@ -132,6 +165,8 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
 
         // 启动时显示覆盖层，随后自动淡出
         showOverlay()
+        updateSourceBar()
+        updateSourceStatus()
     }
 
     /** 启动失败：记录日志并弹窗显示堆栈，方便在电视上直接截图反馈。 */
@@ -190,7 +225,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         }
     }
 
-    /** 启动自检：后台探测 HEVC 硬解解码器好坏（不阻塞 UI）。 */
+    /** 启动自检：后台探测 HEVC 硬解解码器好坏（不阻塞 UI）。播放路径不因结果而改动。 */
     private fun checkDecoderHealthOnStart() {
         Thread {
             val healthy = com.cyj265.iptvplayer.player.DecoderHealthCheck.isHardwareHevcHealthy()
@@ -198,7 +233,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                 if (!healthy && !isFinishing) {
                     Toast.makeText(
                         this,
-                        "检测到硬解解码器异常：如播放黑屏/无声，请重启盒子，或直接播放让应用自动尝试修复",
+                        "检测到硬解解码器异常：如播放黑屏/无声，请重启机顶盒",
                         Toast.LENGTH_LONG
                     ).show()
                 }
@@ -273,6 +308,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         binding.channelPanel.visibility = View.VISIBLE
         binding.channelPanel.alpha = 0f
         binding.channelPanel.animate().alpha(1f).setDuration(160).start()
+        updateSourceBar()
         binding.channelList.requestFocus()
     }
 
@@ -287,6 +323,9 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         binding.settingsPanel.visibility = View.VISIBLE
         binding.settingsPanel.alpha = 0f
         binding.settingsPanel.animate().alpha(1f).setDuration(160).start()
+        refreshSettingsSourceInput()
+        updateSourceStatus()
+        refreshCrashLog()
         val navs = settingsNavs()
         navs[currentSettingsTab].requestFocus()
     }
@@ -323,6 +362,167 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         binding.btnFavoriteCurrent.setOnClickListener { toggleFavoriteCurrent() }
     }
 
+    // ---------- 直播源切换条（频道列表顶部） ----------
+
+    private fun setupSourceBar() {
+        binding.tvSourceBar.setOnClickListener { switchToNextSource() }
+    }
+
+    private fun switchToNextSource() {
+        val next = repository.switchToNextSource()
+        if (next == null) {
+            Toast.makeText(this, "未配置直播源，请在设置中添加", Toast.LENGTH_SHORT).show()
+            return
+        }
+        currentChannel = null
+        adapter.setSelected(null)
+        updateSourceBar()
+        updateSourceStatus()
+        reloadPlaylist()
+        Toast.makeText(
+            this,
+            getString(R.string.switch_source) + "：" + sourceLabel(next),
+            Toast.LENGTH_SHORT
+        ).show()
+    }
+
+    private fun updateSourceBar() {
+        val sources = repository.getSources()
+        binding.tvSourceBar.text = if (sources.isEmpty()) {
+            getString(R.string.nav_source) + "：未配置（OK 进设置添加）"
+        } else {
+            "直播源 " + (repository.activeSourceIndex + 1) + "/" + sources.size +
+                " · " + sourceLabel(repository.getActiveSource() ?: "") + "  ·  OK 切换"
+        }
+    }
+
+    private fun sourceLabel(url: String): String {
+        return try {
+            val u = Uri.parse(url)
+            val name = u.path?.substringAfterLast('/')?.substringBeforeLast('.') ?: ""
+            if (name.isNotBlank() && name.length <= 24) name else (u.host ?: url)
+        } catch (e: Exception) {
+            url
+        }
+    }
+
+    // ---------- 扫码局域网管理 ----------
+
+    private fun startRemoteServer() {
+        remoteServer = LanRemoteServer(
+            onSave = { sources, epg -> handleRemoteSave(sources, epg) },
+            onPlayDirect = { url ->
+                runOnUiThread {
+                    try {
+                        playDirect(url, url)
+                    } catch (ignored: Throwable) {
+                    }
+                }
+            },
+            getStateJson = { stateJson() }
+        )
+        try {
+            remoteServer?.start()
+        } catch (e: Exception) {
+            remoteServer = null
+        }
+    }
+
+    private fun handleRemoteSave(sources: List<String>, epg: String?) {
+        runOnUiThread {
+            try {
+                repository.saveSources(sources)
+                if (epg != null) repository.epgUrl = epg
+                binding.inputPlaylistUrl.setText(sources.joinToString("\n"))
+                binding.inputEpgUrl.setText(epg.orEmpty())
+                currentChannel = null
+                adapter.setSelected(null)
+                updateSourceBar()
+                updateSourceStatus()
+                reloadPlaylist()
+                loadEpgIfConfigured()
+                Toast.makeText(
+                    this,
+                    "手机已保存 " + sources.size + " 个直播源，正在刷新…",
+                    Toast.LENGTH_LONG
+                ).show()
+            } catch (ignored: Throwable) {
+            }
+        }
+    }
+
+    private fun stateJson(): String {
+        return try {
+            JSONObject()
+                .put("sources", JSONArray(repository.getSources()))
+                .put("active", repository.activeSourceIndex)
+                .put("epg", repository.epgUrl ?: "")
+                .put("epgCount", repository.epgProgramCount)
+                .toString()
+        } catch (e: Exception) {
+            "{}"
+        }
+    }
+
+    private fun showScanDialog() {
+        val ip = localIpAddress()
+        if (ip == null) {
+            Toast.makeText(this, R.string.scan_no_wifi, Toast.LENGTH_LONG).show()
+            return
+        }
+        val server = remoteServer
+        if (server == null) {
+            Toast.makeText(this, R.string.scan_server_off, Toast.LENGTH_LONG).show()
+            return
+        }
+        val url = "http://$ip:19090/"
+        val qr: Bitmap? = try {
+            QrCodeUtil.encode(url, 640)
+        } catch (e: Throwable) {
+            null
+        }
+        val content = LinearLayout(this)
+        content.orientation = LinearLayout.VERTICAL
+        content.setPadding(48, 24, 48, 24)
+        val qrView = ImageView(this)
+        qrView.setPadding(0, 0, 0, 16)
+        if (qr != null) {
+            qrView.setImageBitmap(qr)
+            content.addView(qrView, LinearLayout.LayoutParams(420, 420))
+        }
+        val tv = android.widget.TextView(this)
+        tv.setTextColor(ContextCompat.getColor(this, R.color.text_primary))
+        tv.textSize = 15f
+        tv.text = "请用手机（与机顶盒同一 Wi-Fi）扫描：\n$url\n\n可添加/切换直播源、设置节目指南、直接播放"
+        content.addView(tv)
+        AlertDialog.Builder(this)
+            .setTitle(R.string.scan_qr_title)
+            .setView(content)
+            .setPositiveButton(R.string.close, null)
+            .show()
+    }
+
+    private fun localIpAddress(): String? {
+        try {
+            val nis = NetworkInterface.getNetworkInterfaces()
+            while (nis.hasMoreElements()) {
+                val ni = nis.nextElement()
+                if (!ni.isUp || ni.isLoopback) continue
+                val addrs = ni.inetAddresses
+                while (addrs.hasMoreElements()) {
+                    val a = addrs.nextElement()
+                    if (a is Inet4Address && !a.isLoopbackAddress) {
+                        return a.hostAddress
+                    }
+                }
+            }
+        } catch (ignored: Exception) {
+        }
+        return null
+    }
+
+    // ---------- 设置面板 ----------
+
     private fun settingsNavs(): List<View> = listOf(
         binding.navSource, binding.navPlayer, binding.navUi,
         binding.navFav, binding.navUpdate, binding.navDebug, binding.navAbout
@@ -355,9 +555,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
 
     private fun setupSettingsPanel() {
         setupSettingsTabs()
-
-        binding.inputPlaylistUrl.setText(repository.playlistUrl.orEmpty())
-        binding.inputEpgUrl.setText(repository.epgUrl.orEmpty())
+        refreshSettingsSourceInput()
 
         binding.btnImportFile.setOnClickListener {
             try {
@@ -374,6 +572,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         binding.btnLoadPlaylist.setOnClickListener { saveAndReload() }
         binding.btnPlayDirect.setOnClickListener { playDirectFromPanel() }
         binding.btnCloseSettings.setOnClickListener { hideSettingsPanel() }
+        binding.btnScanManage.setOnClickListener { showScanDialog() }
         binding.btnClearFavorites.setOnClickListener {
             favorites.clear()
             repository.setFavorites(favorites)
@@ -402,20 +601,22 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         updateFavCount()
 
         binding.tvVersion.text = "v" + BuildConfig.VERSION_NAME
-        binding.btnCheckUpdate.setOnClickListener {
-            try {
-                startActivity(
-                    Intent(
-                        Intent.ACTION_VIEW,
-                        Uri.parse("https://github.com/cyj265/iptv-tv-player/releases")
-                    )
-                )
-            } catch (e: Exception) {
-                Toast.makeText(this, "无法打开浏览器", Toast.LENGTH_SHORT).show()
-            }
-        }
+        binding.btnCheckUpdate.setOnClickListener { checkUpdate() }
 
         refreshCrashLog()
+        binding.btnExportCrashLog.setOnClickListener {
+            if (!crashFile().exists()) {
+                Toast.makeText(this, R.string.export_empty, Toast.LENGTH_SHORT).show()
+            } else {
+                val name = "crash-log-" +
+                    SimpleDateFormat("yyyyMMdd-HHmmss", Locale.getDefault()).format(Date()) + ".txt"
+                try {
+                    createLogDoc.launch(name)
+                } catch (e: Exception) {
+                    Toast.makeText(this, "无法打开保存窗口：${e.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
         binding.btnClearCrashLog.setOnClickListener {
             crashFile().delete()
             binding.tvCrashLog.text = "无"
@@ -423,9 +624,10 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         }
 
         binding.tvAbout.text = getString(R.string.app_name) + " v" + BuildConfig.VERSION_NAME +
-            "\n播放内核：Media3 ExoPlayer（影视仓同款）" +
+            "\n播放内核：Media3 ExoPlayer（开源）" +
             "\n代码仓库：https://github.com/cyj265/iptv-tv-player" +
-            "\n开源许可：Apache-2.0 / MIT / GPL-2.0，来源致谢见仓库 README"
+            "\n开源许可：Apache-2.0 / MIT / GPL-2.0" +
+            "\n部分源码来自开源项目（详见仓库 README 来源致谢）"
     }
 
     private fun setupSettingsTabs() {
@@ -436,6 +638,43 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             }
         }
         selectSettingsTab(0)
+    }
+
+    private fun refreshSettingsSourceInput() {
+        try {
+            binding.inputPlaylistUrl.setText(repository.getSources().joinToString("\n"))
+            binding.inputEpgUrl.setText(repository.epgUrl.orEmpty())
+        } catch (ignored: Throwable) {
+        }
+    }
+
+    private fun updateSourceStatus() {
+        try {
+            val sources = repository.getSources()
+            val active = repository.getActiveSource()
+            val sb = StringBuilder()
+            sb.append("已配置 ").append(sources.size).append(" 个直播源")
+            if (active != null) {
+                sb.append("\n当前源：").append(sourceLabel(active))
+                val updatedAt = repository.getSourceUpdatedAt(active)
+                sb.append("\n").append(getString(R.string.source_updated)).append("：")
+                sb.append(
+                    if (updatedAt > 0)
+                        SimpleDateFormat("MM-dd HH:mm", Locale.getDefault()).format(Date(updatedAt))
+                    else getString(R.string.source_never)
+                )
+            } else {
+                sb.append("\n当前源：未配置")
+            }
+            val epg = repository.epgUrl
+            sb.append("\n节目指南：").append(
+                if (epg.isNullOrBlank()) "未设置" else "已配置"
+            )
+            val count = repository.epgProgramCount
+            if (count > 0) sb.append("（已加载 ").append(count).append(" 条节目）")
+            binding.tvSourceStatus.text = sb.toString()
+        } catch (ignored: Throwable) {
+        }
     }
 
     private fun updateFavCount() {
@@ -452,6 +691,156 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             }
         } else {
             "无"
+        }
+    }
+
+    private fun exportCrashLogTo(uri: Uri) {
+        try {
+            val f = crashFile()
+            if (!f.exists()) return
+            contentResolver.openOutputStream(uri)?.use { os ->
+                os.write(f.readBytes())
+            }
+            Toast.makeText(this, R.string.exported, Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Toast.makeText(this, "导出失败：${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    // ---------- 检查更新（自动下载安装） ----------
+
+    private fun checkUpdate() {
+        binding.tvUpdateStatus.text = getString(R.string.checking_update)
+        Thread {
+            try {
+                val conn = URL(
+                    "https://api.github.com/repos/cyj265/iptv-tv-player/releases/latest"
+                ).openConnection() as HttpURLConnection
+                conn.connectTimeout = 15000
+                conn.readTimeout = 15000
+                conn.setRequestProperty("User-Agent", "LanXingTV")
+                val json = JSONObject(conn.inputStream.bufferedReader().readText())
+                val tag = json.getString("tag_name").removePrefix("v")
+                val assets = json.getJSONArray("assets")
+                var apkUrl: String? = null
+                for (i in 0 until assets.length()) {
+                    val a = assets.getJSONObject(i)
+                    if (a.getString("name").endsWith(".apk")) {
+                        apkUrl = a.getString("browser_download_url")
+                        break
+                    }
+                }
+                val current = BuildConfig.VERSION_NAME
+                val newer = compareVersions(tag, current) > 0
+                runOnUiThread {
+                    try {
+                        if (!newer || apkUrl.isNullOrEmpty()) {
+                            binding.tvUpdateStatus.text =
+                                getString(R.string.update_latest) + "（v" + current + "）"
+                        } else {
+                            binding.tvUpdateStatus.text =
+                                getString(R.string.update_found) + " v" + tag
+                            downloadAndInstall(apkUrl)
+                        }
+                    } catch (ignored: Throwable) {
+                    }
+                }
+            } catch (e: Exception) {
+                runOnUiThread {
+                    try {
+                        binding.tvUpdateStatus.text =
+                            getString(R.string.update_failed, e.message ?: "网络错误")
+                    } catch (ignored: Throwable) {
+                    }
+                }
+            }
+        }.start()
+    }
+
+    private fun compareVersions(a: String, b: String): Int {
+        val pa = a.split(".").map { it.toIntOrNull() ?: 0 }
+        val pb = b.split(".").map { it.toIntOrNull() ?: 0 }
+        for (i in 0 until maxOf(pa.size, pb.size)) {
+            val x = pa.getOrElse(i) { 0 }
+            val y = pb.getOrElse(i) { 0 }
+            if (x != y) return x - y
+        }
+        return 0
+    }
+
+    private fun downloadAndInstall(originalUrl: String) {
+        // GitHub release 资产在部分网络下直连慢/断，走镜像加速（与电脑端下载 APK 同通道）
+        val downloadUrl = if (originalUrl.startsWith("https://github.com/")) {
+            "https://gh-proxy.com/" + originalUrl
+        } else {
+            originalUrl
+        }
+        Thread {
+            try {
+                val dir = File(cacheDir, "apk")
+                dir.mkdirs()
+                val apk = File(dir, "update.apk")
+                val conn = URL(downloadUrl).openConnection() as HttpURLConnection
+                conn.connectTimeout = 20000
+                conn.readTimeout = 60000
+                conn.setRequestProperty("User-Agent", "LanXingTV")
+                val total = conn.contentLengthLong
+                val input = conn.inputStream
+                val output = apk.outputStream()
+                val buf = ByteArray(64 * 1024)
+                var read: Int
+                var done = 0L
+                var lastPercent = -1
+                while (input.read(buf).also { read = it } > 0) {
+                    output.write(buf, 0, read)
+                    done += read
+                    if (total > 0) {
+                        val pct = (done * 100 / total).toInt()
+                        if (pct != lastPercent && pct % 5 == 0) {
+                            lastPercent = pct
+                            val p = pct
+                            runOnUiThread {
+                                try {
+                                    binding.tvUpdateStatus.text =
+                                        getString(R.string.update_downloading, p)
+                                } catch (ignored: Throwable) {
+                                }
+                            }
+                        }
+                    }
+                }
+                output.flush()
+                output.close()
+                input.close()
+                runOnUiThread {
+                    try {
+                        binding.tvUpdateStatus.text = getString(R.string.update_done)
+                        installApk(apk)
+                    } catch (ignored: Throwable) {
+                    }
+                }
+            } catch (e: Exception) {
+                runOnUiThread {
+                    try {
+                        binding.tvUpdateStatus.text =
+                            getString(R.string.update_failed, e.message ?: "下载失败")
+                    } catch (ignored: Throwable) {
+                    }
+                }
+            }
+        }.start()
+    }
+
+    private fun installApk(apk: File) {
+        try {
+            val uri = FileProvider.getUriForFile(this, "$packageName.fileprovider", apk)
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, "application/vnd.android.package-archive")
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            startActivity(intent)
+        } catch (e: Exception) {
+            Toast.makeText(this, "无法打开安装器：${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -505,22 +894,30 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     // ---------- 播放列表加载 ----------
 
     private fun saveAndReload() {
-        val url = binding.inputPlaylistUrl.text.toString().trim()
-        if (url.isEmpty()) {
+        val text = binding.inputPlaylistUrl.text.toString().trim()
+        val sources = text
+            .split("\n", "\r\n")
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+        if (sources.isEmpty()) {
             Toast.makeText(this, R.string.load_failed, Toast.LENGTH_SHORT).show()
             return
         }
-        repository.playlistUrl = url
+        repository.saveSources(sources)
         repository.epgUrl = binding.inputEpgUrl.text.toString().trim().ifEmpty { null }
+        currentChannel = null
+        adapter.setSelected(null)
+        updateSourceBar()
+        updateSourceStatus()
         reloadPlaylist()
         loadEpgIfConfigured()
         Toast.makeText(this, R.string.loading_playlist, Toast.LENGTH_SHORT).show()
     }
 
     private fun reloadPlaylist() {
-        val url = repository.playlistUrl
+        val url = repository.getActiveSource()
         if (url.isNullOrEmpty()) {
-            val cached = repository.loadCachedChannels()
+            val cached = repository.loadLocalChannels()
             if (!cached.isNullOrEmpty()) onChannelsLoaded(cached)
             return
         }
@@ -529,7 +926,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                 val content = HttpLoader.fetch(url)
                 val channels = PlaylistParser.parseAuto(content)
                 if (channels.isNotEmpty()) {
-                    repository.saveChannels(channels)
+                    repository.saveChannels(channels, url)
                 }
                 runOnUiThread {
                     try {
@@ -540,7 +937,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                     }
                 }
             } catch (e: Throwable) {
-                val cached = repository.loadCachedChannels()
+                val cached = repository.loadCachedChannels(url)
                 val detail = e.message ?: e.javaClass.simpleName
                 runOnUiThread {
                     try {
@@ -567,6 +964,8 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         if (channels.isEmpty()) {
             binding.tvChannelName.text = getString(R.string.no_channels)
         }
+        updateSourceBar()
+        updateSourceStatus()
         loadEpgIfConfigured()
         // 若启动时还没有播放（恢复失败/无缓存），自动播第一个频道
         if (currentChannel == null && channels.isNotEmpty() && repository.autoResume) {
@@ -590,8 +989,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                     runOnUiThread { Toast.makeText(this, R.string.no_channels, Toast.LENGTH_SHORT).show() }
                     return@Thread
                 }
-                repository.playlistUrl = null
-                repository.saveChannels(channels)
+                repository.saveLocalChannels(channels)
                 runOnUiThread {
                     try {
                         onChannelsLoaded(channels)
@@ -716,9 +1114,13 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                 val content = HttpLoader.fetch(epgUrl)
                 val data = EpgParser.parse(content)
                 epgPrograms = indexEpg(data)
+                repository.epgProgramCount = data.programs.size
+                repository.epgUpdatedAt = System.currentTimeMillis()
                 runOnUiThread {
                     try {
                         updateNowPlaying()
+                        adapter.epgNow = buildEpgNowMap()
+                        updateSourceStatus()
                     } catch (ignored: Throwable) {
                     }
                 }
@@ -736,6 +1138,20 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         for (ch in allChannels) {
             val list = byName[ch.tvgId] ?: byName[ch.name] ?: continue
             map[ch.id] = list.sortedBy { it.start }
+        }
+        return map
+    }
+
+    /** 构建"正在播放"节目文本映射（频道列表副行用，EPG 显性化）。 */
+    private fun buildEpgNowMap(): Map<String, String> {
+        val now = System.currentTimeMillis()
+        val map = HashMap<String, String>()
+        for (ch in allChannels) {
+            val programs = epgPrograms[ch.id] ?: continue
+            val cur = programs.firstOrNull { now in it.start until it.end }
+            if (cur != null) {
+                map[ch.id] = "正在播放：" + cur.title
+            }
         }
         return map
     }
@@ -828,8 +1244,21 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                 else -> super.onKeyDown(keyCode, event)
             }
         }
-        // 频道列表打开：OK 触发选中项（item 自带点击），BACK 关闭，上下键列表内导航
+        // 频道列表打开：BACK 关闭；源切换条聚焦时 OK/左右键切换直播源；
+        // 列表聚焦时 OK 触发选中项（item 自带点击），上下键列表内导航
         if (isChannelPanelVisible) {
+            if (binding.tvSourceBar.hasFocus()) {
+                return when (keyCode) {
+                    KeyEvent.KEYCODE_BACK -> {
+                        hideChannelPanel(); true
+                    }
+                    KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER,
+                    KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                        switchToNextSource(); true
+                    }
+                    else -> super.onKeyDown(keyCode, event)
+                }
+            }
             return when (keyCode) {
                 KeyEvent.KEYCODE_BACK -> {
                     hideChannelPanel(); true
@@ -873,6 +1302,10 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     override fun onDestroy() {
         overlayHandler.removeCallbacks(overlayHideRunnable)
         clockHandler.removeCallbacks(clockRunnable)
+        try {
+            remoteServer?.stop()
+        } catch (ignored: Exception) {
+        }
         super.onDestroy()
         playback.release()
     }
