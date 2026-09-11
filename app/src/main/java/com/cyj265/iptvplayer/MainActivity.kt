@@ -14,14 +14,17 @@ import android.text.TextWatcher
 import android.util.Log
 import android.view.KeyEvent
 import android.view.View
+import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.cyj265.iptvplayer.data.Channel
 import com.cyj265.iptvplayer.data.EpgParser
 import com.cyj265.iptvplayer.data.EpgProgram
@@ -70,6 +73,8 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     private var remoteServer: LanRemoteServer? = null
 
     private var allChannels: List<Channel> = emptyList()
+    private lateinit var groupAdapter: GroupAdapter
+    private var currentGroup: String? = null  // null = 全部频道
     private var favorites: MutableSet<String> = HashSet()
     private var showFavoritesOnly = false
     private var currentChannel: Channel? = null
@@ -154,6 +159,15 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         adapter.setCollapsedGroups(repository.getCollapsedGroups())
         binding.channelList.layoutManager = LinearLayoutManager(this)
         binding.channelList.adapter = adapter
+
+        // 左侧分组列表
+        groupAdapter = GroupAdapter { group ->
+            currentGroup = group
+            groupAdapter.setSelected(group)
+            applyFilter()
+        }
+        binding.groupList.layoutManager = LinearLayoutManager(this)
+        binding.groupList.adapter = groupAdapter
 
         setupSearch()
         setupButtons()
@@ -417,7 +431,6 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         }
         binding.btnPrev.setOnClickListener { switchChannel(-1) }
         binding.btnNext.setOnClickListener { switchChannel(1) }
-        binding.btnPlayPause.setOnClickListener { playback.togglePlayPause() }
         binding.btnFavoriteCurrent.setOnClickListener { toggleFavoriteCurrent() }
     }
 
@@ -1106,6 +1119,12 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     private fun onChannelsLoaded(channels: List<Channel>) {
         allChannels = channels
         binding.tvStatus.text = getString(R.string.channel_list) + " · " + channels.size + " 个频道"
+        // 更新左侧分组列表
+        val groupSet = LinkedHashSet<String?>()
+        groupSet.add(null)  // 全部
+        channels.forEach { groupSet.add(it.group) }
+        groupAdapter.submitGroups(groupSet.toList())
+        groupAdapter.setSelected(currentGroup)
         applyFilter()
         if (channels.isEmpty()) {
             binding.tvChannelName.text = getString(R.string.no_channels)
@@ -1169,7 +1188,8 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             val filtered = allChannels.filter { ch ->
                 val matchQuery = query.isEmpty() || ch.name.lowercase(Locale.getDefault()).contains(query)
                 val matchFav = !showFavoritesOnly || favorites.contains(ch.url)
-                matchQuery && matchFav
+                val matchGroup = currentGroup == null || ch.group == currentGroup
+                matchQuery && matchFav && matchGroup
             }
             adapter.submitChannels(filtered)
             adapter.setSelected(currentChannel?.id)
@@ -1407,12 +1427,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     }
 
     override fun onPlaybackStateChanged(isPlaying: Boolean) {
-        try {
-            binding.btnPlayPause.setImageResource(
-                if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play
-            )
-        } catch (ignored: Throwable) {
-        }
+        // 直播无播放/暂停按钮，此回调预留
     }
 
     override fun onVideoSizeChanged(width: Int, height: Int) {
@@ -1482,13 +1497,6 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             KeyEvent.KEYCODE_CHANNEL_DOWN, KeyEvent.KEYCODE_MEDIA_PREVIOUS -> {
                 switchChannel(-1); true
             }
-            KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE,
-            KeyEvent.KEYCODE_MEDIA_PLAY -> {
-                playback.togglePlayPause(); true
-            }
-            KeyEvent.KEYCODE_MEDIA_FAST_FORWARD, KeyEvent.KEYCODE_MEDIA_REWIND -> {
-                switchToNextLine(); true
-            }
             else -> super.onKeyDown(keyCode, event)
         }
     }
@@ -1505,5 +1513,64 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             playback.release()
         } catch (ignored: Exception) {
         }
+    }
+
+    // ---------- 左侧分组列表 Adapter ----------
+
+    private inner class GroupAdapter(
+        private val onGroupClick: (String?) -> Unit
+    ) : RecyclerView.Adapter<GroupAdapter.VH>() {
+
+        private var groups: List<String?> = emptyList()
+        private var selected: String? = null
+
+        fun submitGroups(newGroups: List<String?>) {
+            groups = newGroups
+            notifyDataSetChanged()
+        }
+
+        fun setSelected(group: String?) {
+            selected = group
+            notifyDataSetChanged()
+        }
+
+        inner class VH(itemView: View) : RecyclerView.ViewHolder(itemView) {
+            val tvName: TextView = itemView.findViewById(android.R.id.text1)
+        }
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
+            val tv = TextView(parent.context).apply {
+                id = android.R.id.text1
+                layoutParams = RecyclerView.LayoutParams(
+                    RecyclerView.LayoutParams.MATCH_PARENT,
+                    RecyclerView.LayoutParams.WRAP_CONTENT
+                )
+                setPadding(48, 36, 24, 36)
+                setTextColor(0xFFFFFFFF.toInt())
+                textSize = 16f
+                maxLines = 1
+                ellipsize = android.text.TextUtils.TruncateAt.END
+                gravity = android.view.Gravity.CENTER_VERTICAL
+                isFocusable = true
+                isClickable = true
+            }
+            return VH(tv)
+        }
+
+        override fun onBindViewHolder(holder: VH, position: Int) {
+            val group = groups[position]
+            holder.tvName.text = group ?: "全部"
+            val isSelected = (selected == null && group == null) || selected == group
+            holder.tvName.setBackgroundColor(
+                if (isSelected) 0x2FFFFFFF.toInt() else 0x00000000
+            )
+            holder.tvName.setTextColor(
+                if (isSelected) 0xFF64B5F6.toInt() else 0xFFCCCCCC.toInt()
+            )
+            holder.tvName.paint.isFakeBoldText = isSelected
+            holder.itemView.setOnClickListener { onGroupClick(group) }
+        }
+
+        override fun getItemCount() = groups.size
     }
 }
