@@ -150,9 +150,38 @@ class PlaylistRepository(private val context: Context) {
 
     // ---------- EPG ----------
 
+    /**
+     * EPG 节目指南地址列表（v1.7.1 起支持每行一个、多个地址，全部加载合并）。
+     * 旧版单值 epg_url 自动迁移。
+     */
+    fun getEpgUrls(): List<String> {
+        try {
+            val json = safeGetString("epg_urls_json", null)
+            if (json.isNullOrBlank()) {
+                val old = safeGetString("epg_url", null)
+                if (!old.isNullOrBlank()) {
+                    setEpgUrls(listOf(old.trim()))
+                    return listOf(old.trim())
+                }
+                return emptyList()
+            }
+            val arr = JSONArray(json)
+            return (0 until arr.length()).map { arr.getString(it).trim() }.filter { it.isNotEmpty() }
+        } catch (e: Exception) {
+            return emptyList()
+        }
+    }
+
+    fun setEpgUrls(urls: List<String>) {
+        val arr = JSONArray()
+        for (u in urls) if (u.isNotBlank()) arr.put(u.trim())
+        safeApply { putString("epg_urls_json", arr.toString()) }
+    }
+
+    /** 兼容旧代码读取单个 EPG 地址（返回第一个或 null） */
     var epgUrl: String?
-        get() = safeGetString("epg_url", null)
-        set(value) = safeApply { putString("epg_url", value) }
+        get() = getEpgUrls().firstOrNull()
+        set(value) = setEpgUrls(if (value.isNullOrBlank()) emptyList() else listOf(value))
 
     /** EPG 上次成功加载的节目条数（0 = 未加载成功） */
     var epgProgramCount: Int
@@ -185,6 +214,34 @@ class PlaylistRepository(private val context: Context) {
     var lastChannelId: String?
         get() = safeGetString("last_channel_id", null)
         set(value) = safeApply { putString("last_channel_id", value) }
+
+    /** 自动换源超时秒数（v1.7.1：5/10/15/20/25/30/60，默认 10） */
+    var switchTimeoutSec: Int
+        get() {
+            val v = safeGetLong("switch_timeout_sec", 10).toInt()
+            return if (v in setOf(5, 10, 15, 20, 25, 30, 60)) v else 10
+        }
+        set(value) = safeApply { putLong("switch_timeout_sec", value.toLong()) }
+
+    /** 偏好：顶部显示时间 */
+    var showClock: Boolean
+        get() = safeGetBoolean("show_clock", true)
+        set(value) = safeApply { putBoolean("show_clock", value) }
+
+    /** 偏好：顶部显示网速 */
+    var showSpeed: Boolean
+        get() = safeGetBoolean("show_speed", false)
+        set(value) = safeApply { putBoolean("show_speed", value) }
+
+    /** 偏好：换台反转（上下方向键逻辑反转） */
+    var reverseZap: Boolean
+        get() = safeGetBoolean("reverse_zap", false)
+        set(value) = safeApply { putBoolean("reverse_zap", value) }
+
+    /** 偏好：跨选分类（换台时允许跨越分类边界；关闭则在当前分组内循环） */
+    var crossCategory: Boolean
+        get() = safeGetBoolean("cross_category", true)
+        set(value) = safeApply { putBoolean("cross_category", value) }
 
     // ---------- 收藏 ----------
 
@@ -229,19 +286,7 @@ class PlaylistRepository(private val context: Context) {
 
     fun saveChannels(channels: List<Channel>, sourceUrl: String) {
         try {
-            val arr = JSONArray()
-            for (c in channels) {
-                arr.put(
-                    JSONObject()
-                        .put("id", c.id)
-                        .put("name", c.name)
-                        .put("url", c.url)
-                        .put("group", c.group)
-                        .put("logo", c.logo)
-                        .put("tvgId", c.tvgId)
-                )
-            }
-            cacheFileFor(sourceUrl).writeText(arr.toString(), Charsets.UTF_8)
+            cacheFileFor(sourceUrl).writeText(toJsonArray(channels), Charsets.UTF_8)
             markSourceUpdated(sourceUrl)
         } catch (ignored: Exception) {
         }
@@ -251,22 +296,7 @@ class PlaylistRepository(private val context: Context) {
         return try {
             val f = cacheFileFor(sourceUrl)
             if (!f.exists()) return null
-            val arr = JSONArray(f.readText(Charsets.UTF_8))
-            val list = ArrayList<Channel>(arr.length())
-            for (i in 0 until arr.length()) {
-                val o = arr.getJSONObject(i)
-                list.add(
-                    Channel(
-                        id = o.optString("id"),
-                        name = o.optString("name"),
-                        url = o.optString("url"),
-                        group = o.optString("group"),
-                        logo = o.optString("logo"),
-                        tvgId = o.optString("tvgId")
-                    )
-                )
-            }
-            list
+            fromJsonArray(f.readText(Charsets.UTF_8))
         } catch (e: Exception) {
             null
         }
@@ -286,19 +316,7 @@ class PlaylistRepository(private val context: Context) {
 
     fun saveLocalChannels(channels: List<Channel>) {
         try {
-            val arr = JSONArray()
-            for (c in channels) {
-                arr.put(
-                    JSONObject()
-                        .put("id", c.id)
-                        .put("name", c.name)
-                        .put("url", c.url)
-                        .put("group", c.group)
-                        .put("logo", c.logo)
-                        .put("tvgId", c.tvgId)
-                )
-            }
-            localCacheFile.writeText(arr.toString(), Charsets.UTF_8)
+            localCacheFile.writeText(toJsonArray(channels), Charsets.UTF_8)
         } catch (ignored: Exception) {
         }
     }
@@ -310,43 +328,64 @@ class PlaylistRepository(private val context: Context) {
                 // 兼容 v1.6.4 及更早的旧缓存文件（playlist_cache.json）
                 val legacy = File(context.cacheDir, "playlist_cache.json")
                 if (legacy.exists()) {
-                    val arr = JSONArray(legacy.readText(Charsets.UTF_8))
-                    val list = ArrayList<Channel>(arr.length())
-                    for (i in 0 until arr.length()) {
-                        val o = arr.getJSONObject(i)
-                        list.add(
-                            Channel(
-                                id = o.optString("id"),
-                                name = o.optString("name"),
-                                url = o.optString("url"),
-                                group = o.optString("group"),
-                                logo = o.optString("logo"),
-                                tvgId = o.optString("tvgId")
-                            )
-                        )
-                    }
-                    return list
+                    return fromJsonArray(legacy.readText(Charsets.UTF_8))
                 }
                 return null
             }
-            val arr = JSONArray(f.readText(Charsets.UTF_8))
-            val list = ArrayList<Channel>(arr.length())
-            for (i in 0 until arr.length()) {
-                val o = arr.getJSONObject(i)
-                list.add(
-                    Channel(
-                        id = o.optString("id"),
-                        name = o.optString("name"),
-                        url = o.optString("url"),
-                        group = o.optString("group"),
-                        logo = o.optString("logo"),
-                        tvgId = o.optString("tvgId")
-                    )
-                )
-            }
-            list
+            fromJsonArray(f.readText(Charsets.UTF_8))
         } catch (e: Exception) {
             null
         }
+    }
+
+    /** 频道列表 → JSON 数组（含多线路 sources，旧字段 url 保留） */
+    private fun toJsonArray(channels: List<Channel>): String {
+        val arr = JSONArray()
+        for (c in channels) {
+            val srcArr = JSONArray()
+            val sources = if (c.sources.isEmpty()) listOf(c.url) else c.sources
+            for (s in sources) srcArr.put(s)
+            arr.put(
+                JSONObject()
+                    .put("id", c.id)
+                    .put("name", c.name)
+                    .put("url", c.url)
+                    .put("group", c.group)
+                    .put("logo", c.logo)
+                    .put("tvgId", c.tvgId)
+                    .put("sources", srcArr)
+            )
+        }
+        return arr.toString()
+    }
+
+    /** JSON 数组 → 频道列表（兼容无 sources 的旧缓存） */
+    private fun fromJsonArray(text: String): List<Channel>? {
+        val arr = JSONArray(text)
+        val list = ArrayList<Channel>(arr.length())
+        for (i in 0 until arr.length()) {
+            val o = arr.getJSONObject(i)
+            val url = o.optString("url")
+            val sources = try {
+                val sa = o.optJSONArray("sources")
+                if (sa != null && sa.length() > 0) {
+                    (0 until sa.length()).map { sa.getString(it).trim() }.filter { it.isNotEmpty() }
+                } else listOf(url)
+            } catch (e: Exception) {
+                listOf(url)
+            }
+            list.add(
+                Channel(
+                    id = o.optString("id"),
+                    name = o.optString("name"),
+                    url = url,
+                    group = o.optString("group"),
+                    logo = o.optString("logo"),
+                    tvgId = o.optString("tvgId"),
+                    sources = sources
+                )
+            )
+        }
+        return list
     }
 }
