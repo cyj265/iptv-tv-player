@@ -19,17 +19,17 @@ Daemon will be stopped at the end of the build
 > Task :app:processReleaseMainManifest
 > Task :app:processReleaseManifest
 > Task :app:javaPreCompileRelease FROM-CACHE
-> Task :app:processReleaseManifestForPackage
 > Task :app:extractProguardFiles
 > Task :app:mergeReleaseJniLibFolders
 > Task :app:mergeReleaseNativeLibs NO-SOURCE
 > Task :app:stripReleaseDebugSymbols NO-SOURCE
 > Task :app:extractReleaseNativeSymbolTables NO-SOURCE
 > Task :app:mergeReleaseNativeDebugMetadata NO-SOURCE
+> Task :app:processReleaseManifestForPackage
 > Task :app:checkReleaseDuplicateClasses
-> Task :app:processReleaseResources
 > Task :app:desugarReleaseFileDependencies FROM-CACHE
 > Task :app:mergeReleaseStartupProfile
+> Task :app:processReleaseResources
 > Task :app:mergeExtDexRelease FROM-CACHE
 > Task :app:mergeReleaseArtProfile
 > Task :app:mergeReleaseShaders
@@ -46,9 +46,11 @@ Daemon will be stopped at the end of the build
 > Task :app:optimizeReleaseResources
 
 > Task :app:compileReleaseKotlin FAILED
-e: file:///home/runner/work/lanxing-tv/lanxing-tv/app/src/main/java/com/cyj265/iptvplayer/MainActivity.kt:2321:17 Unresolved reference: nextFocusRight
-e: file:///home/runner/work/lanxing-tv/lanxing-tv/app/src/main/java/com/cyj265/iptvplayer/ui/ChannelAdapter.kt:164:33 Unresolved reference: nextFocusLeft
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_3-1789123906942.json
+e: file:///home/runner/work/lanxing-tv/lanxing-tv/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:13:36 Unresolved reference: DefaultBandwidthMeter
+e: file:///home/runner/work/lanxing-tv/lanxing-tv/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:454:24 Unresolved reference: bandwidthMeter
+e: file:///home/runner/work/lanxing-tv/lanxing-tv/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:454:43 Unresolved reference: DefaultBandwidthMeter
+e: file:///home/runner/work/lanxing-tv/lanxing-tv/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:455:16 Unresolved reference: bitrateEstimate
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_3-1789125759303.json
 
 FAILURE: Build failed with an exception.
 
