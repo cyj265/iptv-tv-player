@@ -8,6 +8,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.Process
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.Log
@@ -49,9 +50,16 @@ import java.util.Locale
  * 主界面：全屏播放 + 悬浮频道列表（OK 唤出，二级分组 + 源切换）+ 右侧设置面板（菜单键唤出）。
  * 遥控器：上下键换台、OK 频道列表、菜单键设置、CH+/CH- 换台。
  *
- * v1.7.0：多直播源（列表顶部 OK 快速切换）、扫码局域网手机管理、检查更新自动下载安装、
- * 崩溃日志导出、二级分组默认收起、EPG 节目在频道列表中体现。
- * 注意：播放/解码路径自 v1.6.4 起冻结，不再改动（用户多次要求“解码器别动”）。
+ * v1.7.1：
+ * - 频道同名多源自动合并为一条（如本地列表 CCTV1综合 ×7），播放失败/超时自动切换线路，
+ *   播放界面底部"换源"按钮手动切换，设置-线路选择同步切换；
+ * - 超时换源：线路起播超时秒数可选 5/10/15/20/25/30/60（默认 10），超时自动切下一条线路；
+ * - 偏好设置：显示时间 / 显示网速 / 换台反转 / 跨选分类；
+ * - 退出直播：结束全部进程，不再有后台声音；
+ * - EPG 节目指南支持每行一个、多个地址，全部加载合并；
+ * - 删除自动修复链（不再免重启强修 mediaserver），解码异常仅提示重启机顶盒；
+ * - 崩溃日志导出入口同时放在 调试 与 关于 分区。
+ * 注意：播放/解码路径（Media3 配置、三档解码策略）继续冻结，不再改动。
  */
 class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
 
@@ -71,18 +79,24 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     private var videoH = 0
     private var currentSettingsTab = 0
 
-    // 覆盖层自动隐藏：4 秒无操作淡出顶部信息条与底部控制条（主流电视直播应用风格）
+    // 覆盖层自动隐藏：4 秒无操作淡出顶部信息条与底部控制条
     private val overlayHandler = Handler(Looper.getMainLooper())
     private val overlayHideRunnable = Runnable { hideOverlay() }
 
-    // 右上角时钟，并每分钟刷新一次列表 EPG 节目文本
+    // 右上角时钟 + 每秒刷新网速显示，并每分钟刷新一次列表 EPG 节目文本
     private val clockHandler = Handler(Looper.getMainLooper())
     private var clockTick = 0
     private val clockRunnable = object : Runnable {
         override fun run() {
             try {
-                binding.tvClock.text =
+                val sb = StringBuilder(
                     SimpleDateFormat("yyyy/MM/dd\nHH:mm:ss", Locale.getDefault()).format(Date())
+                )
+                if (repository.showSpeed) {
+                    val kbps = playback.bandwidthKbps()
+                    if (kbps > 0) sb.append("\n网速 ").append(kbps / 1000.0).append(" Mbps")
+                }
+                binding.tvClock.text = sb.toString()
                 clockTick++
                 if (clockTick % 60 == 0 && epgPrograms.isNotEmpty()) {
                     adapter.epgNow = buildEpgNowMap()
@@ -126,6 +140,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         playback = PlaybackManager(this, this)
         playback.attach(binding.playerView)
         playback.setAspectRatio(repository.aspectRatio)
+        playback.setSourceTimeoutMs(repository.switchTimeoutSec * 1000L)
 
         checkDecoderHealthOnStart()
 
@@ -167,9 +182,10 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         showOverlay()
         updateSourceBar()
         updateSourceStatus()
+        updateClockVisibility()
     }
 
-    /** 启动失败：记录日志并弹窗显示堆栈，方便在电视上直接截图反馈。 */
+    /** 启动失败：记录日志并弹窗显示堆栈。 */
     private fun reportStartupCrash(t: Throwable) {
         try {
             val sw = StringWriter()
@@ -225,7 +241,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         }
     }
 
-    /** 启动自检：后台探测 HEVC 硬解解码器好坏（不阻塞 UI）。播放路径不因结果而改动。 */
+    /** 启动自检：后台探测 HEVC 硬解解码器好坏（不阻塞 UI，仅提示不修复）。 */
     private fun checkDecoderHealthOnStart() {
         Thread {
             val healthy = com.cyj265.iptvplayer.player.DecoderHealthCheck.isHardwareHevcHealthy()
@@ -252,6 +268,46 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         val brief = log.lineSequence().take(6).joinToString("\n")
         runOnUiThread {
             Toast.makeText(this, "上次运行崩溃：\n$brief", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    // ---------- 退出（结束全部进程） ----------
+
+    private fun confirmExit() {
+        try {
+            AlertDialog.Builder(this)
+                .setTitle(R.string.nav_exit)
+                .setMessage(R.string.exit_confirm)
+                .setPositiveButton(R.string.nav_exit) { _, _ -> exitApp() }
+                .setNegativeButton(R.string.close, null)
+                .show()
+        } catch (ignored: Throwable) {
+            exitApp()
+        }
+    }
+
+    private fun exitApp() {
+        overlayHandler.removeCallbacksAndMessages(null)
+        clockHandler.removeCallbacksAndMessages(null)
+        try {
+            remoteServer?.stop()
+        } catch (ignored: Exception) {
+        }
+        try {
+            playback.release()
+        } catch (ignored: Exception) {
+        }
+        try {
+            finishAffinity()
+        } catch (ignored: Exception) {
+        }
+        try {
+            Process.killProcess(Process.myPid())
+        } catch (ignored: Exception) {
+        }
+        try {
+            System.exit(0)
+        } catch (ignored: Exception) {
         }
     }
 
@@ -326,8 +382,10 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         refreshSettingsSourceInput()
         updateSourceStatus()
         refreshCrashLog()
+        updateLineupLabel()
+        updateTimeoutLabel()
         val navs = settingsNavs()
-        navs[currentSettingsTab].requestFocus()
+        navs[currentSettingsTab.coerceIn(0, navs.size - 1)].requestFocus()
     }
 
     private fun hideSettingsPanel() {
@@ -350,6 +408,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     private fun setupButtons() {
         binding.btnSettings.setOnClickListener { showSettingsPanel() }
         binding.btnList.setOnClickListener { showChannelPanel() }
+        binding.btnSwitchLine.setOnClickListener { switchToNextLine() }
         binding.btnFavorites.setOnClickListener {
             showFavoritesOnly = !showFavoritesOnly
             applyFilter()
@@ -360,6 +419,33 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         binding.btnNext.setOnClickListener { switchChannel(1) }
         binding.btnPlayPause.setOnClickListener { playback.togglePlayPause() }
         binding.btnFavoriteCurrent.setOnClickListener { toggleFavoriteCurrent() }
+    }
+
+    // ---------- 线路选择 ----------
+
+    /** 手动切换当前频道下一条线路（多线路频道有效） */
+    private fun switchToNextLine() {
+        val switched = playback.switchToNextLine()
+        if (!switched) {
+            Toast.makeText(this, "当前频道只有 1 条线路", Toast.LENGTH_SHORT).show()
+            return
+        }
+        updateLineupLabel()
+        updateNowPlaying()
+    }
+
+    private fun updateLineupLabel() {
+        try {
+            val count = playback.sourceCount()
+            if (count > 1) {
+                binding.btnSwitchLineup.text =
+                    getString(R.string.line_fmt, playback.currentSourceIndex() + 1, count) +
+                        " · " + getString(R.string.switch_line)
+            } else {
+                binding.btnSwitchLineup.text = "单线路 · " + getString(R.string.switch_line)
+            }
+        } catch (ignored: Throwable) {
+        }
     }
 
     // ---------- 直播源切换条（频道列表顶部） ----------
@@ -432,9 +518,13 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         runOnUiThread {
             try {
                 repository.saveSources(sources)
-                if (epg != null) repository.epgUrl = epg
+                if (epg != null) {
+                    repository.setEpgUrls(
+                        epg.split("\n", "\r\n").map { it.trim() }.filter { it.isNotEmpty() }
+                    )
+                }
                 binding.inputPlaylistUrl.setText(sources.joinToString("\n"))
-                binding.inputEpgUrl.setText(epg.orEmpty())
+                binding.inputEpgUrl.setText(repository.getEpgUrls().joinToString("\n"))
                 currentChannel = null
                 adapter.setSelected(null)
                 updateSourceBar()
@@ -456,7 +546,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             JSONObject()
                 .put("sources", JSONArray(repository.getSources()))
                 .put("active", repository.activeSourceIndex)
-                .put("epg", repository.epgUrl ?: "")
+                .put("epg", repository.getEpgUrls().joinToString("\n"))
                 .put("epgCount", repository.epgProgramCount)
                 .toString()
         } catch (e: Exception) {
@@ -524,13 +614,15 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     // ---------- 设置面板 ----------
 
     private fun settingsNavs(): List<View> = listOf(
-        binding.navSource, binding.navPlayer, binding.navUi,
-        binding.navFav, binding.navUpdate, binding.navDebug, binding.navAbout
+        binding.navLineup, binding.navRatio, binding.navDecoder,
+        binding.navTimeout, binding.navPrefs, binding.navUpdate,
+        binding.navDebug, binding.navAbout, binding.navExit
     )
 
     private fun settingsSections(): List<View> = listOf(
-        binding.sectionSource, binding.sectionPlayer, binding.sectionUi,
-        binding.sectionFav, binding.sectionUpdate, binding.sectionDebug, binding.sectionAbout
+        binding.sectionLineup, binding.sectionRatio, binding.sectionDecoder,
+        binding.sectionTimeout, binding.sectionPrefs, binding.sectionUpdate,
+        binding.sectionDebug, binding.sectionAbout, binding.sectionExit
     )
 
     private fun selectSettingsTab(index: Int) {
@@ -561,7 +653,6 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             try {
                 openDocument.launch(arrayOf("*/*"))
             } catch (e: Exception) {
-                // 部分精简电视系统没有文件管理器/文档提供者，会抛 ActivityNotFoundException
                 Toast.makeText(
                     this,
                     "无法打开文件选择器（系统无文件管理），请改用播放列表 URL 加载",
@@ -579,6 +670,32 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             adapter.favorites = favorites
             updateFavCount()
             Toast.makeText(this, R.string.cleared, Toast.LENGTH_SHORT).show()
+        }
+
+        // 线路选择（当前频道线路）
+        binding.btnSwitchLineup.setOnClickListener { switchToNextLine() }
+
+        // 超时换源
+        binding.btnTimeoutCycle.setOnClickListener { cycleTimeout() }
+        updateTimeoutLabel()
+
+        // 偏好设置
+        binding.chkShowClock.isChecked = repository.showClock
+        binding.chkShowClock.setOnCheckedChangeListener { _, checked ->
+            repository.showClock = checked
+            if (checked) updateClockVisibility()
+        }
+        binding.chkShowSpeed.isChecked = repository.showSpeed
+        binding.chkShowSpeed.setOnCheckedChangeListener { _, checked ->
+            repository.showSpeed = checked
+        }
+        binding.chkReverseZap.isChecked = repository.reverseZap
+        binding.chkReverseZap.setOnCheckedChangeListener { _, checked ->
+            repository.reverseZap = checked
+        }
+        binding.chkCrossCategory.isChecked = repository.crossCategory
+        binding.chkCrossCategory.setOnCheckedChangeListener { _, checked ->
+            repository.crossCategory = checked
         }
 
         binding.chkAutoResume.isChecked = repository.autoResume
@@ -604,24 +721,16 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         binding.btnCheckUpdate.setOnClickListener { checkUpdate() }
 
         refreshCrashLog()
-        binding.btnExportCrashLog.setOnClickListener {
-            if (!crashFile().exists()) {
-                Toast.makeText(this, R.string.export_empty, Toast.LENGTH_SHORT).show()
-            } else {
-                val name = "crash-log-" +
-                    SimpleDateFormat("yyyyMMdd-HHmmss", Locale.getDefault()).format(Date()) + ".txt"
-                try {
-                    createLogDoc.launch(name)
-                } catch (e: Exception) {
-                    Toast.makeText(this, "无法打开保存窗口：${e.message}", Toast.LENGTH_LONG).show()
-                }
-            }
-        }
+        binding.btnExportCrashLog.setOnClickListener { launchCrashExport() }
+        binding.btnExportAboutCrash.setOnClickListener { launchCrashExport() }
         binding.btnClearCrashLog.setOnClickListener {
             crashFile().delete()
             binding.tvCrashLog.text = "无"
             Toast.makeText(this, R.string.cleared_crash_log, Toast.LENGTH_SHORT).show()
         }
+
+        // 退出
+        binding.btnExitApp.setOnClickListener { confirmExit() }
 
         binding.tvAbout.text = getString(R.string.app_name) + " v" + BuildConfig.VERSION_NAME +
             "\n播放内核：Media3 ExoPlayer（开源）" +
@@ -637,13 +746,15 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                 if (focused) selectSettingsTab(i)
             }
         }
+        // 退出导航：点击直接弹确认
+        binding.navExit.setOnClickListener { confirmExit() }
         selectSettingsTab(0)
     }
 
     private fun refreshSettingsSourceInput() {
         try {
             binding.inputPlaylistUrl.setText(repository.getSources().joinToString("\n"))
-            binding.inputEpgUrl.setText(repository.epgUrl.orEmpty())
+            binding.inputEpgUrl.setText(repository.getEpgUrls().joinToString("\n"))
         } catch (ignored: Throwable) {
         }
     }
@@ -666,9 +777,9 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             } else {
                 sb.append("\n当前源：未配置")
             }
-            val epg = repository.epgUrl
+            val epgList = repository.getEpgUrls()
             sb.append("\n节目指南：").append(
-                if (epg.isNullOrBlank()) "未设置" else "已配置"
+                if (epgList.isEmpty()) "未设置" else "已配置 " + epgList.size + " 个地址"
             )
             val count = repository.epgProgramCount
             if (count > 0) sb.append("（已加载 ").append(count).append(" 条节目）")
@@ -694,6 +805,20 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         }
     }
 
+    private fun launchCrashExport() {
+        if (!crashFile().exists()) {
+            Toast.makeText(this, R.string.export_empty, Toast.LENGTH_SHORT).show()
+        } else {
+            val name = "crash-log-" +
+                SimpleDateFormat("yyyyMMdd-HHmmss", Locale.getDefault()).format(Date()) + ".txt"
+            try {
+                createLogDoc.launch(name)
+            } catch (e: Exception) {
+                Toast.makeText(this, "无法打开保存窗口：${e.message}", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
     private fun exportCrashLogTo(uri: Uri) {
         try {
             val f = crashFile()
@@ -705,6 +830,24 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         } catch (e: Exception) {
             Toast.makeText(this, "导出失败：${e.message}", Toast.LENGTH_LONG).show()
         }
+    }
+
+    // ---------- 超时换源 ----------
+
+    private val timeoutCycle = listOf(5, 10, 15, 20, 25, 30, 60)
+
+    private fun cycleTimeout() {
+        val current = repository.switchTimeoutSec
+        val idx = timeoutCycle.indexOf(current).let { if (it < 0) 0 else it }
+        val next = timeoutCycle[(idx + 1) % timeoutCycle.size]
+        repository.switchTimeoutSec = next
+        playback.setSourceTimeoutMs(next * 1000L)
+        updateTimeoutLabel()
+        Toast.makeText(this, getString(R.string.switch_timeout) + "：" + next + " 秒", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun updateTimeoutLabel() {
+        binding.btnTimeoutCycle.text = repository.switchTimeoutSec.toString() + " 秒"
     }
 
     // ---------- 检查更新（自动下载安装） ----------
@@ -769,7 +912,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     }
 
     private fun downloadAndInstall(originalUrl: String) {
-        // GitHub release 资产在部分网络下直连慢/断，走镜像加速（与电脑端下载 APK 同通道）
+        // GitHub release 资产在部分网络下直连慢/断，走镜像加速
         val downloadUrl = if (originalUrl.startsWith("https://github.com/")) {
             "https://gh-proxy.com/" + originalUrl
         } else {
@@ -904,7 +1047,10 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             return
         }
         repository.saveSources(sources)
-        repository.epgUrl = binding.inputEpgUrl.text.toString().trim().ifEmpty { null }
+        repository.setEpgUrls(
+            binding.inputEpgUrl.text.toString()
+                .split("\n", "\r\n").map { it.trim() }.filter { it.isNotEmpty() }
+        )
         currentChannel = null
         adapter.setSelected(null)
         updateSourceBar()
@@ -1037,8 +1183,9 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         currentChannel = channel
         repository.lastChannelId = channel.id
         adapter.setSelected(channel.id)
-        playback.play(channel.url, channel.name)
+        playback.play(channel.sources.ifEmpty { listOf(channel.url) }, channel.name)
         updateNowPlaying()
+        updateLineupLabel()
         hideChannelPanel()
     }
 
@@ -1047,8 +1194,9 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         val ch = allChannels.firstOrNull { it.id == lastId } ?: return
         currentChannel = ch
         adapter.setSelected(ch.id)
-        playback.play(ch.url, ch.name)
+        playback.play(ch.sources.ifEmpty { listOf(ch.url) }, ch.name)
         updateNowPlaying()
+        updateLineupLabel()
     }
 
     private fun playDirect(url: String, name: String) {
@@ -1063,23 +1211,36 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         currentChannel = channel
         repository.lastChannelId = channel.id
         adapter.setSelected(null)
-        playback.play(url, name)
+        playback.play(listOf(url), name)
         updateNowPlaying()
+        updateLineupLabel()
     }
 
     private fun switchChannel(delta: Int) {
         if (allChannels.isEmpty()) return
         val current = currentChannel
+        // 换台反转：上下键逻辑反转
+        val realDelta = if (repository.reverseZap) -delta else delta
         if (showFavoritesOnly) {
             val favChannels = allChannels.filter { favorites.contains(it.url) }
             if (favChannels.isEmpty()) return
             val favIdx = favChannels.indexOfFirst { it.id == current?.id }
-            val next = if (favIdx < 0) 0 else (favIdx + delta + favChannels.size) % favChannels.size
+            val next = if (favIdx < 0) 0 else (favIdx + realDelta + favChannels.size) % favChannels.size
             onChannelClick(favChannels[next])
             return
         }
+        // 跨选分类：关闭时只在当前分组内循环
+        if (!repository.crossCategory && current != null) {
+            val sameGroup = allChannels.filter { it.group == current.group }
+            if (sameGroup.size > 1) {
+                val gIdx = sameGroup.indexOfFirst { it.id == current.id }
+                val next = if (gIdx < 0) 0 else (gIdx + realDelta + sameGroup.size) % sameGroup.size
+                onChannelClick(sameGroup[next])
+                return
+            }
+        }
         val idx = allChannels.indexOfFirst { it.id == current?.id }
-        val next = if (idx < 0) 0 else (idx + delta + allChannels.size) % allChannels.size
+        val next = if (idx < 0) 0 else (idx + realDelta + allChannels.size) % allChannels.size
         onChannelClick(allChannels[next])
     }
 
@@ -1101,20 +1262,35 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         binding.btnFavoriteCurrent.alpha = if (favorites.contains(ch.url)) 1f else 0.4f
     }
 
-    // ---------- EPG ----------
+    // ---------- EPG（支持多个地址，全部加载合并） ----------
 
     private fun loadEpgIfConfigured() {
-        val epgUrl = repository.epgUrl
-        if (epgUrl.isNullOrEmpty()) {
+        val epgUrls = repository.getEpgUrls()
+        if (epgUrls.isEmpty()) {
             updateNowPlaying()
             return
         }
         Thread {
             try {
-                val content = HttpLoader.fetch(epgUrl)
-                val data = EpgParser.parse(content)
-                epgPrograms = indexEpg(data)
-                repository.epgProgramCount = data.programs.size
+                var totalPrograms = 0
+                val mergedPrograms = ArrayList<EpgProgram>()
+                val mergedNames = HashMap<String, String>()
+                for (epgUrl in epgUrls) {
+                    try {
+                        val content = HttpLoader.fetch(epgUrl)
+                        val data = EpgParser.parse(content)
+                        mergedPrograms.addAll(data.programs)
+                        mergedNames.putAll(data.channelNames)
+                        totalPrograms += data.programs.size
+                    } catch (ignored: Exception) {
+                    }
+                }
+                if (mergedPrograms.isEmpty()) {
+                    runOnUiThread { updateNowPlaying() }
+                    return@Thread
+                }
+                epgPrograms = indexEpg(EpgParser.EpgData(mergedNames, mergedPrograms))
+                repository.epgProgramCount = totalPrograms
                 repository.epgUpdatedAt = System.currentTimeMillis()
                 runOnUiThread {
                     try {
@@ -1142,7 +1318,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         return map
     }
 
-    /** 构建"正在播放"节目文本映射（频道列表副行用，EPG 显性化）。 */
+    /** 构建"正在播放"节目文本映射（频道列表副行用）。 */
     private fun buildEpgNowMap(): Map<String, String> {
         val now = System.currentTimeMillis()
         val map = HashMap<String, String>()
@@ -1168,11 +1344,16 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             }
             binding.tvChannelName.text = ch.name
 
-            // 序号 / 总数 + 分辨率（同类应用风格）
+            // 序号 / 总数 + 分辨率 + 线路（多线路频道）
             val idx = allChannels.indexOfFirst { it.id == ch.id }
             val meta = StringBuilder()
             if (idx >= 0) {
                 meta.append("第 ").append(idx + 1).append(" / ").append(allChannels.size).append(" 频道")
+            }
+            val srcCount = playback.sourceCount()
+            if (srcCount > 1) {
+                if (meta.isNotEmpty()) meta.append(" · ")
+                meta.append(getString(R.string.line_fmt, playback.currentSourceIndex() + 1, srcCount))
             }
             if (videoW > 0 && videoH > 0) {
                 if (meta.isNotEmpty()) meta.append(" · ")
@@ -1193,6 +1374,11 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         }
     }
 
+    private fun updateClockVisibility() {
+        // 显示时间偏好：false 时右上角不再显示时钟（网速行也随时钟一起隐藏）
+        binding.tvClock.visibility = if (repository.showClock) View.VISIBLE else View.GONE
+    }
+
     private fun formatTime(ts: Long): String {
         return SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(ts))
     }
@@ -1209,7 +1395,13 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
 
     override fun onPlaybackError(message: String) {
         try {
-            binding.tvEpgNow.text = "播放失败: $message"
+            val srcCount = playback.sourceCount()
+            binding.tvEpgNow.text =
+                if (srcCount > 1) {
+                    "线路 ${playback.currentSourceIndex() + 1}/$srcCount: $message"
+                } else {
+                    "播放失败: $message"
+                }
         } catch (ignored: Throwable) {
         }
     }
@@ -1244,8 +1436,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                 else -> super.onKeyDown(keyCode, event)
             }
         }
-        // 频道列表打开：BACK 关闭；源切换条聚焦时 OK/左右键切换直播源；
-        // 列表聚焦时 OK 触发选中项（item 自带点击），上下键列表内导航
+        // 频道列表打开：BACK 关闭；源切换条聚焦时 OK/左右键切换直播源
         if (isChannelPanelVisible) {
             if (binding.tvSourceBar.hasFocus()) {
                 return when (keyCode) {
@@ -1295,6 +1486,9 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             KeyEvent.KEYCODE_MEDIA_PLAY -> {
                 playback.togglePlayPause(); true
             }
+            KeyEvent.KEYCODE_MEDIA_FAST_FORWARD, KeyEvent.KEYCODE_MEDIA_REWIND -> {
+                switchToNextLine(); true
+            }
             else -> super.onKeyDown(keyCode, event)
         }
     }
@@ -1307,6 +1501,9 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         } catch (ignored: Exception) {
         }
         super.onDestroy()
-        playback.release()
+        try {
+            playback.release()
+        } catch (ignored: Exception) {
+        }
     }
 }
