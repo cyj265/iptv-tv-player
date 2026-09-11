@@ -91,7 +91,7 @@
             android:text="" />
     </LinearLayout>
 
-    <!-- ===== 底部：控制条（覆盖层，直播语义） ===== -->
+    <!-- ===== 底部：控制条（覆盖层，直播语义，图标+文字） ===== -->
     <LinearLayout
         android:id="@+id/controlBar"
         android:layout_width="match_parent"
@@ -100,70 +100,190 @@
         android:orientation="horizontal"
         android:gravity="center_vertical"
         android:background="@color/bg_overlay"
-        android:paddingLeft="20dp"
-        android:paddingRight="20dp"
-        android:paddingTop="10dp"
-        android:paddingBottom="12dp">
+        android:paddingLeft="14dp"
+        android:paddingRight="14dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="10dp">
 
-        <ImageButton
+        <LinearLayout
             android:id="@+id/btnList"
-            android:layout_width="52dp"
-            android:layout_height="52dp"
-            android:contentDescription="@string/channel_list"
+            android:layout_width="72dp"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:focusable="true"
+            android:clickable="true"
             android:background="@drawable/bg_control"
-            android:src="@drawable/ic_list"
-            android:scaleType="centerInside" />
+            android:paddingTop="6dp"
+            android:paddingBottom="6dp">
 
-        <!-- 换源：切换当前频道的下一条线路（多线路频道可用） -->
-        <ImageButton
+            <ImageView
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:contentDescription="@string/channel_list"
+                android:src="@drawable/ic_list"
+                android:scaleType="centerInside" />
+
+            <TextView
+                android:id="@+id/tvBtnList"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:text="频道"
+                android:textColor="@color/text_primary"
+                android:textSize="11sp"
+                android:singleLine="true" />
+        </LinearLayout>
+        <LinearLayout
             android:id="@+id/btnSwitchLine"
-            android:layout_width="52dp"
-            android:layout_height="52dp"
-            android:contentDescription="@string/btn_switch_line"
+            android:layout_width="72dp"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:focusable="true"
+            android:clickable="true"
             android:background="@drawable/bg_control"
-            android:src="@drawable/ic_switch_line"
-            android:scaleType="centerInside"
-            android:layout_marginLeft="16dp" />
+            android:paddingTop="6dp"
+            android:paddingBottom="6dp"
+            android:layout_marginLeft="16dp">
 
-        <ImageButton
+            <ImageView
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:contentDescription="@string/channel_list"
+                android:src="@drawable/ic_switch_line"
+                android:scaleType="centerInside" />
+
+            <TextView
+                android:id="@+id/tvBtnSwitchLine"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:text="线路"
+                android:textColor="@color/text_primary"
+                android:textSize="11sp"
+                android:singleLine="true" />
+        </LinearLayout>
+        <LinearLayout
             android:id="@+id/btnPrev"
-            android:layout_width="52dp"
-            android:layout_height="52dp"
-            android:contentDescription="@string/prev_channel"
+            android:layout_width="72dp"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:focusable="true"
+            android:clickable="true"
             android:background="@drawable/bg_control"
-            android:src="@drawable/ic_prev"
-            android:scaleType="centerInside"
-            android:layout_marginLeft="16dp" />
+            android:paddingTop="6dp"
+            android:paddingBottom="6dp"
+            android:layout_marginLeft="16dp">
 
-        <ImageButton
+            <ImageView
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:contentDescription="@string/channel_list"
+                android:src="@drawable/ic_prev"
+                android:scaleType="centerInside" />
+
+            <TextView
+                android:id="@+id/tvBtnPrev"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:text="上一个"
+                android:textColor="@color/text_primary"
+                android:textSize="11sp"
+                android:singleLine="true" />
+        </LinearLayout>
+        <LinearLayout
             android:id="@+id/btnNext"
-            android:layout_width="52dp"
-            android:layout_height="52dp"
-            android:contentDescription="@string/next_channel"
+            android:layout_width="72dp"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:focusable="true"
+            android:clickable="true"
             android:background="@drawable/bg_control"
-            android:src="@drawable/ic_next"
-            android:scaleType="centerInside" />
+            android:paddingTop="6dp"
+            android:paddingBottom="6dp"
+            android:layout_marginLeft="16dp">
 
-        <ImageButton
+            <ImageView
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:contentDescription="@string/channel_list"
+                android:src="@drawable/ic_next"
+                android:scaleType="centerInside" />
+
+            <TextView
+                android:id="@+id/tvBtnNext"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:text="下一个"
+                android:textColor="@color/text_primary"
+                android:textSize="11sp"
+                android:singleLine="true" />
+        </LinearLayout>
+        <LinearLayout
             android:id="@+id/btnFavoriteCurrent"
-            android:layout_width="52dp"
-            android:layout_height="52dp"
-            android:contentDescription="@string/favorite_hint"
+            android:layout_width="72dp"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:focusable="true"
+            android:clickable="true"
             android:background="@drawable/bg_control"
-            android:src="@drawable/ic_star"
-            android:scaleType="centerInside"
-            android:layout_marginLeft="16dp" />
+            android:paddingTop="6dp"
+            android:paddingBottom="6dp"
+            android:layout_marginLeft="16dp">
 
-        <!-- 更多设置（菜单键等价入口） -->
-        <ImageButton
+            <ImageView
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:contentDescription="@string/channel_list"
+                android:src="@drawable/ic_star"
+                android:scaleType="centerInside" />
+
+            <TextView
+                android:id="@+id/tvBtnFavoriteCurrent"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:text="收藏"
+                android:textColor="@color/text_primary"
+                android:textSize="11sp"
+                android:singleLine="true" />
+        </LinearLayout>
+        <LinearLayout
             android:id="@+id/btnSettings"
-            android:layout_width="52dp"
-            android:layout_height="52dp"
-            android:contentDescription="@string/settings"
+            android:layout_width="72dp"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:focusable="true"
+            android:clickable="true"
             android:background="@drawable/bg_control"
-            android:src="@drawable/ic_settings"
-            android:scaleType="centerInside"
-            android:layout_marginLeft="16dp" />
+            android:paddingTop="6dp"
+            android:paddingBottom="6dp"
+            android:layout_marginLeft="16dp">
+
+            <ImageView
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:contentDescription="@string/channel_list"
+                android:src="@drawable/ic_settings"
+                android:scaleType="centerInside" />
+
+            <TextView
+                android:id="@+id/tvBtnSettings"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:text="设置"
+                android:textColor="@color/text_primary"
+                android:textSize="11sp"
+                android:singleLine="true" />
+        </LinearLayout>
     </LinearLayout>
 
     <!-- ===== 左侧：频道列表悬浮层（OK 唤出，默认隐藏） ===== -->
@@ -407,7 +527,7 @@
                     android:focusable="true"
                     android:clickable="true"
                     android:background="?attr/selectableItemBackground"
-                    android:text="@string/nav_lineup"
+                    android:text="直播源"
                     android:textColor="@color/text_secondary"
                     android:textSize="16sp" />
 
@@ -542,28 +662,25 @@
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="@string/current_line"
+                            android:text="直播源切换"
                             android:textColor="@color/text_secondary"
                             android:textSize="14sp" />
-
-                        <Button
-                            android:id="@+id/btnSwitchLineup"
-                            android:layout_width="match_parent"
-                            android:layout_height="46dp"
-                            android:layout_marginTop="6dp"
-                            android:text="@string/switch_line"
-                            android:textSize="14sp"
-                            android:backgroundTint="@color/bg_item"
-                            android:textColor="@color/accent_soft" />
 
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="6dp"
-                            android:text="@string/line_switch_hint"
+                            android:layout_marginTop="4dp"
+                            android:text="选择要使用的播放列表，当前高亮项为生效源"
                             android:textColor="@color/text_secondary"
                             android:textSize="12sp"
                             android:lineSpacingExtra="2dp" />
+
+                        <LinearLayout
+                            android:id="@+id/sourceListContainer"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:orientation="vertical" />
 
                         <TextView
                             android:layout_width="match_parent"
@@ -802,7 +919,7 @@
                             android:clickable="true" />
                     </LinearLayout>
 
-                    <!-- ===== 分区：播放解码 ===== -->
+                    <!-- ===== 分区：播放解码（展开式，上下键选择） ===== -->
                     <LinearLayout
                         android:id="@+id/sectionDecoder"
                         android:layout_width="match_parent"
@@ -817,15 +934,42 @@
                             android:textColor="@color/text_secondary"
                             android:textSize="14sp" />
 
-                        <Button
-                            android:id="@+id/btnDecoderMode"
+                        <TextView
+                            android:id="@+id/decoderAuto"
                             android:layout_width="match_parent"
-                            android:layout_height="46dp"
-                            android:layout_marginTop="6dp"
+                            android:layout_height="40dp"
+                            android:layout_marginTop="4dp"
+                            android:gravity="center_vertical"
+                            android:paddingStart="16dp"
                             android:text="@string/decoder_auto"
-                            android:textSize="14sp"
-                            android:backgroundTint="@color/bg_item"
-                            android:textColor="@color/text_primary" />
+                            android:textColor="@color/text_secondary"
+                            android:textSize="15sp"
+                            android:focusable="true"
+                            android:clickable="true" />
+                        <TextView
+                            android:id="@+id/decoderHard"
+                            android:layout_width="match_parent"
+                            android:layout_height="40dp"
+                            android:layout_marginTop="4dp"
+                            android:gravity="center_vertical"
+                            android:paddingStart="16dp"
+                            android:text="@string/decoder_hardware"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="15sp"
+                            android:focusable="true"
+                            android:clickable="true" />
+                        <TextView
+                            android:id="@+id/decoderSoft"
+                            android:layout_width="match_parent"
+                            android:layout_height="40dp"
+                            android:layout_marginTop="4dp"
+                            android:gravity="center_vertical"
+                            android:paddingStart="16dp"
+                            android:text="@string/decoder_software"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="15sp"
+                            android:focusable="true"
+                            android:clickable="true" />
                     </LinearLayout>
 
                     <!-- ===== 分区：超时换源（展开式，上下键选择） ===== -->
@@ -955,6 +1099,19 @@
                             android:textSize="15sp"
                             android:focusable="true"
                             android:clickable="true"
+                            android:background="?attr/selectableItemBackground"
+                            android:padding="6dp" />
+
+                        <CheckBox
+                            android:id="@+id/chkRememberGroup"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="记住上次分组"
+                            android:textColor="@color/text_primary"
+                            android:textSize="15sp"
+                            android:focusable="true"
+                            android:clickable="true"
+                            android:background="?attr/selectableItemBackground"
                             android:padding="6dp" />
 
                         <CheckBox
@@ -966,6 +1123,7 @@
                             android:textSize="15sp"
                             android:focusable="true"
                             android:clickable="true"
+            android:background="?attr/selectableItemBackground"
                             android:padding="6dp" />
 
                         <CheckBox
@@ -977,6 +1135,7 @@
                             android:textSize="15sp"
                             android:focusable="true"
                             android:clickable="true"
+            android:background="?attr/selectableItemBackground"
                             android:padding="6dp" />
 
                         <TextView
@@ -995,6 +1154,7 @@
                             android:textSize="15sp"
                             android:focusable="true"
                             android:clickable="true"
+            android:background="?attr/selectableItemBackground"
                             android:padding="6dp" />
 
                         <TextView
@@ -1020,6 +1180,7 @@
                             android:textSize="15sp"
                             android:focusable="true"
                             android:clickable="true"
+            android:background="?attr/selectableItemBackground"
                             android:padding="6dp" />
 
                         <CheckBox
@@ -1031,6 +1192,7 @@
                             android:textSize="15sp"
                             android:focusable="true"
                             android:clickable="true"
+            android:background="?attr/selectableItemBackground"
                             android:padding="6dp" />
 
                         <TextView
