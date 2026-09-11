@@ -854,6 +854,14 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         R.id.navPrefs, R.id.navUpdate, R.id.navDebug, R.id.navAbout, R.id.navExit
     )
 
+    /** 展开式选项 ID 集合（单独管理焦点样式，失焦时恢复选中状态） */
+    private val optionViewIds = setOf(
+        R.id.timeout5, R.id.timeout10, R.id.timeout15, R.id.timeout20,
+        R.id.timeout25, R.id.timeout30, R.id.timeout60,
+        R.id.ratiofit, R.id.ratio169, R.id.ratio43, R.id.ratiozoom, R.id.ratiofill,
+        R.id.decoderAuto, R.id.decoderHard, R.id.decoderSoft
+    )
+
     /** 给设置面板里所有可聚焦 TextView/Button 统一加焦点样式（亮蓝背景+白字加粗） */
     private fun applySettingsFocusStyles() {
         try {
@@ -867,6 +875,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                 if (view !is TextView) return
                 if (view is android.widget.EditText) return  // 输入框保持原样
                 if (view.id in navViewIds) return  // 导航列单独处理
+                if (view.id in optionViewIds) return  // 展开式选项单独处理（失焦恢复选中状态）
                 if (!view.isFocusable) return
                 val normalTextColor = view.currentTextColor
                 view.onFocusChangeListener = View.OnFocusChangeListener { _, focused ->
@@ -883,6 +892,19 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             }
             traverse(binding.settingsPanel)
         } catch (ignored: Throwable) {
+        }
+    }
+
+    /** 给展开式选项（超时/比例/解码）设置焦点样式：焦点亮蓝+白字，失焦调用 refreshFn 恢复选中状态 */
+    private fun applyOptionFocus(view: TextView, refreshFn: () -> Unit) {
+        view.onFocusChangeListener = View.OnFocusChangeListener { _, focused ->
+            if (focused) {
+                view.setBackgroundColor(0xFF3D8BFF.toInt())
+                view.setTextColor(0xFFFFFFFF.toInt())
+                view.paint.isFakeBoldText = true
+            } else {
+                refreshFn()
+            }
         }
     }
 
@@ -1324,6 +1346,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             60 to binding.timeout60
         )
         for ((sec, view) in timeoutViews) {
+            applyOptionFocus(view) { updateTimeoutSelection() }
             view.setOnClickListener {
                 repository.switchTimeoutSec = sec
                 playback.setSourceTimeoutMs(sec * 1000L)
@@ -1556,6 +1579,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             "software" to binding.decoderSoft
         )
         for ((key, view) in decoderViews) {
+            applyOptionFocus(view) { updateDecoderSelection() }
             view.setOnClickListener {
                 playback.applyDecoderMode(key)
                 updateDecoderSelection()
@@ -1600,6 +1624,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             "fill" to binding.ratiofill
         )
         for ((key, view) in ratioViews) {
+            applyOptionFocus(view) { updateAspectRatioSelection() }
             view.setOnClickListener {
                 repository.aspectRatio = key
                 playback.setAspectRatio(key)
@@ -2318,7 +2343,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                 isFocusable = true
                 isClickable = true
                 // 阻止系统自动焦点搜索：右键交给 Activity.onKeyDown 处理（定位到当前频道）
-                nextFocusRight = View.NO_ID
+                nextFocusRightId = View.NO_ID
             }
             return VH(tv)
         }
