@@ -695,6 +695,24 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         ).show()
     }
 
+    private fun switchToPrevSource() {
+        val prev = repository.switchToPrevSource()
+        if (prev == null) {
+            Toast.makeText(this, "未配置直播源，请在设置中添加", Toast.LENGTH_SHORT).show()
+            return
+        }
+        currentChannel = null
+        adapter.setSelected(null)
+        updateSourceBar()
+        updateSourceStatus()
+        reloadPlaylist()
+        Toast.makeText(
+            this,
+            getString(R.string.switch_source) + "：" + sourceLabel(prev),
+            Toast.LENGTH_SHORT
+        ).show()
+    }
+
     private fun updateSourceBar() {
         val sources = repository.getSources()
         binding.tvSourceBar.text = if (sources.isEmpty()) {
@@ -2236,6 +2254,12 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         // 全屏播放态：任何按键都重新显示覆盖层并重置自动隐藏计时
         showOverlay()
         return when (keyCode) {
+            KeyEvent.KEYCODE_DPAD_LEFT -> {
+                switchToPrevSource(); true
+            }
+            KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                switchToNextSource(); true
+            }
             KeyEvent.KEYCODE_DPAD_UP -> {
                 switchChannel(-1); true
             }
