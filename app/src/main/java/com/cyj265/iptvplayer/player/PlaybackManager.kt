@@ -246,7 +246,7 @@ class PlaybackManager(
         // setExceedRendererCapabilitiesIfNecessary：Amlogic 解码器能力上报不全
         // （MediaCodecInfo 把 4K 判为不支持），默认会因此降档选 1080P/720P，
         // 这里强制超出上报能力选择，让解码器实际去解（硬解本身支持 4K）。
-        // ★ v1.6.1 曾一度移除该参数，实测与 v1.4.0 行为对比后确认：v1.4.0（带此参数）
+        // ★ v1.6.1 曾一度移除该参数，与 v1.4.0 行为对比后确认：v1.4.0（带此参数）
         // 在用户 T1 上播放正常，v62 黑屏属解码器坏状态（重启 T1 可清除），
         // 故 v1.6.2 恢复与 v1.4.0 完全一致的配置。
         val trackSelector = DefaultTrackSelector(context)
