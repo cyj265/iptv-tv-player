@@ -11,8 +11,8 @@ android {
         applicationId = "com.cyj265.iptvplayer"
         minSdk = 21
         targetSdk = 34
-        versionCode = 13
-        versionName = "1.3.0"
+        versionCode = 14
+        versionName = "1.4.0"
     }
 
     buildTypes {
@@ -62,7 +62,7 @@ dependencies {
 
     // Media3 (ExoPlayer) 播放内核
     // 1.4.1 = 影视仓/TVBox 系播放器同代内核，行为最接近，Amlogic T1 兼容性最好。
-    // 1.8.0 新增了 VideoRenderer 预热等行为，在 S912 Android 7 上出现
+    // 1.8.0 新增了 VideoRenderer 预热等行为，在 S912 Android 7 上曾出现
     // HEVC 硬解 DECODER_INIT_FAILED（解码器支持但创建失败），故固定此版本。
     implementation("androidx.media3:media3-exoplayer:1.4.1")
     implementation("androidx.media3:media3-exoplayer-hls:1.4.1")

@@ -32,9 +32,10 @@ import java.io.StringWriter
  * 自动识别 HLS / 渐进式流，与 TiviMate 同源的内核家族，对标准 HLS 支持最好。
  *
  * 解码策略（设置中可切换）：
- * - auto：硬解优先，解码器初始化失败自动降级软解（默认，影视仓同款行为）；
- * - hardware：只允许硬件解码器；
- * - software：只允许软件解码器。
+ * - auto：硬解优先，解码器初始化失败自动回退其他解码器（默认）；
+ * - hardware：只允许硬件解码器（斐讯 T1 的 H.265 硬解本身没问题，
+ *   此模式可避免自动回退误选软解导致 1080p 卡顿/报错）；
+ * - software：只允许软件解码器（兼容性最好，但 1080p HEVC 较费 CPU）。
  *
  * 直播缓冲：起播 1.5s、重缓冲 3s、持续 15s、上限 45s——秒开且能吸收网络抖动。
  *
@@ -64,9 +65,19 @@ class PlaybackManager(
     private var degradedToSoftware = false
 
     /** 解码方式：auto / hardware / software */
-    private var decoderMode: String =
-        context.getSharedPreferences("iptv_prefs", Context.MODE_PRIVATE)
-            .getString("decoder_mode", "auto") ?: "auto"
+    private var decoderMode: String = run {
+        val prefs = context.getSharedPreferences("iptv_prefs", Context.MODE_PRIVATE)
+        // v1.3.0 的 bug：硬解失败自动降级会把 decoder_mode 持久化成 "software"，
+        // 导致后续所有频道都被迫软解（1080p 卡、4K 只出声不出画）。
+        // 升级后一次性重置回 "auto"，避免用户被旧 bug 留下的设置污染。
+        if (!prefs.getBoolean("decoder_migrated_v57", false)) {
+            if (prefs.getString("decoder_mode", "auto") == "software") {
+                prefs.edit().putString("decoder_mode", "auto").apply()
+            }
+            prefs.edit().putBoolean("decoder_migrated_v57", true).apply()
+        }
+        prefs.getString("decoder_mode", "auto") ?: "auto"
+    }
 
     private val playerListener = object : Player.Listener {
         override fun onPlaybackStateChanged(playbackState: Int) {
@@ -157,20 +168,28 @@ class PlaybackManager(
      * 硬解解码器初始化/解码失败时，把播放器重建为软件解码模式续播（影视仓同款兜底）。
      * 单独抽成方法：避免在 playerListener 初始化期间被 lambda 引用自身，
      * 触发 Kotlin "Type checking has run into a recursive problem"。
+     *
+     * 注意：只对当前频道生效（degradedToSoftware 内存标记），不写入全局设置，
+     * 否则会把后续所有频道都拖进软解（1080p 卡顿、4K 只有声音没图像）。
      */
     private fun degradeToSoftware(url: String, channelName: String) {
         val pv = playerView ?: return
-        decoderMode = "software"
-        context.getSharedPreferences("iptv_prefs", Context.MODE_PRIVATE)
-            .edit().putString("decoder_mode", "software").apply()
         player?.removeListener(playerListener)
         player?.release()
         pv.player = null
+        degradedToSoftware = true
         player = buildPlayer()
         pv.player = player
         player?.addListener(playerListener)
         retryCount = 0
-        play(url, channelName)
+        // 手动续播（不调用 play()，避免 play() 重置 degradedToSoftware 标记）
+        currentUrl = url
+        currentChannelName = channelName
+        val p = player ?: return
+        p.setMediaSource(buildMediaSource(url, channelName))
+        p.prepare()
+        p.playWhenReady = true
+        listener.onPlaybackReady(channelName)
     }
 
     @OptIn(UnstableApi::class)
@@ -188,17 +207,23 @@ class PlaybackManager(
             .build()
 
         val renderersFactory = DefaultRenderersFactory(context)
-            // 强制同步 MediaCodec 队列：Amlogic（斐讯 T1 S912）Android 7 的
-            // 硬件解码器对异步模式支持不佳，Media3 默认 async 优先会导致
-            // HEVC 解码器初始化失败（DECODER_INIT_FAILED）。同步模式最稳。
-            .forceDisableMediaCodecAsynchronousQueueing()
-        when (decoderMode) {
-            "hardware" -> {
+        // 重要：不强制禁用异步 MediaCodec 队列。
+        // 斐讯 T1（S912/Android 7）上影视仓 EXO 硬解 4K HEVC 都能流畅，
+        // 用的就是 Media3 默认 async 配置；我们上一版 forceDisable 异步队列后，
+        // 1.8.0 表现为解码器 init failed、1.4.1 表现为只出声不出画（硬解
+        // configure 成功但 OMX 组件不吐帧）。恢复默认异步队列与影视仓一致。
+        when {
+            degradedToSoftware -> {
+                // 本频道硬解失败后的软解兜底：只影响当前频道，切台/重启恢复设置的模式
+                renderersFactory.setEnableDecoderFallback(false)
+                renderersFactory.setMediaCodecSelector(SoftwareOnlySelector)
+            }
+            decoderMode == "hardware" -> {
                 // 仅硬件解码：硬解失败直接报错，不回退软解（避免软解 1080p 卡死）
                 renderersFactory.setEnableDecoderFallback(false)
                 renderersFactory.setMediaCodecSelector(HardwareOnlySelector)
             }
-            "software" -> {
+            decoderMode == "software" -> {
                 // 仅软件解码：绕过一切硬件解码器
                 renderersFactory.setEnableDecoderFallback(false)
                 renderersFactory.setMediaCodecSelector(SoftwareOnlySelector)
