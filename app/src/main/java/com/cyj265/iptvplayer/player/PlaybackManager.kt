@@ -65,7 +65,7 @@ class PlaybackManager(
             val mp = MediaPlayer(vlc)
             libVLC = vlc
             mediaPlayer = mp
-            layout.setMediaPlayer(mp)
+            layout.attachViews(mp, null, false)
             mp.setEventListener { event -> onVlcEvent(event) }
         } catch (t: Throwable) {
             log("VLC 初始化失败: " + t)
@@ -114,8 +114,12 @@ class PlaybackManager(
             }
             MediaPlayer.Event.Vout -> {
                 // 视频尺寸变化（首次出画面 / 分辨率切换）
-                if (event.width > 0 && event.height > 0) {
-                    listener.onVideoSizeChanged(event.width, event.height)
+                try {
+                    val track = mediaPlayer?.getCurrentVideoTrack()
+                    if (track != null && track.width > 0 && track.height > 0) {
+                        listener.onVideoSizeChanged(track.width, track.height)
+                    }
+                } catch (ignored: Throwable) {
                 }
             }
         }
@@ -165,13 +169,17 @@ class PlaybackManager(
         val url = currentUrl
         val name = currentChannelName
         try {
+            try {
+                layout.detachViews()
+            } catch (ignored: Throwable) {
+            }
             mediaPlayer?.release()
             libVLC?.release()
             val vlc = LibVLC(context, vlcArgs())
             val mp = MediaPlayer(vlc)
             libVLC = vlc
             mediaPlayer = mp
-            layout.setMediaPlayer(mp)
+            layout.attachViews(mp, null, false)
             mp.setEventListener { event -> onVlcEvent(event) }
         } catch (t: Throwable) {
             log("切换解码方式失败: $t")
@@ -233,7 +241,7 @@ class PlaybackManager(
     fun release() {
         retryHandler.removeCallbacksAndMessages(null)
         try {
-            videoLayout?.mediaPlayer = null
+            videoLayout?.detachViews()
         } catch (ignored: Throwable) {
         }
         mediaPlayer?.release()
