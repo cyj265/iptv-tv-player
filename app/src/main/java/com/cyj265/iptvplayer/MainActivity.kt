@@ -167,7 +167,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             onChannelFocused = { ch ->
                 lastFocusedChannel = ch
                 updateProgramInfo(ch)
-                previewChannel(ch)
+                // 焦点移动只更新节目信息，不自动换台（OK 键才播放）
             }
         )
         adapter.favorites = favorites
@@ -186,19 +186,18 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                 binding.channelList.requestFocus()
             },
             onGroupFocused = { group ->
-                // 焦点移动到分组即实时切换右侧频道列表（无需 OK 确认）
+                // 焦点移动到分组即切换右侧频道列表（不抢焦点、不换台）
                 currentGroup = group
                 groupAdapter.setSelected(group)
                 rememberLastGroup(group ?: "")
                 applyFilter()
-                // 定位：当前播放频道在该分组则定位到它，否则定位到分组第一个频道
+                // 记录目标位置，右键进入右栏时才定位
                 val targetPos = currentChannel
                     ?.let { adapter.positionOfChannel(it.id) }
                     ?.takeIf { it >= 0 }
                     ?: adapter.firstPositionOfGroup(group ?: "")
+                pendingChannelScrollPos = targetPos
                 if (targetPos >= 0) {
-                    pendingChannelScrollPos = targetPos
-                    binding.channelList.scrollToPosition(targetPos)
                     adapter.channelAt(targetPos)?.let { updateProgramInfo(it) }
                 }
             }
@@ -451,7 +450,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         if (epgLoadState == EpgLoadState.FAILED && repository.getEpgUrls().isNotEmpty()) {
             loadEpgIfConfigured()
         }
-        // 默认焦点到右侧频道列表的当前播放频道（参考主流 IPTV 交互）
+        // 默认焦点到左侧分组列表的当前分组
         currentChannel?.group?.let { g ->
             if (currentGroup != g) {
                 currentGroup = g
@@ -459,16 +458,19 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                 applyFilter()
             }
         }
-        val curPos = currentChannel?.let { adapter.positionOfChannel(it.id) } ?: -1
-        if (curPos >= 0) {
-            binding.channelList.scrollToPosition(curPos)
+        val groupPos = groupAdapter.positionOfGroup(currentGroup)
+        if (groupPos >= 0) {
+            binding.groupList.scrollToPosition(groupPos)
         }
-        binding.channelList.post {
-            if (curPos >= 0) {
-                val holder = binding.channelList.findViewHolderForAdapterPosition(curPos)
+        // 记录右栏目标位置（当前播放频道或分组第一个）
+        val curPos = currentChannel?.let { adapter.positionOfChannel(it.id) } ?: -1
+        pendingChannelScrollPos = if (curPos >= 0) curPos else adapter.firstPositionOfGroup(currentGroup ?: "")
+        binding.groupList.post {
+            if (groupPos >= 0) {
+                val holder = binding.groupList.findViewHolderForAdapterPosition(groupPos)
                 holder?.itemView?.requestFocus()
             }
-            if (!binding.channelList.hasFocus()) binding.channelList.requestFocus()
+            if (!binding.groupList.hasFocus()) binding.groupList.requestFocus()
         }
     }
 
@@ -1682,19 +1684,9 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     private val previewHandler = android.os.Handler(android.os.Looper.getMainLooper())
     private var previewRunnable: Runnable? = null
 
-    /** 频道焦点停留 500ms 后实时换台预览（快速移动不触发） */
+    /** 已废弃：频道焦点移动不再自动换台（OK 键才播放），避免频繁播放导致卡顿 */
     private fun previewChannel(ch: com.cyj265.iptvplayer.data.Channel) {
-        previewRunnable?.let { previewHandler.removeCallbacks(it) }
-        previewRunnable = Runnable {
-            if (isChannelPanelVisible && currentChannel?.id != ch.id) {
-                currentChannel = ch
-                repository.lastChannelId = ch.id
-                adapter.setSelected(ch.id)
-                playback.play(ch.sources.ifEmpty { listOf(ch.url) }, ch.name)
-                updateNowPlaying()
-                updateLineupLabel()
-            }
-        }.also { previewHandler.postDelayed(it, 500) }
+        // no-op: 焦点移动只更新节目信息，OK 才播放
     }
 
     private fun applyFilter() {
@@ -2096,13 +2088,26 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                     true
                 }
                 KeyEvent.KEYCODE_DPAD_RIGHT -> {
-                    // 右移：如果焦点在分组列表，先滚动定位到目标频道再切焦点
+                    // 右移：焦点在分组列表 → 滚动定位到目标频道 → 请求右栏焦点
                     if (binding.groupList.hasFocus()) {
-                        if (pendingChannelScrollPos >= 0) {
-                            binding.channelList.scrollToPosition(pendingChannelScrollPos)
-                            pendingChannelScrollPos = -1
+                        val targetPos = if (pendingChannelScrollPos >= 0) {
+                            pendingChannelScrollPos
+                        } else {
+                            currentChannel?.let { adapter.positionOfChannel(it.id) }
+                                ?.takeIf { it >= 0 }
+                                ?: adapter.firstPositionOfGroup(currentGroup ?: "")
                         }
-                        binding.channelList.requestFocus()
+                        if (targetPos >= 0) {
+                            binding.channelList.scrollToPosition(targetPos)
+                        }
+                        pendingChannelScrollPos = -1
+                        binding.channelList.post {
+                            if (targetPos >= 0) {
+                                val holder = binding.channelList.findViewHolderForAdapterPosition(targetPos)
+                                holder?.itemView?.requestFocus()
+                            }
+                            if (!binding.channelList.hasFocus()) binding.channelList.requestFocus()
+                        }
                     }
                     true
                 }
@@ -2215,6 +2220,10 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         fun setSelected(group: String?) {
             selected = group
             notifyDataSetChanged()
+        }
+
+        fun positionOfGroup(group: String?): Int {
+            return groups.indexOfFirst { (it == null && group == null) || it == group }
         }
 
         inner class VH(itemView: View) : RecyclerView.ViewHolder(itemView) {
