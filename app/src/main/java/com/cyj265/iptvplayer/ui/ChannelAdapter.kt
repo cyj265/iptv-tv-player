@@ -159,7 +159,10 @@ class ChannelAdapter(
         return if (viewType == TYPE_HEADER) {
             HeaderHolder(ItemGroupHeaderBinding.inflate(inflater, parent, false))
         } else {
-            ChannelHolder(ItemChannelBinding.inflate(inflater, parent, false))
+            val holder = ChannelHolder(ItemChannelBinding.inflate(inflater, parent, false))
+            // 阻止系统自动焦点搜索：左键交给 Activity.onKeyDown 处理（切回分组列表）
+            holder.binding.root.nextFocusLeft = View.NO_ID
+            holder
         }
     }
 
