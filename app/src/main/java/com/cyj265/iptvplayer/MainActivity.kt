@@ -605,6 +605,24 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                     } else {
                         setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_primary))
                     }
+                    // 焦点样式：亮蓝背景 + 白字加粗（和频道列表统一）
+                    onFocusChangeListener = View.OnFocusChangeListener { _, focused ->
+                        if (focused) {
+                            setBackgroundColor(0xFF3D8BFF.toInt())
+                            setTextColor(0xFFFFFFFF.toInt())
+                            setTypeface(typeface, Typeface.BOLD)
+                        } else {
+                            if (i == active) {
+                                setBackgroundColor(0x2FFFFFFF.toInt())
+                                setTextColor(ContextCompat.getColor(this@MainActivity, R.color.accent))
+                                setTypeface(typeface, Typeface.BOLD)
+                            } else {
+                                setBackgroundColor(0x00000000)
+                                setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_primary))
+                                setTypeface(typeface, Typeface.NORMAL)
+                            }
+                        }
+                    }
                 }
                 info.setOnClickListener {
                     if (i != repository.activeSourceIndex) {
@@ -632,6 +650,16 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                         LinearLayout.LayoutParams.WRAP_CONTENT,
                         LinearLayout.LayoutParams.MATCH_PARENT
                     )
+                    // 焦点样式：红色背景 + 白字
+                    onFocusChangeListener = View.OnFocusChangeListener { _, focused ->
+                        if (focused) {
+                            setBackgroundColor(0xFFFF6B6B.toInt())
+                            setTextColor(0xFFFFFFFF.toInt())
+                        } else {
+                            setBackgroundColor(0x00000000)
+                            setTextColor(0xFFFF6B6B.toInt())
+                        }
+                    }
                 }
                 delBtn.setOnClickListener {
                     android.app.AlertDialog.Builder(this@MainActivity)
@@ -777,8 +805,9 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             content.addView(qrView, LinearLayout.LayoutParams(420, 420))
         }
         val tv = android.widget.TextView(this)
-        tv.setTextColor(ContextCompat.getColor(this, R.color.text_primary))
+        tv.setTextColor(0xFFFFFFFF.toInt())
         tv.textSize = 15f
+        tv.setLineSpacing(4f, 1f)
         tv.text = "请用手机（与机顶盒同一 Wi-Fi）扫描：\n$url\n\n可添加/切换直播源、设置节目指南、直接播放"
         content.addView(tv)
         AlertDialog.Builder(this)
@@ -819,6 +848,44 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         return false
     }
 
+    /** 导航列 ID 集合（单独处理选中样式，不应用通用焦点样式） */
+    private val navViewIds = setOf(
+        R.id.navLineup, R.id.navRatio, R.id.navDecoder, R.id.navTimeout,
+        R.id.navPrefs, R.id.navUpdate, R.id.navDebug, R.id.navAbout, R.id.navExit
+    )
+
+    /** 给设置面板里所有可聚焦 TextView/Button 统一加焦点样式（亮蓝背景+白字加粗） */
+    private fun applySettingsFocusStyles() {
+        try {
+            fun traverse(view: View) {
+                if (view is ViewGroup) {
+                    for (i in 0 until view.childCount) {
+                        traverse(view.getChildAt(i))
+                    }
+                    return
+                }
+                if (view !is TextView) return
+                if (view is android.widget.EditText) return  // 输入框保持原样
+                if (view.id in navViewIds) return  // 导航列单独处理
+                if (!view.isFocusable) return
+                val normalTextColor = view.currentTextColor
+                view.onFocusChangeListener = View.OnFocusChangeListener { _, focused ->
+                    if (focused) {
+                        view.setBackgroundColor(0xFF3D8BFF.toInt())
+                        view.setTextColor(0xFFFFFFFF.toInt())
+                        view.setTypeface(view.typeface, Typeface.BOLD)
+                    } else {
+                        view.setBackgroundColor(0x00000000)
+                        view.setTextColor(normalTextColor)
+                        view.setTypeface(view.typeface, Typeface.NORMAL)
+                    }
+                }
+            }
+            traverse(binding.settingsPanel)
+        } catch (ignored: Throwable) {
+        }
+    }
+
     private fun rememberGroupPrefs() = getSharedPreferences("settings", MODE_PRIVATE)
 
     private fun rememberLastGroup(group: String) {
@@ -851,9 +918,11 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         }
         navs.forEachIndexed { i, n ->
             if (i == index) {
-                n.setBackgroundColor(ContextCompat.getColor(this, R.color.accent_dim))
+                n.setBackgroundColor(0xFF3D8BFF.toInt())
                 (n as android.widget.TextView).setTextColor(Color.WHITE)
+                (n as android.widget.TextView).setTypeface((n as android.widget.TextView).typeface, Typeface.BOLD)
             } else {
+                (n as android.widget.TextView).setTypeface((n as android.widget.TextView).typeface, Typeface.NORMAL)
                 n.setBackgroundColor(Color.TRANSPARENT)
                 (n as android.widget.TextView).setTextColor(
                     ContextCompat.getColor(this, R.color.text_secondary)
@@ -1035,6 +1104,9 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             "\n代码仓库：https://github.com/cyj265/lanxing-tv" +
             "\n开源许可：Apache-2.0 / MIT / GPL-2.0" +
             "\n部分源码来自开源项目（详见仓库 README 来源致谢）"
+
+        // 统一设置面板所有可聚焦元素的焦点样式（亮蓝背景+白字，和频道列表一致）
+        applySettingsFocusStyles()
     }
 
     private fun setupSettingsTabs() {
