@@ -11,8 +11,8 @@ android {
         applicationId = "com.cyj265.iptvplayer"
         minSdk = 21
         targetSdk = 34
-        versionCode = 21
-        versionName = "1.7.0"
+        versionCode = 22
+        versionName = "1.7.1"
     }
 
     buildTypes {
@@ -64,6 +64,8 @@ dependencies {
     // 1.4.1 = 影视仓/TVBox 系播放器同代内核，行为最接近，Amlogic T1 兼容性最好
     // （影视仓 EXO 硬解在 T1 上 4K HEVC 全流畅）。1.8.0 曾出现 HEVC 硬解
     // DECODER_INIT_FAILED（解码器支持但创建失败），故固定此版本。
+    // 注：v1.5.0 曾尝试 libVLC 3.5.1 内核（83MB），T1 实测仅 1080P 正常、
+    // 4K 花屏/720P 黑屏，且体积过大，已回退纯 EXO 方案。
     implementation("androidx.media3:media3-exoplayer:1.4.1")
     implementation("androidx.media3:media3-exoplayer-hls:1.4.1")
     implementation("androidx.media3:media3-ui:1.4.1")
