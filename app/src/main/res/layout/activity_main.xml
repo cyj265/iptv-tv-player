@@ -725,7 +725,7 @@
                             android:textColor="#FFFFFF" />
                     </LinearLayout>
 
-                    <!-- ===== 分区：画面比例 ===== -->
+                    <!-- ===== 分区：画面比例（展开式，上下键选择） ===== -->
                     <LinearLayout
                         android:id="@+id/sectionRatio"
                         android:layout_width="match_parent"
@@ -740,15 +740,66 @@
                             android:textColor="@color/text_secondary"
                             android:textSize="14sp" />
 
-                        <Button
-                            android:id="@+id/btnAspectRatio"
+                        <TextView
+                            android:id="@+id/ratiofit"
                             android:layout_width="match_parent"
-                            android:layout_height="46dp"
-                            android:layout_marginTop="6dp"
-                            android:text="@string/aspect_fit"
-                            android:textSize="14sp"
-                            android:backgroundTint="@color/bg_item"
-                            android:textColor="@color/text_primary" />
+                            android:layout_height="40dp"
+                            android:layout_marginTop="4dp"
+                            android:gravity="center_vertical"
+                            android:paddingStart="16dp"
+                            android:text="适应"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="15sp"
+                            android:focusable="true"
+                            android:clickable="true" />
+                        <TextView
+                            android:id="@+id/ratio169"
+                            android:layout_width="match_parent"
+                            android:layout_height="40dp"
+                            android:layout_marginTop="4dp"
+                            android:gravity="center_vertical"
+                            android:paddingStart="16dp"
+                            android:text="16:9"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="15sp"
+                            android:focusable="true"
+                            android:clickable="true" />
+                        <TextView
+                            android:id="@+id/ratio43"
+                            android:layout_width="match_parent"
+                            android:layout_height="40dp"
+                            android:layout_marginTop="4dp"
+                            android:gravity="center_vertical"
+                            android:paddingStart="16dp"
+                            android:text="4:3"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="15sp"
+                            android:focusable="true"
+                            android:clickable="true" />
+                        <TextView
+                            android:id="@+id/ratiozoom"
+                            android:layout_width="match_parent"
+                            android:layout_height="40dp"
+                            android:layout_marginTop="4dp"
+                            android:gravity="center_vertical"
+                            android:paddingStart="16dp"
+                            android:text="缩放"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="15sp"
+                            android:focusable="true"
+                            android:clickable="true" />
+                        <TextView
+                            android:id="@+id/ratiofill"
+                            android:layout_width="match_parent"
+                            android:layout_height="40dp"
+                            android:layout_marginTop="4dp"
+                            android:gravity="center_vertical"
+                            android:paddingStart="16dp"
+                            android:text="填充"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="15sp"
+                            android:focusable="true"
+                            android:clickable="true" />
                     </LinearLayout>
 
                     <!-- ===== 分区：播放解码 ===== -->
@@ -777,7 +828,7 @@
                             android:textColor="@color/text_primary" />
                     </LinearLayout>
 
-                    <!-- ===== 分区：超时换源 ===== -->
+                    <!-- ===== 分区：超时换源（展开式，上下键选择） ===== -->
                     <LinearLayout
                         android:id="@+id/sectionTimeout"
                         android:layout_width="match_parent"
@@ -792,20 +843,95 @@
                             android:textColor="@color/text_secondary"
                             android:textSize="14sp" />
 
-                        <Button
-                            android:id="@+id/btnTimeoutCycle"
+                        <TextView
+                            android:id="@+id/timeout5"
                             android:layout_width="match_parent"
-                            android:layout_height="46dp"
-                            android:layout_marginTop="6dp"
+                            android:layout_height="40dp"
+                            android:layout_marginTop="4dp"
+                            android:gravity="center_vertical"
+                            android:paddingStart="16dp"
+                            android:text="5 秒"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="15sp"
+                            android:focusable="true"
+                            android:clickable="true" />
+                        <TextView
+                            android:id="@+id/timeout10"
+                            android:layout_width="match_parent"
+                            android:layout_height="40dp"
+                            android:layout_marginTop="4dp"
+                            android:gravity="center_vertical"
+                            android:paddingStart="16dp"
                             android:text="10 秒"
-                            android:textSize="14sp"
-                            android:backgroundTint="@color/bg_item"
-                            android:textColor="@color/text_primary" />
+                            android:textColor="@color/text_secondary"
+                            android:textSize="15sp"
+                            android:focusable="true"
+                            android:clickable="true" />
+                        <TextView
+                            android:id="@+id/timeout15"
+                            android:layout_width="match_parent"
+                            android:layout_height="40dp"
+                            android:layout_marginTop="4dp"
+                            android:gravity="center_vertical"
+                            android:paddingStart="16dp"
+                            android:text="15 秒"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="15sp"
+                            android:focusable="true"
+                            android:clickable="true" />
+                        <TextView
+                            android:id="@+id/timeout20"
+                            android:layout_width="match_parent"
+                            android:layout_height="40dp"
+                            android:layout_marginTop="4dp"
+                            android:gravity="center_vertical"
+                            android:paddingStart="16dp"
+                            android:text="20 秒"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="15sp"
+                            android:focusable="true"
+                            android:clickable="true" />
+                        <TextView
+                            android:id="@+id/timeout25"
+                            android:layout_width="match_parent"
+                            android:layout_height="40dp"
+                            android:layout_marginTop="4dp"
+                            android:gravity="center_vertical"
+                            android:paddingStart="16dp"
+                            android:text="25 秒"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="15sp"
+                            android:focusable="true"
+                            android:clickable="true" />
+                        <TextView
+                            android:id="@+id/timeout30"
+                            android:layout_width="match_parent"
+                            android:layout_height="40dp"
+                            android:layout_marginTop="4dp"
+                            android:gravity="center_vertical"
+                            android:paddingStart="16dp"
+                            android:text="30 秒"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="15sp"
+                            android:focusable="true"
+                            android:clickable="true" />
+                        <TextView
+                            android:id="@+id/timeout60"
+                            android:layout_width="match_parent"
+                            android:layout_height="40dp"
+                            android:layout_marginTop="4dp"
+                            android:gravity="center_vertical"
+                            android:paddingStart="16dp"
+                            android:text="60 秒"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="15sp"
+                            android:focusable="true"
+                            android:clickable="true" />
 
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="6dp"
+                            android:layout_marginTop="8dp"
                             android:text="@string/switch_timeout_hint"
                             android:textColor="@color/text_secondary"
                             android:textSize="12sp"
@@ -1067,6 +1193,30 @@
                             android:textColor="@color/text_secondary"
                             android:textSize="13sp"
                             android:lineSpacingExtra="3dp" />
+
+                        <!-- 启动时自动检查更新开关 -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:layout_marginTop="16dp"
+                            android:paddingTop="8dp"
+                            android:paddingBottom="8dp">
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="启动时自动检查更新"
+                                android:textColor="@color/text_primary"
+                                android:textSize="15sp" />
+
+                            <Switch
+                                android:id="@+id/switchAutoUpdate"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content" />
+                        </LinearLayout>
 
                         <Button
                             android:id="@+id/btnExportAboutCrash"
