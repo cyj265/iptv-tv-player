@@ -21,7 +21,8 @@ import com.cyj265.iptvplayer.databinding.ItemGroupHeaderBinding
  */
 class ChannelAdapter(
     private val onChannelClick: (Channel) -> Unit,
-    private val onCollapsedChanged: (Set<String>) -> Unit = {}
+    private val onCollapsedChanged: (Set<String>) -> Unit = {},
+    private val onChannelFocused: (Channel) -> Unit = {}
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     companion object {
@@ -125,6 +126,30 @@ class ChannelAdapter(
         notifyDataSetChanged()
     }
 
+    /** 双栏模式下按全局显示顺序查找频道所在行位置；找不到返回 -1。 */
+    fun positionOfChannel(channelId: String): Int {
+        for (i in rows.indices) {
+            val r = rows[i]
+            if (!r.isHeader && r.channel?.id == channelId) return i
+        }
+        return -1
+    }
+
+    /** 返回指定行位置的频道；该行不是频道项时返回 null。 */
+    fun channelAt(position: Int): Channel? {
+        if (position < 0 || position >= rows.size) return null
+        return rows[position].channel
+    }
+
+    /** 返回某分组在双栏显示中的第一个频道行位置；找不到返回 -1。 */
+    fun firstPositionOfGroup(group: String): Int {
+        for (i in rows.indices) {
+            val r = rows[i]
+            if (!r.isHeader && r.channel?.group == group) return i
+        }
+        return -1
+    }
+
     override fun getItemViewType(position: Int): Int {
         return if (rows[position].isHeader) TYPE_HEADER else TYPE_CHANNEL
     }
@@ -167,6 +192,9 @@ class ChannelAdapter(
             )
             holder.binding.root.isSelected = ch.id == selectedChannelId
             holder.binding.root.setOnClickListener { onChannelClick(ch) }
+            holder.binding.root.onFocusChangeListener = View.OnFocusChangeListener { v, has ->
+                if (has) onChannelFocused(ch)
+            }
         }
     }
 
