@@ -36,6 +36,7 @@
     <string name="no_epg">暂无节目信息</string>
     <string name="channel_list">频道列表</string>
     <string name="favorite_hint">收藏</string>
+    <string name="channel_logo">频道图标</string>
     <string name="play_pause">播放/暂停</string>
     <string name="stop">停止</string>
     <string name="prev_channel">上一个频道</string>
