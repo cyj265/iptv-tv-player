@@ -1,5 +1,4 @@
 package com.cyj265.iptvplayer.player
-
 import android.content.Context
 import android.net.Uri
 import android.os.Handler
@@ -21,12 +20,13 @@ import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
 import androidx.media3.exoplayer.mediacodec.MediaCodecUtil
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
+import androidx.media3.exoplayer.upstream.BandwidthMeter
+import androidx.media3.exoplayer.upstream.DefaultBandwidthMeter
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import java.io.File
 import java.io.PrintWriter
 import java.io.StringWriter
-
 /**
  * 基于 Media3 ExoPlayer 的播放内核（影视仓/TVBox 同款，T1 实测 4K HEVC 流畅）。
  *
@@ -56,32 +56,28 @@ class PlaybackManager(
     private val context: Context,
     private val listener: Listener
 ) {
-
     interface Listener {
         fun onPlaybackReady(channelName: String)
         fun onPlaybackError(message: String)
         fun onPlaybackStateChanged(isPlaying: Boolean)
         fun onVideoSizeChanged(width: Int, height: Int)
     }
-
     private var player: ExoPlayer? = null
     private var playerView: PlayerView? = null
     private var currentUrl: String? = null
     private var currentChannelName: String? = null
-
+    // 带宽检测器，用于带宽网速估算
+    private var bandwidthMeter: BandwidthMeter? = null
     // ---------- 多线路 ----------
     private var currentSources: List<String> = emptyList()
     private var currentSourceIndex = 0
     private var autoTryStartIndex = 0
-
     private var retryCount = 0
     private val retryHandler = Handler(Looper.getMainLooper())
     private val sourceTimeoutHandler = Handler(Looper.getMainLooper())
     private var sourceTimeoutMs: Long = 10_000L
-
     /** 当前频道是否已从硬解自动降级到软解（每个频道重置一次） */
     private var degradedToSoftware = false
-
     /** 解码方式：auto / hardware / software */
     private var decoderMode: String = run {
         val prefs = context.getSharedPreferences("iptv_prefs", Context.MODE_PRIVATE)
@@ -96,12 +92,10 @@ class PlaybackManager(
         }
         prefs.getString("decoder_mode", "auto") ?: "auto"
     }
-
     /** 应用启动时同步一次超时秒数偏好（避免每个频道都读 SP） */
     fun setSourceTimeoutMs(timeoutMs: Long) {
         sourceTimeoutMs = if (timeoutMs > 0) timeoutMs else 10_000L
     }
-
     private val playerListener = object : Player.Listener {
         override fun onPlaybackStateChanged(playbackState: Int) {
             if (playbackState == Player.STATE_READY) {
@@ -110,7 +104,6 @@ class PlaybackManager(
             }
             listener.onPlaybackStateChanged(player?.isPlaying == true)
         }
-
         override fun onPlayerError(error: PlaybackException) {
             // 诊断日志：完整堆栈写入 crash.log（设置→调试 可查看，便于真机定位解码问题）
             try {
@@ -118,21 +111,19 @@ class PlaybackManager(
                 error.printStackTrace(PrintWriter(sw))
                 File(context.filesDir, "crash.log").appendText(
                     "\n--- 播放错误 " + System.currentTimeMillis() + " ---\n" +
-                        "errorCode=" + error.errorCodeName + "\n" + sw.toString() + "\n"
+                            "errorCode=" + error.errorCodeName + "\n" + sw.toString() + "\n"
                 )
             } catch (ignored: Exception) {
             }
             val url = currentUrl
             val isDecoderError =
                 error.errorCode == PlaybackException.ERROR_CODE_DECODER_INIT_FAILED ||
-                    error.errorCode == PlaybackException.ERROR_CODE_DECODING_FAILED
-
+                        error.errorCode == PlaybackException.ERROR_CODE_DECODING_FAILED
             // 多线路 + 非解码类错误：自动切下一条线路（网络/协议问题换线路通常能解决）
             if (!isDecoderError && currentSources.size > 1) {
                 autoFail("线路 ${currentSourceIndex + 1} 播放失败")
                 return
             }
-
             // 解码器初始化/解码失败：后台检测解码器是否坏状态
             // （T1 老 Amlogic 硬解组件长时间运行会卡死：format_supported=YES 但
             // OMX 组件 init failed，应用内无法修复），确认坏了就明确提示重启机顶盒，
@@ -165,18 +156,15 @@ class PlaybackManager(
             retryCount = 0
             listener.onPlaybackError(error.errorCodeName)
         }
-
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             listener.onPlaybackStateChanged(isPlaying)
         }
-
         override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) {
             if (videoSize.width > 0 && videoSize.height > 0) {
                 listener.onVideoSizeChanged(videoSize.width, videoSize.height)
             }
         }
     }
-
     fun attach(playerView: PlayerView) {
         if (player != null) return
         this.playerView = playerView
@@ -184,7 +172,6 @@ class PlaybackManager(
         player = playerView.player as ExoPlayer
         player?.addListener(playerListener)
     }
-
     /** 切换解码方式：需要重建播放器（renderer 在创建时固定），保留当前频道继续播放。 */
     fun applyDecoderMode(mode: String) {
         if (mode == decoderMode) return
@@ -207,9 +194,7 @@ class PlaybackManager(
             play(name, name)
         }
     }
-
     fun currentDecoderMode(): String = decoderMode
-
     /**
      * 硬解解码器初始化/解码失败时，把播放器重建为软件解码模式续播（影视仓同款兜底）。
      * 单独抽成方法：避免在 playerListener 初始化期间被 lambda 引用自身，
@@ -237,9 +222,11 @@ class PlaybackManager(
         p.playWhenReady = true
         listener.onPlaybackReady(channelName)
     }
-
     @OptIn(UnstableApi::class)
     private fun buildPlayer(): ExoPlayer {
+        // 每次重建播放器都新建带宽检测器实例
+        bandwidthMeter = DefaultBandwidthMeter.Builder(context).build()
+
         // 直播缓冲：起播 1.5s、卡顿后 3s、持续目标 15s、上限 45s。
         // 之前起播缓冲 15s 需要攒够两三个 TS 分片才开播，导致"等待播放时间太长"。
         // 直播流（TS 10s 分片）缓冲越小起播越快、延迟越低；45s 上限足够吸收网络抖动。
@@ -251,7 +238,6 @@ class PlaybackManager(
                 3_000     // bufferForPlaybackAfterRebufferMs：卡顿后恢复所需缓冲
             )
             .build()
-
         val renderersFactory = DefaultRenderersFactory(context)
         // 重要：不强制禁用异步 MediaCodec 队列。
         // 斐讯 T1（S912/Android 7）上影视仓 EXO 硬解 4K HEVC 都能流畅，
@@ -279,7 +265,6 @@ class PlaybackManager(
                 renderersFactory.setEnableDecoderFallback(true)
             }
         }
-
         // 强制选择最高码率/最高分辨率轨道（TVBox 系播放器同款做法）：
         // HLS 多码率流默认按带宽估计选 variant，软解/网络抖动时会被"降级"到
         // 低分辨率（如 4K 变 720×576）。固定最高档，保证分辨率不缩水。
@@ -297,14 +282,13 @@ class PlaybackManager(
                 .setExceedRendererCapabilitiesIfNecessary(true)
                 .build()
         )
-
         return ExoPlayer.Builder(context)
             .setRenderersFactory(renderersFactory)
             .setTrackSelector(trackSelector)
             .setLoadControl(loadControl)
+            .setBandwidthMeter(bandwidthMeter)
             .build()
     }
-
     /** 只保留非软件解码器（硬件/系统专用解码器）。仅过滤视频解码器： */
     private object HardwareOnlySelector : MediaCodecSelector {
         override fun getDecoderInfos(
@@ -320,7 +304,6 @@ class PlaybackManager(
             return all.filter { !it.softwareOnly }
         }
     }
-
     /** 只保留软件解码器（兼容性最好）。仅过滤视频解码器，音频放行全部。 */
     private object SoftwareOnlySelector : MediaCodecSelector {
         override fun getDecoderInfos(
@@ -333,7 +316,6 @@ class PlaybackManager(
             return all.filter { it.softwareOnly }
         }
     }
-
     /** 画面比例：fit / fill / zoom / 16:9 / 4:3 */
     fun setAspectRatio(mode: String) {
         val pv = playerView ?: return
@@ -353,14 +335,11 @@ class PlaybackManager(
             else -> pv.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
         }
     }
-
     // ---------- 多线路播放 ----------
-
     /** 播放频道（单线路兼容入口） */
     fun play(url: String, channelName: String) {
         play(listOf(url), channelName)
     }
-
     /** 播放频道（多线路：sources 按顺序排列，失败/超时自动切换） */
     fun play(sources: List<String>, channelName: String) {
         if (sources.isEmpty()) {
@@ -374,7 +353,6 @@ class PlaybackManager(
         degradedToSoftware = false
         playCurrentSource()
     }
-
     private fun playCurrentSource() {
         val p = player ?: return
         val url = currentSources.getOrNull(currentSourceIndex) ?: return
@@ -388,7 +366,6 @@ class PlaybackManager(
         listener.onPlaybackReady(currentChannelName ?: url)
         startSourceTimeout()
     }
-
     /** 手动切换下一条线路（允许循环回绕），返回是否有多线路 */
     fun switchToNextLine(): Boolean {
         if (currentSources.size <= 1) return false
@@ -397,7 +374,6 @@ class PlaybackManager(
         listener.onPlaybackError("已切换到线路 ${currentSourceIndex + 1}/${currentSources.size}")
         return true
     }
-
     /** 自动失败换源：一圈全部失败则报错停止 */
     private fun autoFail(reason: String) {
         if (currentSources.size <= 1) {
@@ -414,7 +390,6 @@ class PlaybackManager(
         playCurrentSource()
         listener.onPlaybackError("$reason，自动切换线路 ${currentSourceIndex + 1}/${currentSources.size}")
     }
-
     private fun startSourceTimeout() {
         sourceTimeoutHandler.removeCallbacksAndMessages(null)
         sourceTimeoutHandler.postDelayed({
@@ -426,28 +401,22 @@ class PlaybackManager(
             // 单线路超时：不做任何动作，让播放器自行缓冲/报错
         }, sourceTimeoutMs)
     }
-
     /** 当前线路序号（0 起） */
     fun currentSourceIndex(): Int = currentSourceIndex
-
     /** 当前频道线路总数 */
     fun sourceCount(): Int = currentSources.size
-
     /** 当前线路地址 */
     fun currentSourceUrl(): String? = currentUrl
-
     /** 当前估计带宽（kbps），用于顶部"显示网速" */
-@OptIn(UnstableApi::class)
-fun bandwidthKbps(): Long {
-    return try {
-        // 临时返回0，消除编译报错，其他代码完全不动
-        0
-    } catch (e: Exception) {
-        0
+    @OptIn(UnstableApi::class)
+    fun bandwidthKbps(): Long {
+        return try {
+            val meter = bandwidthMeter ?: return 0L
+            meter.getBitrateEstimate() / 1000
+        } catch (e: Exception) {
+            0L
+        }
     }
-}
-
-
     private fun retryPlay(url: String, channelName: String) {
         val p = player ?: return
         p.stop()
@@ -457,7 +426,6 @@ fun bandwidthKbps(): Long {
         p.playWhenReady = true
         listener.onPlaybackReady(channelName)
     }
-
     /**
      * 按内容类型显式构建媒体源（lemonTV 同款做法）：
      * .m3u8 → HlsMediaSource；其余 → ProgressiveMediaSource。
@@ -480,21 +448,20 @@ fun bandwidthKbps(): Long {
             else -> ProgressiveMediaSource.Factory(dataSourceFactory).createMediaSource(mediaItem)
         }
     }
-
     fun togglePlayPause() {
         val p = player ?: return
         if (p.playWhenReady) {
             p.pause()
         } else {
-            p.play()
+            p.playWhenReady = true
         }
     }
-
     fun release() {
         retryHandler.removeCallbacksAndMessages(null)
         sourceTimeoutHandler.removeCallbacksAndMessages(null)
         player?.release()
         player = null
+        bandwidthMeter = null
         playerView = null
     }
 }
