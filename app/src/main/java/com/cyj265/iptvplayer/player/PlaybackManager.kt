@@ -243,16 +243,17 @@ class PlaybackManager(
         // HLS 多码率流默认按带宽估计选 variant，软解/网络抖动时会被"降级"到
         // 低分辨率（如 4K 变 720×576）。固定最高档，保证分辨率不缩水。
         //
-        // v1.6.0 曾加 setExceedRendererCapabilitiesIfNecessary(true) 强制超能力选择，
-        // 结果在 T1 上 4K HDR10（BT2020/HLG/10bit）被硬解上报 NO_EXCEEDS_CAPABILITIES
-        // 后仍强制硬解 → OMX.amlogic.hevc.decoder.awesome init failed → 有声音黑屏。
-        // 影视仓不超能力选择，自动降档到硬解支持的 1080P 高码率 → 流畅。
-        // 故 v1.6.1 移除超能力强制：硬解报不支持的格式自动降档，宁可 1080P 流畅，
-        // 不要 4K 黑屏。
+        // setExceedRendererCapabilitiesIfNecessary：Amlogic 解码器能力上报不全
+        // （MediaCodecInfo 把 4K 判为不支持），默认会因此降档选 1080P/720P，
+        // 这里强制超出上报能力选择，让解码器实际去解（硬解本身支持 4K）。
+        // ★ v1.6.1 曾一度移除该参数，实测与 v1.4.0 行为对比后确认：v1.4.0（带此参数）
+        // 在用户 T1 上播放正常，v62 黑屏属解码器坏状态（重启 T1 可清除），
+        // 故 v1.6.2 恢复与 v1.4.0 完全一致的配置。
         val trackSelector = DefaultTrackSelector(context)
         trackSelector.setParameters(
             DefaultTrackSelector.Parameters.Builder(context)
                 .setForceHighestSupportedBitrate(true)
+                .setExceedRendererCapabilitiesIfNecessary(true)
                 .build()
         )
 
