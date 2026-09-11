@@ -161,7 +161,7 @@ class ChannelAdapter(
         } else {
             val holder = ChannelHolder(ItemChannelBinding.inflate(inflater, parent, false))
             // 阻止系统自动焦点搜索：左键交给 Activity.onKeyDown 处理（切回分组列表）
-            holder.binding.root.nextFocusLeft = View.NO_ID
+            holder.binding.root.nextFocusLeftId = View.NO_ID
             holder
         }
     }
