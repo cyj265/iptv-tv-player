@@ -1,6 +1,7 @@
 package com.cyj265.iptvplayer
 
 import android.app.AlertDialog
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Color
@@ -1297,14 +1298,29 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     private fun launchCrashExport() {
         if (!crashFile().exists()) {
             Toast.makeText(this, R.string.export_empty, Toast.LENGTH_SHORT).show()
-        } else {
-            val name = "crash-log-" +
-                SimpleDateFormat("yyyyMMdd-HHmmss", Locale.getDefault()).format(Date()) + ".txt"
-            try {
-                createLogDoc.launch(name)
-            } catch (e: Exception) {
-                Toast.makeText(this, "无法打开保存窗口：${e.message}", Toast.LENGTH_LONG).show()
-            }
+            return
+        }
+        val name = "crash-log-" +
+            SimpleDateFormat("yyyyMMdd-HHmmss", Locale.getDefault()).format(Date()) + ".txt"
+        try {
+            createLogDoc.launch(name)
+        } catch (e: ActivityNotFoundException) {
+            // TV 设备无文件管理器，降级到直接写入应用外部目录
+            exportCrashLogToExternal(name)
+        } catch (e: Exception) {
+            Toast.makeText(this, "无法打开保存窗口：${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    /** 降级方案：直接写入应用外部文件目录（无需权限，文件管理器可访问） */
+    private fun exportCrashLogToExternal(name: String) {
+        try {
+            val dir = getExternalFilesDir(null) ?: filesDir
+            val outFile = java.io.File(dir, name)
+            crashFile().copyTo(outFile, overwrite = true)
+            Toast.makeText(this, "已导出到：${outFile.absolutePath}", Toast.LENGTH_LONG).show()
+        } catch (e: Exception) {
+            Toast.makeText(this, "导出失败：${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -1312,8 +1328,13 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         try {
             val f = crashFile()
             if (!f.exists()) return
-            contentResolver.openOutputStream(uri)?.use { os ->
-                os.write(f.readBytes())
+            val os = contentResolver.openOutputStream(uri)
+            if (os == null) {
+                Toast.makeText(this, "无法写入目标位置，请重试或选择其他位置", Toast.LENGTH_LONG).show()
+                return
+            }
+            os.use { out ->
+                out.write(f.readBytes())
             }
             Toast.makeText(this, R.string.exported, Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
