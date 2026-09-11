@@ -148,6 +148,14 @@ class PlaylistRepository(private val context: Context) {
         return getActiveSource()
     }
 
+    /** 切换到上一个源，返回切换后的源 URL。 */
+    fun switchToPrevSource(): String? {
+        val s = getSources()
+        if (s.isEmpty()) return null
+        activeSourceIndex = (activeSourceIndex - 1 + s.size) % s.size
+        return getActiveSource()
+    }
+
     // ---------- EPG ----------
 
     /**
