@@ -229,7 +229,8 @@ class PlaybackManager(
     @OptIn(UnstableApi::class)
     private fun buildPlayer(): ExoPlayer {
         // 每次重建播放器都新建带宽检测器实例
-        bandwidthMeter = DefaultBandwidthMeter.Builder(context).build()
+        val meter = DefaultBandwidthMeter.Builder(context).build()
+        bandwidthMeter = meter
         // 直播缓冲：起播 1.5s、卡顿后 3s、持续目标 15s、上限 45s。
         // 之前起播缓冲 15s 需要攒够两三个 TS 分片才开播，导致"等待播放时间太长"。
         // 直播流（TS 10s 分片）缓冲越小起播越快、延迟越低；45s 上限足够吸收网络抖动。
@@ -289,7 +290,7 @@ class PlaybackManager(
             .setRenderersFactory(renderersFactory)
             .setTrackSelector(trackSelector)
             .setLoadControl(loadControl)
-            .setBandwidthMeter(bandwidthMeter)
+            .setBandwidthMeter(meter)
             .build()
     }
     /** 只保留非软件解码器（硬件/系统专用解码器）。仅过滤视频解码器： */
