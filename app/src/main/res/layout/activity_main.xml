@@ -130,13 +130,16 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="3dp"
                 android:text="频道"
-                android:textColor="@color/text_primary"
-                android:textSize="11sp"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:shadowColor="#99000000"
+                android:shadowRadius="3"
+                android:textSize="13sp"
                 android:singleLine="true" />
         </LinearLayout>
         <LinearLayout
             android:id="@+id/btnSwitchLine"
-            android:layout_width="72dp"
+            android:layout_width="88dp"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:gravity="center"
@@ -160,8 +163,11 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="3dp"
                 android:text="线路"
-                android:textColor="@color/text_primary"
-                android:textSize="11sp"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:shadowColor="#99000000"
+                android:shadowRadius="3"
+                android:textSize="13sp"
                 android:singleLine="true" />
         </LinearLayout>
         <LinearLayout
@@ -190,8 +196,11 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="3dp"
                 android:text="上一个"
-                android:textColor="@color/text_primary"
-                android:textSize="11sp"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:shadowColor="#99000000"
+                android:shadowRadius="3"
+                android:textSize="13sp"
                 android:singleLine="true" />
         </LinearLayout>
         <LinearLayout
@@ -220,8 +229,11 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="3dp"
                 android:text="下一个"
-                android:textColor="@color/text_primary"
-                android:textSize="11sp"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:shadowColor="#99000000"
+                android:shadowRadius="3"
+                android:textSize="13sp"
                 android:singleLine="true" />
         </LinearLayout>
         <LinearLayout
@@ -250,8 +262,11 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="3dp"
                 android:text="收藏"
-                android:textColor="@color/text_primary"
-                android:textSize="11sp"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:shadowColor="#99000000"
+                android:shadowRadius="3"
+                android:textSize="13sp"
                 android:singleLine="true" />
         </LinearLayout>
         <LinearLayout
@@ -280,8 +295,11 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="3dp"
                 android:text="设置"
-                android:textColor="@color/text_primary"
-                android:textSize="11sp"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:shadowColor="#99000000"
+                android:shadowRadius="3"
+                android:textSize="13sp"
                 android:singleLine="true" />
         </LinearLayout>
     </LinearLayout>
@@ -331,7 +349,10 @@
                 android:background="@drawable/bg_search"
                 android:paddingLeft="14dp"
                 android:paddingRight="14dp"
-                android:textColor="@color/text_primary"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:shadowColor="#99000000"
+                android:shadowRadius="3"
                 android:textColorHint="@color/text_secondary"
                 android:textSize="15sp"
                 android:imeOptions="actionSearch"
@@ -404,7 +425,10 @@
                     android:id="@+id/tvInfoChannel"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:textColor="@color/text_primary"
+                    android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:shadowColor="#99000000"
+                android:shadowRadius="3"
                     android:textSize="15sp"
                     android:textStyle="bold"
                     android:maxLines="2"
@@ -416,14 +440,17 @@
                     android:layout_height="wrap_content"
                     android:text="正在播放"
                     android:textColor="@color/text_secondary"
-                    android:textSize="11sp"
+                    android:textSize="13sp"
                     android:paddingBottom="2dp" />
 
                 <TextView
                     android:id="@+id/tvInfoNow"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:textColor="@color/text_primary"
+                    android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:shadowColor="#99000000"
+                android:shadowRadius="3"
                     android:textSize="13sp"
                     android:maxLines="4"
                     android:ellipsize="end"
@@ -434,7 +461,7 @@
                     android:layout_height="wrap_content"
                     android:text="即将播出"
                     android:textColor="@color/text_secondary"
-                    android:textSize="11sp"
+                    android:textSize="13sp"
                     android:paddingBottom="2dp" />
 
                 <TextView
@@ -456,7 +483,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:textColor="@color/text_secondary"
-                    android:textSize="11sp"
+                    android:textSize="13sp"
                     android:maxLines="2"
                     android:ellipsize="end" />
             </LinearLayout>
@@ -489,7 +516,10 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="@string/settings"
-                android:textColor="@color/text_primary"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:shadowColor="#99000000"
+                android:shadowRadius="3"
                 android:textSize="22sp"
                 android:textStyle="bold" />
 
@@ -500,7 +530,10 @@
                 android:text="@string/close"
                 android:textSize="14sp"
                 android:backgroundTint="@color/bg_item"
-                android:textColor="@color/text_primary" />
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:shadowColor="#99000000"
+                android:shadowRadius="3" />
         </LinearLayout>
 
         <LinearLayout
@@ -701,7 +734,10 @@
                             android:paddingTop="10dp"
                             android:paddingBottom="10dp"
                             android:gravity="top"
-                            android:textColor="@color/text_primary"
+                            android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:shadowColor="#99000000"
+                android:shadowRadius="3"
                             android:textColorHint="@color/text_secondary"
                             android:textSize="14sp"
                             android:inputType="textUri|textMultiLine"
@@ -730,7 +766,10 @@
                                 android:text="@string/choose_file"
                                 android:textSize="14sp"
                                 android:backgroundTint="@color/bg_item"
-                                android:textColor="@color/text_primary" />
+                                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:shadowColor="#99000000"
+                android:shadowRadius="3" />
 
                             <Button
                                 android:id="@+id/btnLoadPlaylist"
@@ -751,7 +790,10 @@
                             android:layout_marginTop="12dp"
                             android:background="@color/bg_item"
                             android:padding="12dp"
-                            android:textColor="@color/text_primary"
+                            android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:shadowColor="#99000000"
+                android:shadowRadius="3"
                             android:textSize="13sp"
                             android:lineSpacingExtra="3dp"
                             android:text="" />
@@ -794,7 +836,10 @@
                             android:paddingTop="10dp"
                             android:paddingBottom="10dp"
                             android:gravity="top"
-                            android:textColor="@color/text_primary"
+                            android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:shadowColor="#99000000"
+                android:shadowRadius="3"
                             android:textColorHint="@color/text_secondary"
                             android:textSize="14sp"
                             android:inputType="textUri|textMultiLine"
@@ -825,7 +870,10 @@
                             android:background="@drawable/bg_search"
                             android:paddingLeft="14dp"
                             android:paddingRight="14dp"
-                            android:textColor="@color/text_primary"
+                            android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:shadowColor="#99000000"
+                android:shadowRadius="3"
                             android:textColorHint="@color/text_secondary"
                             android:textSize="15sp"
                             android:inputType="textUri"
@@ -1095,7 +1143,10 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="@string/pref_show_clock"
-                            android:textColor="@color/text_primary"
+                            android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:shadowColor="#99000000"
+                android:shadowRadius="3"
                             android:textSize="15sp"
                             android:focusable="true"
                             android:clickable="true"
@@ -1107,7 +1158,10 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="记住上次分组"
-                            android:textColor="@color/text_primary"
+                            android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:shadowColor="#99000000"
+                android:shadowRadius="3"
                             android:textSize="15sp"
                             android:focusable="true"
                             android:clickable="true"
@@ -1119,7 +1173,10 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="@string/pref_show_speed"
-                            android:textColor="@color/text_primary"
+                            android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:shadowColor="#99000000"
+                android:shadowRadius="3"
                             android:textSize="15sp"
                             android:focusable="true"
                             android:clickable="true"
@@ -1131,7 +1188,10 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="@string/pref_reverse_zap"
-                            android:textColor="@color/text_primary"
+                            android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:shadowColor="#99000000"
+                android:shadowRadius="3"
                             android:textSize="15sp"
                             android:focusable="true"
                             android:clickable="true"
@@ -1150,7 +1210,10 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="@string/pref_cross_category"
-                            android:textColor="@color/text_primary"
+                            android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:shadowColor="#99000000"
+                android:shadowRadius="3"
                             android:textSize="15sp"
                             android:focusable="true"
                             android:clickable="true"
@@ -1176,7 +1239,10 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="@string/auto_resume"
-                            android:textColor="@color/text_primary"
+                            android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:shadowColor="#99000000"
+                android:shadowRadius="3"
                             android:textSize="15sp"
                             android:focusable="true"
                             android:clickable="true"
@@ -1188,7 +1254,10 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="@string/auto_hide_overlay"
-                            android:textColor="@color/text_primary"
+                            android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:shadowColor="#99000000"
+                android:shadowRadius="3"
                             android:textSize="15sp"
                             android:focusable="true"
                             android:clickable="true"
@@ -1224,7 +1293,10 @@
                             android:text="@string/clear_favorites"
                             android:textSize="14sp"
                             android:backgroundTint="@color/bg_item"
-                            android:textColor="@color/text_primary" />
+                            android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:shadowColor="#99000000"
+                android:shadowRadius="3" />
                     </LinearLayout>
 
                     <!-- ===== 分区：更新 ===== -->
@@ -1247,7 +1319,10 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
-                            android:textColor="@color/text_primary"
+                            android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:shadowColor="#99000000"
+                android:shadowRadius="3"
                             android:textSize="16sp" />
 
                         <Button
@@ -1265,7 +1340,10 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="10dp"
-                            android:textColor="@color/text_primary"
+                            android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:shadowColor="#99000000"
+                android:shadowRadius="3"
                             android:textSize="13sp"
                             android:lineSpacingExtra="3dp"
                             android:text="" />
@@ -1309,7 +1387,10 @@
                                 android:text="@string/clear_crash_log"
                                 android:textSize="13sp"
                                 android:backgroundTint="@color/bg_item"
-                                android:textColor="@color/text_primary" />
+                                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:shadowColor="#99000000"
+                android:shadowRadius="3" />
 
                             <Button
                                 android:id="@+id/btnExportCrashLog"
@@ -1333,7 +1414,10 @@
                                 android:id="@+id/tvCrashLog"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:textColor="@color/text_primary"
+                                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:shadowColor="#99000000"
+                android:shadowRadius="3"
                                 android:textSize="12sp"
                                 android:lineSpacingExtra="2dp"
                                 android:text="无" />
@@ -1371,7 +1455,10 @@
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
                                 android:text="启动时自动检查更新"
-                                android:textColor="@color/text_primary"
+                                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:shadowColor="#99000000"
+                android:shadowRadius="3"
                                 android:textSize="15sp" />
 
                             <Switch
