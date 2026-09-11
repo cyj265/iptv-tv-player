@@ -396,18 +396,11 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     private fun showOverlay() {
         overlayHandler.removeCallbacks(overlayHideRunnable)
         val bar = binding.nowPlayingBar
-        val ctrl = binding.controlBar
         if (bar.visibility != View.VISIBLE) {
             bar.visibility = View.VISIBLE
             bar.animate().cancel()
             bar.alpha = 0f
             bar.animate().alpha(1f).setDuration(200).start()
-        }
-        if (ctrl.visibility != View.VISIBLE) {
-            ctrl.visibility = View.VISIBLE
-            ctrl.animate().cancel()
-            ctrl.alpha = 0f
-            ctrl.animate().alpha(1f).setDuration(200).start()
         }
         overlayHandler.removeCallbacks(overlayHideRunnable)
         if (repository.autoHideOverlay) {
@@ -417,16 +410,10 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
 
     private fun hideOverlay() {
         val bar = binding.nowPlayingBar
-        val ctrl = binding.controlBar
         if (bar.visibility == View.VISIBLE) {
             bar.animate().cancel()
             bar.animate().alpha(0f).setDuration(300)
                 .withEndAction { bar.visibility = View.GONE }
-        }
-        if (ctrl.visibility == View.VISIBLE) {
-            ctrl.animate().cancel()
-            ctrl.animate().alpha(0f).setDuration(300)
-                .withEndAction { ctrl.visibility = View.GONE }
         }
     }
 
@@ -537,6 +524,17 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     /** 手动切换当前频道下一条线路（多线路频道有效） */
     private fun switchToNextLine() {
         val switched = playback.switchToNextLine()
+        if (!switched) {
+            Toast.makeText(this, "当前频道只有 1 条线路", Toast.LENGTH_SHORT).show()
+            return
+        }
+        updateLineupLabel()
+        updateNowPlaying()
+    }
+
+    /** 手动切换当前频道上一条线路（多线路频道有效） */
+    private fun switchToPrevLine() {
+        val switched = playback.switchToPrevLine()
         if (!switched) {
             Toast.makeText(this, "当前频道只有 1 条线路", Toast.LENGTH_SHORT).show()
             return
@@ -2255,10 +2253,10 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         showOverlay()
         return when (keyCode) {
             KeyEvent.KEYCODE_DPAD_LEFT -> {
-                switchToPrevSource(); true
+                switchToPrevLine(); true
             }
             KeyEvent.KEYCODE_DPAD_RIGHT -> {
-                switchToNextSource(); true
+                switchToNextLine(); true
             }
             KeyEvent.KEYCODE_DPAD_UP -> {
                 switchChannel(-1); true
