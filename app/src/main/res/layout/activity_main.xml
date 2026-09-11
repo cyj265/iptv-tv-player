@@ -21,7 +21,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="top"
         android:orientation="vertical"
-        android:background="@color/bg_overlay"
+        android:background="@color/bg_top_gradient"
         android:paddingLeft="20dp"
         android:paddingRight="20dp"
         android:paddingTop="14dp"
