@@ -35,6 +35,7 @@ import com.cyj265.iptvplayer.data.HttpLoader
 import com.cyj265.iptvplayer.data.LanRemoteServer
 import com.cyj265.iptvplayer.data.PlaylistParser
 import com.cyj265.iptvplayer.data.PlaylistRepository
+import com.cyj265.iptvplayer.data.SourceHealthChecker
 import com.cyj265.iptvplayer.databinding.ActivityMainBinding
 import com.cyj265.iptvplayer.player.PlaybackManager
 import com.cyj265.iptvplayer.ui.ChannelAdapter
@@ -71,6 +72,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var repository: PlaylistRepository
+    private val sourceHealthChecker = SourceHealthChecker()
     private lateinit var playback: PlaybackManager
     private lateinit var adapter: ChannelAdapter
     private var remoteServer: LanRemoteServer? = null
@@ -375,7 +377,8 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         } catch (ignored: Exception) {
         }
         try {
-            playback.release()
+            try { sourceHealthChecker.shutdown() } catch (ignored: Throwable) {}
+        playback.release()
         } catch (ignored: Exception) {
         }
         try {
@@ -589,9 +592,16 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                     )
                     setPadding(0, 4, 0, 4)
                 }
+                val health = repository.getSourceHealth(url)
+                val healthStr = when (health.status) {
+                    SourceHealthChecker.SourceHealth.Status.GOOD -> "●正常 ${health.latencyMs}ms"
+                    SourceHealthChecker.SourceHealth.Status.SLOW -> "●较慢 ${health.latencyMs}ms"
+                    SourceHealthChecker.SourceHealth.Status.UNAVAILABLE -> "●不可用"
+                    SourceHealthChecker.SourceHealth.Status.UNTESTED -> "○未检测"
+                }
                 val info = TextView(this).apply {
-                    text = (if (i == active) "● " else "○ ") + "源 " + (i + 1) + "/" + sources.size +
-                        "  ·  " + sourceLabel(url)
+                    text = (if (i == active) "▶ " else "○ ") + "源 " + (i + 1) + "/" + sources.size +
+                        "  ·  " + sourceLabel(url) + "\n  " + healthStr
                     textSize = 14f
                     setPadding(16, 14, 8, 14)
                     isFocusable = true
@@ -891,7 +901,30 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                 }
                 if (view !is TextView) return
                 if (view is android.widget.EditText) return  // 输入框保持原样
-                if (view.id in navViewIds) return  // 导航列单独处理
+                if (view.id in navViewIds) {
+                    // 导航项焦点态：使用选中态 drawable + 白字加粗
+                    val navNormalColor = (view as TextView).currentTextColor
+                    view.onFocusChangeListener = View.OnFocusChangeListener { _, focused ->
+                        if (focused) {
+                            view.setBackgroundResource(R.drawable.bg_nav_item_selected)
+                            view.setTextColor(Color.WHITE)
+                            view.setTypeface(view.typeface, Typeface.BOLD)
+                        } else {
+                            // 失焦时恢复：如果是当前选中 tab 则保持选中态，否则恢复普通态
+                            val navIndex = settingsNavs().indexOf(view)
+                            if (navIndex == currentSettingsTab) {
+                                view.setBackgroundResource(R.drawable.bg_nav_item_selected)
+                                view.setTextColor(Color.WHITE)
+                                view.setTypeface(view.typeface, Typeface.BOLD)
+                            } else {
+                                view.setBackgroundResource(0)
+                                view.setTextColor(0xFFCCCCCC.toInt())
+                                view.setTypeface(view.typeface, Typeface.NORMAL)
+                            }
+                        }
+                    }
+                    return
+                }
                 if (view.id in optionViewIds) return  // 展开式选项单独处理（失焦恢复选中状态）
                 if (!view.isFocusable) return
                 val normalTextColor = view.currentTextColor
@@ -957,15 +990,13 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         }
         navs.forEachIndexed { i, n ->
             if (i == index) {
-                n.setBackgroundColor(0xFF3D8BFF.toInt())
+                n.setBackgroundResource(R.drawable.bg_nav_item_selected)
                 (n as android.widget.TextView).setTextColor(Color.WHITE)
                 (n as android.widget.TextView).setTypeface((n as android.widget.TextView).typeface, Typeface.BOLD)
             } else {
                 (n as android.widget.TextView).setTypeface((n as android.widget.TextView).typeface, Typeface.NORMAL)
-                n.setBackgroundColor(Color.TRANSPARENT)
-                (n as android.widget.TextView).setTextColor(
-                    ContextCompat.getColor(this, R.color.text_secondary)
-                )
+                n.setBackgroundResource(0)
+                (n as android.widget.TextView).setTextColor(0xFFCCCCCC.toInt())
             }
         }
         // 默认不抢焦点：焦点保持在导航列（上下键可在各分区间切换）；
@@ -1048,6 +1079,56 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             }
         }
         binding.btnLoadPlaylist.setOnClickListener { addSourceFromInput() }
+
+        // 一键测速
+        binding.btnCheckAllSources.setOnClickListener {
+            val sources = repository.getSources()
+            if (sources.isEmpty()) {
+                Toast.makeText(this, "暂无直播源", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            binding.btnCheckAllSources.text = "检测中..."
+            binding.btnCheckAllSources.isEnabled = false
+            sourceHealthChecker.checkAllSources(
+                urls = sources,
+                timeoutMs = 5000,
+                onProgress = { done, total, health ->
+                    repository.setSourceHealth(health.url, health)
+                    runOnUiThread { updateSourceOptions() }
+                },
+                onComplete = { results ->
+                    runOnUiThread {
+                        binding.btnCheckAllSources.text = "一键测速"
+                        binding.btnCheckAllSources.isEnabled = true
+                        updateSourceOptions()
+                        if (repository.autoSelectFastest) {
+                            val fastestIdx = sourceHealthChecker.findFastestAvailable(results)
+                            if (fastestIdx >= 0 && fastestIdx != repository.activeSourceIndex) {
+                                repository.activeSourceIndex = fastestIdx
+                                currentChannel = null
+                                adapter.setSelected(null)
+                                refreshSourceUI()
+                                reloadPlaylist()
+                                Toast.makeText(this, "已自动切换到最快源（源${fastestIdx + 1}）", Toast.LENGTH_SHORT).show()
+                            } else {
+                                Toast.makeText(this, "测速完成，当前已是最快源", Toast.LENGTH_SHORT).show()
+                            }
+                        } else {
+                            val available = results.count { it.available }
+                            Toast.makeText(this, "测速完成：${available}/${results.size} 个源可用", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            )
+        }
+
+        // 自动优选开关
+        updateAutoSelectFastestUI()
+        binding.tvAutoSelectFastest.setOnClickListener {
+            repository.autoSelectFastest = !repository.autoSelectFastest
+            updateAutoSelectFastestUI()
+            Toast.makeText(this, if (repository.autoSelectFastest) "已开启自动优选" else "已关闭自动优选", Toast.LENGTH_SHORT).show()
+        }
         binding.btnNextSource.setOnClickListener {
             switchToNextSource()
             refreshSourceUI()
@@ -1247,6 +1328,18 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         repository.setEpgUrls(urls)
         loadEpgIfConfigured()
         Toast.makeText(this, if (urls.isEmpty()) "已清空节目指南" else "正在加载节目指南（${urls.size} 个地址）", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun updateAutoSelectFastestUI() {
+        try {
+            if (repository.autoSelectFastest) {
+                binding.tvAutoSelectFastest.text = "开"
+                binding.tvAutoSelectFastest.setTextColor(0xFF4CAF50.toInt())
+            } else {
+                binding.tvAutoSelectFastest.text = "关"
+                binding.tvAutoSelectFastest.setTextColor(0xFF9E9E9E.toInt())
+            }
+        } catch (ignored: Throwable) {}
     }
 
     private fun updateSourceStatus() {

@@ -23,6 +23,14 @@ class PlaylistRepository(private val context: Context) {
     private val prefs: SharedPreferences =
         context.getSharedPreferences("iptv_prefs", Context.MODE_PRIVATE)
 
+    /** 源健康度内存缓存（key=源URL，value=健康度） */
+    private val sourceHealthCache = mutableMapOf<String, SourceHealthChecker.SourceHealth>()
+
+    /** 自动优选最快源开关 */
+    var autoSelectFastest: Boolean
+        get() = safeGetBoolean("auto_select_fastest", false)
+        set(value) = safeApply { putBoolean("auto_select_fastest", value) }
+
     private fun safeGetString(key: String, def: String?): String? {
         return try {
             prefs.getString(key, def)

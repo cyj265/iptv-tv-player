@@ -538,9 +538,9 @@
                     android:paddingLeft="20dp"
                     android:focusable="true"
                     android:clickable="true"
-                    android:background="?attr/selectableItemBackground"
-                    android:text="直播源"
-                    android:textColor="@color/text_secondary"
+                    android:background="@drawable/bg_nav_item"
+                    android:text="📺 直播源"
+                    android:textColor="#CCCCCC"
                     android:textSize="16sp" />
 
                 <TextView
@@ -551,9 +551,9 @@
                     android:paddingLeft="20dp"
                     android:focusable="true"
                     android:clickable="true"
-                    android:background="?attr/selectableItemBackground"
-                    android:text="@string/aspect_ratio"
-                    android:textColor="@color/text_secondary"
+                    android:background="@drawable/bg_nav_item"
+                    android:text="🔲 画面比例"
+                    android:textColor="#CCCCCC"
                     android:textSize="16sp" />
 
                 <TextView
@@ -564,9 +564,9 @@
                     android:paddingLeft="20dp"
                     android:focusable="true"
                     android:clickable="true"
-                    android:background="?attr/selectableItemBackground"
-                    android:text="@string/decoder_mode"
-                    android:textColor="@color/text_secondary"
+                    android:background="@drawable/bg_nav_item"
+                    android:text="🎬 解码器"
+                    android:textColor="#CCCCCC"
                     android:textSize="16sp" />
 
                 <TextView
@@ -577,9 +577,9 @@
                     android:paddingLeft="20dp"
                     android:focusable="true"
                     android:clickable="true"
-                    android:background="?attr/selectableItemBackground"
-                    android:text="@string/nav_timeout"
-                    android:textColor="@color/text_secondary"
+                    android:background="@drawable/bg_nav_item"
+                    android:text="⏱ 超时换源"
+                    android:textColor="#CCCCCC"
                     android:textSize="16sp" />
 
                 <TextView
@@ -590,9 +590,9 @@
                     android:paddingLeft="20dp"
                     android:focusable="true"
                     android:clickable="true"
-                    android:background="?attr/selectableItemBackground"
-                    android:text="@string/nav_prefs"
-                    android:textColor="@color/text_secondary"
+                    android:background="@drawable/bg_nav_item"
+                    android:text="⚙ 偏好设置"
+                    android:textColor="#CCCCCC"
                     android:textSize="16sp" />
 
                 <TextView
@@ -603,9 +603,9 @@
                     android:paddingLeft="20dp"
                     android:focusable="true"
                     android:clickable="true"
-                    android:background="?attr/selectableItemBackground"
-                    android:text="@string/nav_update"
-                    android:textColor="@color/text_secondary"
+                    android:background="@drawable/bg_nav_item"
+                    android:text="🔄 检查更新"
+                    android:textColor="#CCCCCC"
                     android:textSize="16sp" />
 
                 <TextView
@@ -616,9 +616,9 @@
                     android:paddingLeft="20dp"
                     android:focusable="true"
                     android:clickable="true"
-                    android:background="?attr/selectableItemBackground"
-                    android:text="@string/nav_debug"
-                    android:textColor="@color/text_secondary"
+                    android:background="@drawable/bg_nav_item"
+                    android:text="🐛 调试设置"
+                    android:textColor="#CCCCCC"
                     android:textSize="16sp" />
 
                 <TextView
@@ -629,9 +629,9 @@
                     android:paddingLeft="20dp"
                     android:focusable="true"
                     android:clickable="true"
-                    android:background="?attr/selectableItemBackground"
-                    android:text="@string/about"
-                    android:textColor="@color/text_secondary"
+                    android:background="@drawable/bg_nav_item"
+                    android:text="ℹ 关于"
+                    android:textColor="#CCCCCC"
                     android:textSize="16sp" />
 
                 <TextView
@@ -642,9 +642,9 @@
                     android:paddingLeft="20dp"
                     android:focusable="true"
                     android:clickable="true"
-                    android:background="?attr/selectableItemBackground"
-                    android:text="@string/nav_exit"
-                    android:textColor="@color/text_secondary"
+                    android:background="@drawable/bg_nav_item"
+                    android:text="🚪 退出"
+                    android:textColor="#CCCCCC"
                     android:textSize="16sp" />
             </LinearLayout>
 
@@ -669,7 +669,7 @@
                         android:id="@+id/sectionLineup"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="vertical">
+                        android:orientation="vertical" android:background="@drawable/bg_settings_card" android:padding="14dp">
 
                         <!-- 当前源状态 -->
                         <TextView
@@ -711,14 +711,31 @@
                                 android:textColor="#FFFFFF" />
                         </LinearLayout>
 
-                        <!-- 源列表 -->
-                        <TextView
+                        <!-- 源列表 + 一键测速 -->
+                        <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="18dp"
-                            android:text="直播源列表（点击切换，右侧删除）"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="14sp" />
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical">
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="直播源列表（点击切换，右侧删除）"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="14sp" />
+
+                            <Button
+                                android:id="@+id/btnCheckAllSources"
+                                android:layout_width="wrap_content"
+                                android:layout_height="36dp"
+                                android:text="一键测速"
+                                android:textSize="12sp"
+                                android:backgroundTint="@color/accent"
+                                android:textColor="#FFFFFF" />
+                        </LinearLayout>
 
                         <LinearLayout
                             android:id="@+id/sourceListContainer"
@@ -726,6 +743,36 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="6dp"
                             android:orientation="vertical" />
+
+                        <!-- 自动优选开关 -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="18dp"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:background="@drawable/bg_search"
+                            android:padding="12dp">
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="自动优选最快源"
+                                android:textColor="#FFFFFF"
+                                android:textSize="14sp" />
+
+                            <TextView
+                                android:id="@+id/tvAutoSelectFastest"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="关"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="14sp"
+                                android:focusable="true"
+                                android:clickable="true"
+                                android:padding="8dp" />
+                        </LinearLayout>
 
                         <!-- 添加源 -->
                         <TextView
@@ -884,7 +931,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:visibility="gone">
+                        android:visibility="gone" android:background="@drawable/bg_settings_card" android:padding="14dp">
 
                         <TextView
                             android:layout_width="match_parent"
@@ -961,7 +1008,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:visibility="gone">
+                        android:visibility="gone" android:background="@drawable/bg_settings_card" android:padding="14dp">
 
                         <TextView
                             android:layout_width="match_parent"
@@ -1014,7 +1061,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:visibility="gone">
+                        android:visibility="gone" android:background="@drawable/bg_settings_card" android:padding="14dp">
 
                         <TextView
                             android:layout_width="match_parent"
@@ -1124,7 +1171,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:visibility="gone">
+                        android:visibility="gone" android:background="@drawable/bg_settings_card" android:padding="14dp">
 
                         <CheckBox
                             android:id="@+id/chkShowClock"
@@ -1293,7 +1340,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:visibility="gone">
+                        android:visibility="gone" android:background="@drawable/bg_settings_card" android:padding="14dp">
 
                         <TextView
                             android:layout_width="match_parent"
@@ -1352,7 +1399,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:visibility="gone">
+                        android:visibility="gone" android:background="@drawable/bg_settings_card" android:padding="14dp">
 
                         <TextView
                             android:layout_width="match_parent"
@@ -1418,7 +1465,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:visibility="gone">
+                        android:visibility="gone" android:background="@drawable/bg_settings_card" android:padding="14dp">
 
                         <TextView
                             android:id="@+id/tvAbout"
@@ -1472,7 +1519,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:visibility="gone">
+                        android:visibility="gone" android:background="@drawable/bg_settings_card" android:padding="14dp">
 
                         <TextView
                             android:layout_width="match_parent"
