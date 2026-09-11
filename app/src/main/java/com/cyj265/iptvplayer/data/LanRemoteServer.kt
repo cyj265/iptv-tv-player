@@ -23,8 +23,8 @@ class LanRemoteServer(
     override fun serve(session: IHTTPSession): Response {
         return try {
             when (session.uri) {
-                "/", "" -> newChunkedResponse(Response.Status.OK, "text/html; charset=utf-8", pageHtml)
-                "/api/state" -> newChunkedResponse(Response.Status.OK, "application/json; charset=utf-8", getStateJson())
+                "/", "" -> newFixedLengthResponse(Response.Status.OK, "text/html; charset=utf-8", pageHtml)
+                "/api/state" -> newFixedLengthResponse(Response.Status.OK, "application/json; charset=utf-8", getStateJson())
                 "/api/save" -> handleSave(session)
                 "/api/play" -> handlePlay(session)
                 else -> newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain; charset=utf-8", "404")
