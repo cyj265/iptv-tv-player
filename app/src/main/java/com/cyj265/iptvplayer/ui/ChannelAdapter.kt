@@ -13,7 +13,12 @@ import com.cyj265.iptvplayer.databinding.ItemChannelBinding
 import com.cyj265.iptvplayer.databinding.ItemGroupHeaderBinding
 
 /**
- * 频道列表适配器：可折叠分组头 + 频道项。
+ * 频道列表适配器：二级分组体验。
+ *
+ * 一级 = 分组头（分组名 + 频道数 + 展开箭头，可聚焦点击）；
+ * 二级 = 分组内频道项（组名 + 当前 EPG 节目 + 收藏星标）。
+ * 未手动折叠过时默认全部收起（v1.7.0 起），列表只显示分组，展开才见频道，
+ * 避免几百个频道平铺太长找不到台。
  */
 class ChannelAdapter(
     private val onChannelClick: (Channel) -> Unit,
@@ -31,6 +36,16 @@ class ChannelAdapter(
     private val collapsedGroups = HashSet<String>()
     private var groups = listOf<String>()
 
+    /** 用户从未折叠过时默认全部收起（二级列表）。由 MainActivity 按偏好设置。 */
+    private var defaultCollapsed = true
+
+    /** 当前 EPG 节目文本：channelId -> "正在播放: xxx"（用于频道项副行） */
+    var epgNow: Map<String, String> = emptyMap()
+        set(value) {
+            field = value
+            notifyDataSetChanged()
+        }
+
     var favorites: Set<String> = emptySet()
         set(value) {
             field = value
@@ -38,7 +53,11 @@ class ChannelAdapter(
         }
     private var selectedChannelId: String? = null
 
-    /** 恢复折叠状态 */
+    fun setDefaultCollapsed(value: Boolean) {
+        defaultCollapsed = value
+    }
+
+    /** 恢复折叠状态；collapsed 为空且 defaultCollapsed 时按全收起重建。 */
     fun setCollapsedGroups(collapsed: Set<String>) {
         collapsedGroups.clear()
         collapsedGroups.addAll(collapsed)
@@ -47,31 +66,10 @@ class ChannelAdapter(
 
     fun collapsedState(): Set<String> = HashSet(collapsedGroups)
 
-    fun setChannels(channels: List<Channel>) {
-        groups = channels.map { it.group }.distinct()
-        rebuild()
-    }
-
-    private fun rebuild() {
-        rows.clear()
-        for (g in groups) {
-            val list = groupCache[g] ?: emptyList()
-            rows.add(Row(isHeader = true, group = g))
-            if (!collapsedGroups.contains(g)) {
-                for (c in list) {
-                    rows.add(Row(isHeader = false, channel = c))
-                }
-            }
-        }
-        notifyDataSetChanged()
-    }
-
     private val groupCache = HashMap<String, List<Channel>>()
-    private var allChannels: List<Channel> = emptyList()
 
     /** 入口：先存全量，再重建分组缓存 */
     fun submitChannels(channels: List<Channel>) {
-        allChannels = channels
         groupCache.clear()
         val byGroup = LinkedHashMap<String, MutableList<Channel>>()
         for (c in channels) {
@@ -82,6 +80,24 @@ class ChannelAdapter(
         }
         groups = byGroup.keys.toList()
         rebuild()
+    }
+
+    private fun rebuild() {
+        rows.clear()
+        for (g in groups) {
+            val collapsed = if (collapsedGroups.isEmpty() && defaultCollapsed) {
+                true
+            } else {
+                collapsedGroups.contains(g)
+            }
+            rows.add(Row(isHeader = true, group = g))
+            if (!collapsed) {
+                for (c in groupCache[g] ?: emptyList()) {
+                    rows.add(Row(isHeader = false, channel = c))
+                }
+            }
+        }
+        notifyDataSetChanged()
     }
 
     fun setSelected(channelId: String?) {
@@ -108,15 +124,21 @@ class ChannelAdapter(
         val row = rows[position]
         if (holder is HeaderHolder) {
             val count = groupCache[row.group]?.size ?: 0
-            holder.binding.groupTitle.text = row.group + "  (" + count + ")"
-            holder.binding.groupArrow.text = if (collapsedGroups.contains(row.group)) "▸" else "▾"
+            val collapsed = if (collapsedGroups.isEmpty() && defaultCollapsed) {
+                true
+            } else {
+                collapsedGroups.contains(row.group)
+            }
+            holder.binding.groupTitle.text = row.group
+            holder.binding.groupCount.text = "$count 个频道"
+            holder.binding.groupArrow.text = if (collapsed) "▸" else "▾"
             holder.binding.root.setOnClickListener {
                 toggleGroup(row.group)
             }
         } else if (holder is ChannelHolder) {
             val ch = row.channel ?: return
             holder.binding.tvChannelName.text = ch.name
-            holder.binding.tvEpgLine.text = ch.group
+            holder.binding.tvEpgLine.text = epgNow[ch.id] ?: ch.group
             val isFav = favorites.contains(ch.url)
             holder.binding.ivFavorite.visibility = if (isFav) View.VISIBLE else View.GONE
             holder.binding.ivFavorite.setColorFilter(
