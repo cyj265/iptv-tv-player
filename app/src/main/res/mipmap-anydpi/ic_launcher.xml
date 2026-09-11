@@ -1,13 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- 揽星 TV 启动图标（矢量版）：深空蓝底 + 银白播放三角 + 金色星芒。
+     Android 7.0（API 24）系统直接使用本文件；Android 8+ 使用 v26 adaptive 版。 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp"
-    android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
+    android:width="144dp"
+    android:height="144dp"
+    android:viewportWidth="144"
+    android:viewportHeight="144">
+
+    <!-- 深空蓝圆角背景 -->
     <path
-        android:fillColor="#0E1116"
-        android:pathData="M24,14 H84 A10,10 0 0 1 94,24 V84 A10,10 0 0 1 84,94 H24 A10,10 0 0 1 14,84 V24 A10,10 0 0 1 24,14 Z" />
+        android:fillColor="#0E1428"
+        android:pathData="M10,4 h124 a6,6 0 0 1 6,6 v124 a6,6 0 0 1 -6,6 h-124 a6,6 0 0 1 -6,-6 v-124 a6,6 0 0 1 6,-6 z" />
+
+    <!-- 内层渐变感衬底（更亮一点的蓝） -->
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M43,35 L43,73 L77,54 Z" />
+        android:fillColor="#18244A"
+        android:pathData="M22,22 h100 a10,10 0 0 1 10,10 v80 a10,10 0 0 1 -10,10 h-100 a10,10 0 0 1 -10,-10 v-80 a10,10 0 0 1 10,-10 z" />
+
+    <!-- 银白播放三角 -->
+    <path
+        android:fillColor="#F2F5FF"
+        android:pathData="M52,46 L102,72 L52,98 Z" />
+
+    <!-- 金色四角星（右上） -->
+    <path
+        android:fillColor="#FFD36B"
+        android:pathData="M112,26 L115.5,35.5 L125,39 L115.5,42.5 L112,52 L108.5,42.5 L99,39 L108.5,35.5 Z" />
+
+    <!-- 星点 -->
+    <path
+        android:fillColor="#66FFFFFF"
+        android:pathData="M30,42 a3,3 0 1 0 6,0 a3,3 0 1 0 -6,0" />
+    <path
+        android:fillColor="#66FFFFFF"
+        android:pathData="M36,100 a2.5,2.5 0 1 0 5,0 a2.5,2.5 0 1 0 -5,0" />
 </vector>
