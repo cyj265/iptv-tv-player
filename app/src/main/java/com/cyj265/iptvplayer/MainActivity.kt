@@ -163,7 +163,11 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         adapter = ChannelAdapter(
             onChannelClick = { channel -> onChannelClick(channel) },
             onCollapsedChanged = { groups -> repository.saveCollapsedGroups(groups) },
-            onChannelFocused = { ch -> updateProgramInfo(ch) }
+            onChannelFocused = { ch ->
+                lastFocusedChannel = ch
+                updateProgramInfo(ch)
+                previewChannel(ch)
+            }
         )
         adapter.favorites = favorites
         // 从未手动折叠过时默认全部收起（二级分组体验）
@@ -175,24 +179,29 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         adapter.showGroupHeaders = false
 
         // 左侧分组列表
-        groupAdapter = GroupAdapter { group ->
-            currentGroup = group
-            groupAdapter.setSelected(group)
-            rememberLastGroup(group ?: "")
-            applyFilter()
-            // 定位：当前播放频道在该分组则定位到它，否则定位到分组第一个频道
-            val targetPos = currentChannel
-                ?.let { adapter.positionOfChannel(it.id) }
-                ?.takeIf { it >= 0 }
-                ?: adapter.firstPositionOfGroup(group ?: "")
-            if (targetPos >= 0) {
-                pendingChannelScrollPos = targetPos
-                binding.channelList.scrollToPosition(targetPos)
-                adapter.channelAt(targetPos)?.let { updateProgramInfo(it) }
+        groupAdapter = GroupAdapter(
+            onGroupClick = { _ ->
+                // 分组上按 OK：直接进入频道列表（分组已在焦点移动时切换）
+                binding.channelList.requestFocus()
+            },
+            onGroupFocused = { group ->
+                // 焦点移动到分组即实时切换右侧频道列表（无需 OK 确认）
+                currentGroup = group
+                groupAdapter.setSelected(group)
+                rememberLastGroup(group ?: "")
+                applyFilter()
+                // 定位：当前播放频道在该分组则定位到它，否则定位到分组第一个频道
+                val targetPos = currentChannel
+                    ?.let { adapter.positionOfChannel(it.id) }
+                    ?.takeIf { it >= 0 }
+                    ?: adapter.firstPositionOfGroup(group ?: "")
+                if (targetPos >= 0) {
+                    pendingChannelScrollPos = targetPos
+                    binding.channelList.scrollToPosition(targetPos)
+                    adapter.channelAt(targetPos)?.let { updateProgramInfo(it) }
+                }
             }
-            // 选中分组后焦点直接进入频道列表（定位已由 scrollToPosition 完成）
-            binding.channelList.requestFocus()
-        }
+        )
         binding.groupList.layoutManager = LinearLayoutManager(this)
         binding.groupList.adapter = groupAdapter
 
@@ -441,8 +450,25 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         if (epgLoadState == EpgLoadState.FAILED && repository.getEpgUrls().isNotEmpty()) {
             loadEpgIfConfigured()
         }
-        // 默认焦点到左侧分组列表（先选分组再选频道）
-        binding.groupList.requestFocus()
+        // 默认焦点到右侧频道列表的当前播放频道（参考主流 IPTV 交互）
+        currentChannel?.group?.let { g ->
+            if (currentGroup != g) {
+                currentGroup = g
+                groupAdapter.setSelected(g)
+                applyFilter()
+            }
+        }
+        val curPos = currentChannel?.let { adapter.positionOfChannel(it.id) } ?: -1
+        if (curPos >= 0) {
+            binding.channelList.scrollToPosition(curPos)
+        }
+        binding.channelList.post {
+            if (curPos >= 0) {
+                val holder = binding.channelList.findViewHolderForAdapterPosition(curPos)
+                holder?.itemView?.requestFocus()
+            }
+            if (!binding.channelList.hasFocus()) binding.channelList.requestFocus()
+        }
     }
 
     private fun hideChannelPanel() {
@@ -1533,6 +1559,25 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
 
     // ---------- 频道筛选 ----------
 
+    private var lastFocusedChannel: com.cyj265.iptvplayer.data.Channel? = null
+    private val previewHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private var previewRunnable: Runnable? = null
+
+    /** 频道焦点停留 500ms 后实时换台预览（快速移动不触发） */
+    private fun previewChannel(ch: com.cyj265.iptvplayer.data.Channel) {
+        previewRunnable?.let { previewHandler.removeCallbacks(it) }
+        previewRunnable = Runnable {
+            if (isChannelPanelVisible && currentChannel?.id != ch.id) {
+                currentChannel = ch
+                repository.lastChannelId = ch.id
+                adapter.setSelected(ch.id)
+                playback.play(ch.sources.ifEmpty { listOf(ch.url) }, ch.name)
+                updateNowPlaying()
+                updateLineupLabel()
+            }
+        }.also { previewHandler.postDelayed(it, 500) }
+    }
+
     private fun applyFilter() {
         try {
             val query = binding.searchInput.text.toString().trim().lowercase(Locale.getDefault())
@@ -1943,8 +1988,26 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                     true
                 }
                 KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
-                    // 交给当前聚焦项处理（频道项点击 / 分组选择）
-                    super.onKeyDown(keyCode, event)
+                    // 频道列表有焦点：OK 立即播放焦点频道并关闭列表（已实时预览则直接关闭）
+                    // 分组列表有焦点：OK 进入频道列表
+                    if (binding.channelList.hasFocus()) {
+                        lastFocusedChannel?.let { ch ->
+                            if (currentChannel?.id != ch.id) {
+                                currentChannel = ch
+                                repository.lastChannelId = ch.id
+                                adapter.setSelected(ch.id)
+                                playback.play(ch.sources.ifEmpty { listOf(ch.url) }, ch.name)
+                                updateNowPlaying()
+                                updateLineupLabel()
+                            }
+                        }
+                        hideChannelPanel()
+                    } else if (binding.groupList.hasFocus()) {
+                        binding.channelList.requestFocus()
+                    } else {
+                        super.onKeyDown(keyCode, event)
+                    }
+                    true
                 }
                 else -> super.onKeyDown(keyCode, event)
             }
@@ -2018,7 +2081,8 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     // ---------- 左侧分组列表 Adapter ----------
 
     private inner class GroupAdapter(
-        private val onGroupClick: (String?) -> Unit
+        private val onGroupClick: (String?) -> Unit,
+        private val onGroupFocused: (String?) -> Unit = {}
     ) : RecyclerView.Adapter<GroupAdapter.VH>() {
 
         private var groups: List<String?> = emptyList()
@@ -2061,26 +2125,23 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             val group = groups[position]
             holder.tvName.text = group ?: "全部"
             val isSelected = (selected == null && group == null) || selected == group
-            // 选中样式：亮蓝背景 + 白字加粗
-            holder.tvName.setBackgroundColor(
-                if (isSelected) 0xFF2F7CF6.toInt() else 0x00000000
-            )
+            // 选中样式：蓝字（无背景），与焦点亮蓝背景区分
+            holder.tvName.setBackgroundColor(0x00000000)
             holder.tvName.setTextColor(
-                if (isSelected) 0xFFFFFFFF.toInt() else 0xFFCCCCCC.toInt()
+                if (isSelected) 0xFF3D8BFF.toInt() else 0xFFCCCCCC.toInt()
             )
             holder.tvName.paint.isFakeBoldText = isSelected
-            // 焦点样式：更亮的蓝色 + 白字加粗（醒目）
+            // 焦点样式：亮蓝背景 + 白字加粗；焦点移动即切换分组（无需 OK）
             holder.tvName.onFocusChangeListener = View.OnFocusChangeListener { _, focused ->
                 if (focused) {
                     holder.tvName.setBackgroundColor(0xFF3D8BFF.toInt())
                     holder.tvName.setTextColor(0xFFFFFFFF.toInt())
                     holder.tvName.paint.isFakeBoldText = true
+                    onGroupFocused(group)
                 } else {
-                    holder.tvName.setBackgroundColor(
-                        if (isSelected) 0xFF2F7CF6.toInt() else 0x00000000
-                    )
+                    holder.tvName.setBackgroundColor(0x00000000)
                     holder.tvName.setTextColor(
-                        if (isSelected) 0xFFFFFFFF.toInt() else 0xFFCCCCCC.toInt()
+                        if (isSelected) 0xFF3D8BFF.toInt() else 0xFFCCCCCC.toInt()
                     )
                     holder.tvName.paint.isFakeBoldText = isSelected
                 }
