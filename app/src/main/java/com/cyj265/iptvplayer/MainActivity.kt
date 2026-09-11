@@ -705,9 +705,9 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         // 线路选择（当前频道线路）
         binding.btnSwitchLineup.setOnClickListener { switchToNextLine() }
 
-        // 超时换源
-        binding.btnTimeoutCycle.setOnClickListener { cycleTimeout() }
-        updateTimeoutLabel()
+        // 超时换源（展开式选项）
+        setupTimeoutOptions()
+        updateTimeoutSelection()
 
         // 偏好设置
         binding.chkShowClock.isChecked = repository.showClock
@@ -739,8 +739,8 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             if (checked) showOverlay()
         }
 
-        binding.btnAspectRatio.setOnClickListener { cycleAspectRatio() }
-        updateAspectRatioLabel()
+        setupAspectRatioOptions()
+        updateAspectRatioSelection()
 
         binding.btnDecoderMode.setOnClickListener { cycleDecoderMode() }
         updateDecoderModeLabel()
@@ -883,8 +883,40 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         Toast.makeText(this, getString(R.string.switch_timeout) + "：" + next + " 秒", Toast.LENGTH_SHORT).show()
     }
 
-    private fun updateTimeoutLabel() {
-        binding.btnTimeoutCycle.text = repository.switchTimeoutSec.toString() + " 秒"
+    private fun updateTimeoutSelection() {
+        val current = repository.switchTimeoutSec
+        val timeoutViews = listOf(
+            5 to binding.timeout5, 10 to binding.timeout10, 15 to binding.timeout15,
+            20 to binding.timeout20, 25 to binding.timeout25, 30 to binding.timeout30,
+            60 to binding.timeout60
+        )
+        for ((sec, view) in timeoutViews) {
+            if (sec == current) {
+                view.setBackgroundColor(0x4FFFFFFF.toInt())
+                view.setTextColor(0xFF64B5F6.toInt())
+                view.paint.isFakeBoldText = true
+            } else {
+                view.setBackgroundColor(0x00000000)
+                view.setTextColor(0xFFCCCCCC.toInt())
+                view.paint.isFakeBoldText = false
+            }
+        }
+    }
+
+    private fun setupTimeoutOptions() {
+        val timeoutViews = listOf(
+            5 to binding.timeout5, 10 to binding.timeout10, 15 to binding.timeout15,
+            20 to binding.timeout20, 25 to binding.timeout25, 30 to binding.timeout30,
+            60 to binding.timeout60
+        )
+        for ((sec, view) in timeoutViews) {
+            view.setOnClickListener {
+                repository.switchTimeoutSec = sec
+                playback.setSourceTimeoutMs(sec * 1000L)
+                updateTimeoutSelection()
+                Toast.makeText(this, "换源超时：$sec 秒", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     // ---------- 检查更新（自动下载安装） ----------
@@ -1105,15 +1137,47 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         updateAspectRatioLabel()
     }
 
-    private fun updateAspectRatioLabel() {
-        val label = when (repository.aspectRatio) {
-            "16:9" -> getString(R.string.aspect_16_9)
-            "4:3" -> getString(R.string.aspect_4_3)
-            "zoom" -> getString(R.string.aspect_zoom)
-            "fill" -> getString(R.string.aspect_fill)
-            else -> getString(R.string.aspect_fit)
+    private fun updateAspectRatioSelection() {
+        val current = repository.aspectRatio
+        val ratioViews = listOf(
+            "fit" to binding.ratiofit, "16:9" to binding.ratio169,
+            "4:3" to binding.ratio43, "zoom" to binding.ratiozoom,
+            "fill" to binding.ratiofill
+        )
+        for ((key, view) in ratioViews) {
+            if (key == current) {
+                view.setBackgroundColor(0x4FFFFFFF.toInt())
+                view.setTextColor(0xFF64B5F6.toInt())
+                view.paint.isFakeBoldText = true
+            } else {
+                view.setBackgroundColor(0x00000000)
+                view.setTextColor(0xFFCCCCCC.toInt())
+                view.paint.isFakeBoldText = false
+            }
         }
-        binding.btnAspectRatio.text = label
+    }
+
+    private fun setupAspectRatioOptions() {
+        val ratioViews = listOf(
+            "fit" to binding.ratiofit, "16:9" to binding.ratio169,
+            "4:3" to binding.ratio43, "zoom" to binding.ratiozoom,
+            "fill" to binding.ratiofill
+        )
+        for ((key, view) in ratioViews) {
+            view.setOnClickListener {
+                repository.aspectRatio = key
+                playback.setAspectRatio(key)
+                updateAspectRatioSelection()
+                val label = when (key) {
+                    "16:9" -> "16:9"
+                    "4:3" -> "4:3"
+                    "zoom" -> "缩放"
+                    "fill" -> "填充"
+                    else -> "适应"
+                }
+                Toast.makeText(this, "画面比例：$label", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     // ---------- 播放列表加载 ----------
