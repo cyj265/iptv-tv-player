@@ -99,7 +99,13 @@ jobs:
       - name: Rename APK with version
         run: |
           mkdir -p dist
+          echo "=== Finding APK files ==="
+          find app/build -name "*.apk" -type f 2>/dev/null || echo "No APK found"
+          echo "=== Listing release output dir ==="
+          ls -la app/build/outputs/apk/release/ 2>/dev/null || echo "release dir not found"
+          echo "=== Copying APK ==="
           cp app/build/outputs/apk/release/app-release.apk dist/iptv-player-v${{ github.run_number }}.apk
+          echo "=== Listing dist ==="
           ls -la dist/
           echo "APK ready: iptv-player-v${{ github.run_number }}.apk"
 
@@ -121,6 +127,15 @@ jobs:
           git tag "$TAG" 2>/dev/null || true
           git push origin "$TAG" 2>/dev/null || true
           echo "Tag pushed: $TAG"
+
+      - name: Verify dist before publish
+        if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
+        run: |
+          echo "=== TAG = ${{ env.TAG }} ==="
+          echo "=== dist contents ==="
+          ls -la dist/
+          echo "=== debug-keystore.b64 ==="
+          ls -la debug-keystore.b64 2>/dev/null || echo "keystore b64 not found"
 
       - name: Publish Release
         if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
