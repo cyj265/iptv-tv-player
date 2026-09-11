@@ -107,17 +107,23 @@ object EpgParser {
     private fun parseDate(raw: String?): Long {
         if (raw.isNullOrBlank()) return 0L
         val s = raw.trim()
-        for (fmt in DATE_FORMATS) {
-            try {
-                return fmt.parse(s)?.time ?: 0L
-            } catch (ignored: Exception) {
-            }
+        // 用局部 SimpleDateFormat，避免修改共享实例导致时区污染
+        val fmt1 = SimpleDateFormat("yyyyMMddHHmmss Z", Locale.US)
+        val fmt2 = SimpleDateFormat("yyyyMMddHHmmss", Locale.US)
+        try {
+            return fmt1.parse(s)?.time ?: 0L
+        } catch (ignored: Exception) {
         }
-        // 尝试把 UTC 时区后缀处理一下
+        try {
+            return fmt2.parse(s)?.time ?: 0L
+        } catch (ignored: Exception) {
+        }
+        // 尝试把 UTC 时区后缀处理一下（用局部实例，不污染共享格式）
         try {
             val fixed = s.replace(Regex("\\s*\\+0000$"), "")
-            DATE_FORMATS[1].timeZone = TimeZone.getTimeZone("UTC")
-            return DATE_FORMATS[1].parse(fixed)?.time ?: 0L
+            val fmtUtc = SimpleDateFormat("yyyyMMddHHmmss", Locale.US)
+            fmtUtc.timeZone = TimeZone.getTimeZone("UTC")
+            return fmtUtc.parse(fixed)?.time ?: 0L
         } catch (ignored: Exception) {
         }
         return 0L
