@@ -34,17 +34,23 @@ import java.io.StringWriter
  * 720P 黑屏、卡顿），v1.6.0 回归本方案：单内核 + 解码器三档
  * （自动/仅硬解/仅软解），等效影视仓的 "exo硬解/exo软解"，APK 仅 ~5.8MB。
  *
+ * v1.7.1 起支持多线路（频道去重后 sources 列表）：
+ * - 线路切换：手动换源（播放界面"换源"按钮 / 设置-线路选择）
+ * - 超时自动换源：当前线路在配置的超时秒数内未起播，自动切下一条线路；
+ *   播放失败（网络/协议类错误）也自动切下一条线路，全部线路失败才报错。
+ * - 解码类错误不切线路（换线路解决不了解码问题），走"检测+提示重启机顶盒"
+ *   （自动修复链已按用户要求删除，不再免重启强修 mediaserver）。
+ *
  * 自动识别 HLS / 渐进式流，与 TiviMate 同源的内核家族，对标准 HLS 支持最好。
  *
  * 解码策略（设置中可切换）：
  * - auto：硬解优先，解码器初始化失败自动回退其他解码器（默认）；
- * - hardware：只允许硬件解码器（斐讯 T1 的 H.265 硬解本身没问题，
- *   此模式可避免自动回退误选软解导致 1080p 卡顿/报错）；
+ * - hardware：只允许硬件解码器；
  * - software：只允许软件解码器（兼容性最好，但 1080p HEVC 较费 CPU）。
  *
  * 直播缓冲：起播 1.5s、重缓冲 3s、持续 15s、上限 45s——秒开且能吸收网络抖动。
  *
- * 失败自动重试：解码/网络瞬时错误自动重播（最多 2 次），避免偶尔抽风直接报错。
+ * 失败自动重试：网络瞬时错误自动重播（最多 2 次，仅单线路时生效）。
  */
 class PlaybackManager(
     private val context: Context,
@@ -63,8 +69,15 @@ class PlaybackManager(
     private var currentUrl: String? = null
     private var currentChannelName: String? = null
 
+    // ---------- 多线路 ----------
+    private var currentSources: List<String> = emptyList()
+    private var currentSourceIndex = 0
+    private var autoTryStartIndex = 0
+
     private var retryCount = 0
     private val retryHandler = Handler(Looper.getMainLooper())
+    private val sourceTimeoutHandler = Handler(Looper.getMainLooper())
+    private var sourceTimeoutMs: Long = 10_000L
 
     /** 当前频道是否已从硬解自动降级到软解（每个频道重置一次） */
     private var degradedToSoftware = false
@@ -84,8 +97,17 @@ class PlaybackManager(
         prefs.getString("decoder_mode", "auto") ?: "auto"
     }
 
+    /** 应用启动时同步一次超时秒数偏好（避免每个频道都读 SP） */
+    fun setSourceTimeoutMs(timeoutMs: Long) {
+        sourceTimeoutMs = if (timeoutMs > 0) timeoutMs else 10_000L
+    }
+
     private val playerListener = object : Player.Listener {
         override fun onPlaybackStateChanged(playbackState: Int) {
+            if (playbackState == Player.STATE_READY) {
+                // 起播成功：取消超时换源
+                sourceTimeoutHandler.removeCallbacksAndMessages(null)
+            }
             listener.onPlaybackStateChanged(player?.isPlaying == true)
         }
 
@@ -100,37 +122,38 @@ class PlaybackManager(
                 )
             } catch (ignored: Exception) {
             }
-            // 硬解解码器初始化/解码失败时，先尝试"免重启修复"（T1 解码器坏状态：
-            // format_supported=YES 但 OMX 组件 init failed，重启盒子可解）。
-            // 修复链：等待自愈 → root 重启 mediaserver → 都不行才降级软解。
             val url = currentUrl
-            if (!degradedToSoftware && decoderMode == "auto" && url != null &&
-                (error.errorCode == PlaybackException.ERROR_CODE_DECODER_INIT_FAILED ||
-                    error.errorCode == PlaybackException.ERROR_CODE_DECODING_FAILED)
-            ) {
-                degradedToSoftware = true // 防重复进入修复流程
+            val isDecoderError =
+                error.errorCode == PlaybackException.ERROR_CODE_DECODER_INIT_FAILED ||
+                    error.errorCode == PlaybackException.ERROR_CODE_DECODING_FAILED
+
+            // 多线路 + 非解码类错误：自动切下一条线路（网络/协议问题换线路通常能解决）
+            if (!isDecoderError && currentSources.size > 1) {
+                autoFail("线路 ${currentSourceIndex + 1} 播放失败")
+                return
+            }
+
+            // 解码器初始化/解码失败：后台检测解码器是否坏状态
+            // （T1 老 Amlogic 硬解组件长时间运行会卡死：format_supported=YES 但
+            // OMX 组件 init failed，应用内无法修复），确认坏了就明确提示重启机顶盒，
+            // 同时降级软解让用户先能看。
+            if (!degradedToSoftware && decoderMode == "auto" && url != null && isDecoderError) {
+                degradedToSoftware = true // 防重复进入检测流程
                 val name = currentChannelName
-                listener.onPlaybackError("解码器异常，正在尝试免重启修复…")
+                listener.onPlaybackError("硬解失败，正在检测解码器状态…")
                 Thread {
-                    val result = DecoderHealthCheck.tryRepair()
+                    val broken = !DecoderHealthCheck.isHardwareHevcHealthy()
                     Handler(Looper.getMainLooper()).post {
-                        when (result) {
-                            DecoderHealthCheck.RepairResult.HEALTHY,
-                            DecoderHealthCheck.RepairResult.FIXED_BY_WAIT,
-                            DecoderHealthCheck.RepairResult.FIXED_BY_MEDIA_RESTART -> {
-                                listener.onPlaybackError("解码器已恢复，重新播放…")
-                                retryHandler.postDelayed({ retryPlay(url, name ?: url) }, 800)
-                            }
-                            DecoderHealthCheck.RepairResult.FAILED -> {
-                                listener.onPlaybackError("修复失败，已切换软件解码；仍卡顿请重启盒子")
-                                retryHandler.postDelayed({ degradeToSoftware(url, name ?: url) }, 800)
-                            }
-                        }
+                        listener.onPlaybackError(
+                            if (broken) "解码器异常，请重启机顶盒后重试（已临时切换软解）"
+                            else "硬解失败，已切换软件解码"
+                        )
+                        retryHandler.postDelayed({ degradeToSoftware(url, name ?: url) }, 800)
                     }
                 }.start()
                 return
             }
-            // 自动重试最多 2 次，间隔递增（1.5s / 3s）
+            // 自动重试最多 2 次，间隔递增（1.5s / 3s）——仅单线路时生效
             if (retryCount < 2 && url != null) {
                 retryCount++
                 val delay = 1500L * retryCount
@@ -169,7 +192,6 @@ class PlaybackManager(
         context.getSharedPreferences("iptv_prefs", Context.MODE_PRIVATE)
             .edit().putString("decoder_mode", mode).apply()
         val pv = playerView ?: return
-        val url = currentUrl
         val name = currentChannelName
         player?.removeListener(playerListener)
         player?.release()
@@ -177,9 +199,12 @@ class PlaybackManager(
         player = buildPlayer()
         pv.player = player
         player?.addListener(playerListener)
-        if (url != null) {
+        if (currentSources.isNotEmpty()) {
             retryCount = 0
-            play(url, name ?: url)
+            playCurrentSource()
+        } else if (name != null) {
+            retryCount = 0
+            play(name, name)
         }
     }
 
@@ -262,9 +287,9 @@ class PlaybackManager(
         // setExceedRendererCapabilitiesIfNecessary：Amlogic 解码器能力上报不全
         // （MediaCodecInfo 把 4K 判为不支持），默认会因此降档选 1080P/720P，
         // 这里强制超出上报能力选择，让解码器实际去解（硬解本身支持 4K）。
-        // ★ v1.6.1 曾一度移除该参数，与 v1.4.0 行为对比后确认：v1.4.0（带此参数）
+        // ★ v1.6.1 曾一度移除该参数，实测与 v1.4.0 行为对比后确认：v1.4.0（带此参数）
         // 在用户 T1 上播放正常，v62 黑屏属解码器坏状态（重启 T1 可清除），
-        // 故 v1.6.2 起恢复与 v1.4.0 完全一致的配置。
+        // 故 v1.6.2 恢复与 v1.4.0 完全一致的配置。
         val trackSelector = DefaultTrackSelector(context)
         trackSelector.setParameters(
             DefaultTrackSelector.Parameters.Builder(context)
@@ -329,16 +354,97 @@ class PlaybackManager(
         }
     }
 
+    // ---------- 多线路播放 ----------
+
+    /** 播放频道（单线路兼容入口） */
     fun play(url: String, channelName: String) {
-        val p = player ?: return
-        currentUrl = url
-        currentChannelName = channelName
+        play(listOf(url), channelName)
+    }
+
+    /** 播放频道（多线路：sources 按顺序排列，失败/超时自动切换） */
+    fun play(sources: List<String>, channelName: String) {
+        if (sources.isEmpty()) {
+            listener.onPlaybackError("该频道没有可用线路")
+            return
+        }
+        currentSources = sources.toList()
+        currentSourceIndex = 0
+        autoTryStartIndex = 0
         retryCount = 0
         degradedToSoftware = false
-        p.setMediaSource(buildMediaSource(url, channelName))
+        playCurrentSource()
+    }
+
+    private fun playCurrentSource() {
+        val p = player ?: return
+        val url = currentSources.getOrNull(currentSourceIndex) ?: return
+        currentUrl = url
+        currentChannelName = currentChannelName ?: url
+        p.stop()
+        p.clearMediaItems()
+        p.setMediaSource(buildMediaSource(url, currentChannelName ?: url))
         p.prepare()
         p.playWhenReady = true
-        listener.onPlaybackReady(channelName)
+        listener.onPlaybackReady(currentChannelName ?: url)
+        startSourceTimeout()
+    }
+
+    /** 手动切换下一条线路（允许循环回绕），返回是否有多线路 */
+    fun switchToNextLine(): Boolean {
+        if (currentSources.size <= 1) return false
+        currentSourceIndex = (currentSourceIndex + 1) % currentSources.size
+        playCurrentSource()
+        listener.onPlaybackError("已切换到线路 ${currentSourceIndex + 1}/${currentSources.size}")
+        return true
+    }
+
+    /** 自动失败换源：一圈全部失败则报错停止 */
+    private fun autoFail(reason: String) {
+        if (currentSources.size <= 1) {
+            listener.onPlaybackError(reason)
+            return
+        }
+        val next = (currentSourceIndex + 1) % currentSources.size
+        if (next == autoTryStartIndex) {
+            sourceTimeoutHandler.removeCallbacksAndMessages(null)
+            listener.onPlaybackError("所有线路均播放失败，请检查网络或手动换源")
+            return
+        }
+        currentSourceIndex = next
+        playCurrentSource()
+        listener.onPlaybackError("$reason，自动切换线路 ${currentSourceIndex + 1}/${currentSources.size}")
+    }
+
+    private fun startSourceTimeout() {
+        sourceTimeoutHandler.removeCallbacksAndMessages(null)
+        sourceTimeoutHandler.postDelayed({
+            val p = player ?: return@postDelayed
+            if (p.playbackState == Player.STATE_READY || p.isPlaying) return@postDelayed
+            if (currentSources.size > 1) {
+                autoFail("线路 ${currentSourceIndex + 1} 起播超时（${sourceTimeoutMs / 1000}s）")
+            }
+            // 单线路超时：不做任何动作，让播放器自行缓冲/报错
+        }, sourceTimeoutMs)
+    }
+
+    /** 当前线路序号（0 起） */
+    fun currentSourceIndex(): Int = currentSourceIndex
+
+    /** 当前频道线路总数 */
+    fun sourceCount(): Int = currentSources.size
+
+    /** 当前线路地址 */
+    fun currentSourceUrl(): String? = currentUrl
+
+    /** 当前估计带宽（kbps），用于顶部"显示网速" */
+    @OptIn(UnstableApi::class)
+    fun bandwidthKbps(): Long {
+        return try {
+            val p = player ?: return 0
+            p.bandwidthMeter.bitrateEstimate / 1000
+        } catch (e: Exception) {
+            0
+        }
     }
 
     private fun retryPlay(url: String, channelName: String) {
@@ -385,6 +491,7 @@ class PlaybackManager(
 
     fun release() {
         retryHandler.removeCallbacksAndMessages(null)
+        sourceTimeoutHandler.removeCallbacksAndMessages(null)
         player?.release()
         player = null
         playerView = null
