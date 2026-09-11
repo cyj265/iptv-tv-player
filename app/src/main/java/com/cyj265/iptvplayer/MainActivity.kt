@@ -100,6 +100,8 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         playback.attach(binding.playerView)
         playback.setAspectRatio(repository.aspectRatio)
 
+        checkDecoderHealthOnStart()
+
         adapter = ChannelAdapter(
             onChannelClick = { channel -> onChannelClick(channel) },
             onCollapsedChanged = { groups -> repository.saveCollapsedGroups(groups) }
@@ -186,6 +188,22 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             }
             defaultHandler?.uncaughtException(thread, throwable)
         }
+    }
+
+    /** 启动自检：后台探测 HEVC 硬解解码器好坏（不阻塞 UI）。 */
+    private fun checkDecoderHealthOnStart() {
+        Thread {
+            val healthy = com.cyj265.iptvplayer.player.DecoderHealthCheck.isHardwareHevcHealthy()
+            Handler(Looper.getMainLooper()).post {
+                if (!healthy && !isFinishing) {
+                    Toast.makeText(
+                        this,
+                        "检测到硬解解码器异常：如播放黑屏/无声，请重启盒子，或直接播放让应用自动尝试修复",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+        }.start()
     }
 
     private fun showLastCrashIfAny() {
@@ -405,7 +423,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         }
 
         binding.tvAbout.text = getString(R.string.app_name) + " v" + BuildConfig.VERSION_NAME +
-            "\n播放内核：libVLC（HEVC/H.265 软硬解自动切换）" +
+            "\n播放内核：Media3 ExoPlayer（影视仓同款）" +
             "\n代码仓库：https://github.com/cyj265/iptv-tv-player" +
             "\n开源许可：Apache-2.0 / MIT / GPL-2.0，来源致谢见仓库 README"
     }

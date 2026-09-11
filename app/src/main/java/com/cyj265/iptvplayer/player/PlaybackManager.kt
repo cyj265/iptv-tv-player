@@ -100,18 +100,34 @@ class PlaybackManager(
                 )
             } catch (ignored: Exception) {
             }
-            // 硬解解码器初始化/解码失败时，自动降级到软解重试（影视仓同款行为）：
-            // Amlogic 老硬解对个别 HEVC 流会 init failed，Media3 的 fallback 只覆盖
-            // 解码器查询阶段，configure 阶段失败不会自动换软解，这里手动补上。
+            // 硬解解码器初始化/解码失败时，先尝试"免重启修复"（T1 解码器坏状态：
+            // format_supported=YES 但 OMX 组件 init failed，重启盒子可解）。
+            // 修复链：等待自愈 → root 重启 mediaserver → 都不行才降级软解。
             val url = currentUrl
             if (!degradedToSoftware && decoderMode == "auto" && url != null &&
                 (error.errorCode == PlaybackException.ERROR_CODE_DECODER_INIT_FAILED ||
                     error.errorCode == PlaybackException.ERROR_CODE_DECODING_FAILED)
             ) {
-                degradedToSoftware = true
+                degradedToSoftware = true // 防重复进入修复流程
                 val name = currentChannelName
-                listener.onPlaybackError("硬解失败，正在切换到软件解码…")
-                retryHandler.postDelayed({ degradeToSoftware(url, name ?: url) }, 800)
+                listener.onPlaybackError("解码器异常，正在尝试免重启修复…")
+                Thread {
+                    val result = DecoderHealthCheck.tryRepair()
+                    Handler(Looper.getMainLooper()).post {
+                        when (result) {
+                            DecoderHealthCheck.RepairResult.HEALTHY,
+                            DecoderHealthCheck.RepairResult.FIXED_BY_WAIT,
+                            DecoderHealthCheck.RepairResult.FIXED_BY_MEDIA_RESTART -> {
+                                listener.onPlaybackError("解码器已恢复，重新播放…")
+                                retryHandler.postDelayed({ retryPlay(url, name ?: url) }, 800)
+                            }
+                            DecoderHealthCheck.RepairResult.FAILED -> {
+                                listener.onPlaybackError("修复失败，已切换软件解码；仍卡顿请重启盒子")
+                                retryHandler.postDelayed({ degradeToSoftware(url, name ?: url) }, 800)
+                            }
+                        }
+                    }
+                }.start()
                 return
             }
             // 自动重试最多 2 次，间隔递增（1.5s / 3s）
