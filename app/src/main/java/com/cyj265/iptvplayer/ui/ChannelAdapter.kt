@@ -193,6 +193,10 @@ class ChannelAdapter(
             holder.binding.tvIndex.text = row.index.toString()
             holder.binding.tvChannelName.text = ch.name
             holder.binding.tvEpgLine.text = epgNow[ch.id] ?: ch.group
+            // 首字母 Logo 占位（暂不加载网络 Logo，用频道名首字+亮蓝圆形背景）
+            val firstChar = ch.name.replace(Regex("[^\\w\\u4e00-\\u9fa5]"), "").firstOrNull()?.toString() ?: "?"
+            holder.binding.tvLogoPlaceholder.text = firstChar
+            holder.binding.ivChannelLogo.visibility = View.GONE
             val isFav = favorites.contains(ch.url)
             holder.binding.ivFavorite.visibility = if (isFav) View.VISIBLE else View.GONE
             holder.binding.ivFavorite.setColorFilter(
