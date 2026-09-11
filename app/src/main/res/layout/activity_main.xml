@@ -421,19 +421,7 @@
                     android:textStyle="bold"
                     android:paddingBottom="8dp" />
 
-                <TextView
-                    android:id="@+id/tvInfoChannel"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:textColor="#FFFFFF"
-                android:textStyle="bold"
-                android:shadowColor="#99000000"
-                android:shadowRadius="3"
-                    android:textSize="15sp"
-                    android:textStyle="bold"
-                    android:maxLines="2"
-                    android:ellipsize="end"
-                    android:paddingBottom="12dp" />
+                <TextView android:id="@+id/tvInfoChannel" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="#FFFFFF" android:textStyle="bold" android:shadowColor="#99000000" android:shadowRadius="3" android:textSize="15sp" android:maxLines="2" android:ellipsize="end" android:paddingBottom="12dp" />
 
                 <TextView
                     android:layout_width="match_parent"
@@ -511,17 +499,7 @@
             android:paddingTop="16dp"
             android:paddingBottom="12dp">
 
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/settings"
-                android:textColor="#FFFFFF"
-                android:textStyle="bold"
-                android:shadowColor="#99000000"
-                android:shadowRadius="3"
-                android:textSize="22sp"
-                android:textStyle="bold" />
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="@string/settings" android:textColor="#FFFFFF" android:textStyle="bold" android:shadowColor="#99000000" android:shadowRadius="3" android:textSize="22sp" />
 
             <Button
                 android:id="@+id/btnCloseSettings"
