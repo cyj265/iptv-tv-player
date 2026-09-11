@@ -27,6 +27,10 @@ import androidx.media3.ui.PlayerView
 import java.io.File
 import java.io.PrintWriter
 import java.io.StringWriter
+
+// 【修复缺失导入】解码器健康检测类
+import com.cyj265.iptvplayer.player.DecoderHealthCheck
+
 /**
  * 基于 Media3 ExoPlayer 的播放内核（影视仓/TVBox 同款，T1 实测 4K HEVC 流畅）。
  *
@@ -226,7 +230,6 @@ class PlaybackManager(
     private fun buildPlayer(): ExoPlayer {
         // 每次重建播放器都新建带宽检测器实例
         bandwidthMeter = DefaultBandwidthMeter.Builder(context).build()
-
         // 直播缓冲：起播 1.5s、卡顿后 3s、持续目标 15s、上限 45s。
         // 之前起播缓冲 15s 需要攒够两三个 TS 分片才开播，导致"等待播放时间太长"。
         // 直播流（TS 10s 分片）缓冲越小起播越快、延迟越低；45s 上限足够吸收网络抖动。
@@ -407,16 +410,22 @@ class PlaybackManager(
     fun sourceCount(): Int = currentSources.size
     /** 当前线路地址 */
     fun currentSourceUrl(): String? = currentUrl
+
     /** 当前估计带宽（kbps），用于顶部"显示网速" */
-@OptIn(UnstableApi::class)
-fun bandwidthKbps(): Long {
-    return try {
-        val localMeter = bandwidthMeter ?: return 0L
-        localMeter.getBitrateEstimate() / 1000L
-    } catch (e: Exception) {
-        0L
+    @OptIn(UnstableApi::class)
+    fun bandwidthKbps(): Long {
+        return try {
+            val localMeter = bandwidthMeter
+            return if (localMeter != null) {
+                localMeter.getBitrateEstimate() / 1000L
+            } else {
+                0L
+            }
+        } catch (e: Exception) {
+            0L
+        }
     }
-}
+
     private fun retryPlay(url: String, channelName: String) {
         val p = player ?: return
         p.stop()
