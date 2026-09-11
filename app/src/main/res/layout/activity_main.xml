@@ -5,14 +5,12 @@
     android:layout_height="match_parent"
     android:background="@color/bg_dark">
 
-    <!-- ===== 全屏视频画面 ===== -->
-    <androidx.media3.ui.PlayerView
+    <!-- ===== 全屏视频画面（VLC 内核，自带 TextureView 显示） ===== -->
+    <org.videolan.libvlc.util.VLCVideoLayout
         android:id="@+id/playerView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:focusable="false"
-        app:use_controller="false"
-        app:resize_mode="fit" />
+        android:focusable="false" />
 
     <!-- ===== 顶部：当前频道信息（覆盖层，柠檬TV 风格） ===== -->
     <LinearLayout

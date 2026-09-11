@@ -405,9 +405,9 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         }
 
         binding.tvAbout.text = getString(R.string.app_name) + " v" + BuildConfig.VERSION_NAME +
-            "\n播放内核：Media3 ExoPlayer（HLS / H.265 硬解）" +
+            "\n播放内核：libVLC（HEVC/H.265 软硬解自动切换）" +
             "\n代码仓库：https://github.com/cyj265/iptv-tv-player" +
-            "\n开源许可：Apache-2.0 / MIT，来源致谢见仓库 README"
+            "\n开源许可：Apache-2.0 / MIT / GPL-2.0，来源致谢见仓库 README"
     }
 
     private fun setupSettingsTabs() {
