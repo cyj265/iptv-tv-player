@@ -75,6 +75,8 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     private var allChannels: List<Channel> = emptyList()
     private lateinit var groupAdapter: GroupAdapter
     private var currentGroup: String? = null  // null = 全部频道
+    /** 分组选中后待定位的频道行位置（右键进频道列表时使用） */
+    private var pendingChannelScrollPos = -1
     private var lastBackPressTime: Long = 0
     private var autoUpdateCheck: Boolean = true
     private var favorites: MutableSet<String> = HashSet()
@@ -154,7 +156,8 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
 
         adapter = ChannelAdapter(
             onChannelClick = { channel -> onChannelClick(channel) },
-            onCollapsedChanged = { groups -> repository.saveCollapsedGroups(groups) }
+            onCollapsedChanged = { groups -> repository.saveCollapsedGroups(groups) },
+            onChannelFocused = { ch -> updateProgramInfo(ch) }
         )
         adapter.favorites = favorites
         // 从未手动折叠过时默认全部收起（二级分组体验）
@@ -169,7 +172,18 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         groupAdapter = GroupAdapter { group ->
             currentGroup = group
             groupAdapter.setSelected(group)
+            rememberLastGroup(group)
             applyFilter()
+            // 定位：当前播放频道在该分组则定位到它，否则定位到分组第一个频道
+            val targetPos = currentChannel
+                ?.let { adapter.positionOfChannel(it.id) }
+                ?.takeIf { it >= 0 }
+                ?: adapter.firstPositionOfGroup(group)
+            if (targetPos >= 0) {
+                pendingChannelScrollPos = targetPos
+                binding.channelList.scrollToPosition(targetPos)
+                adapter.channelAt(targetPos)?.let { updateProgramInfo(it) }
+            }
         }
         binding.groupList.layoutManager = LinearLayoutManager(this)
         binding.groupList.adapter = groupAdapter
@@ -195,6 +209,19 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         // 自动恢复上次频道
         if (repository.autoResume) {
             resumeLastChannel()
+        }
+
+        // 恢复上次分组
+        try {
+            if (rememberGroupPrefs().getBoolean("remember_group", false)) {
+                val lastGroup = rememberGroupPrefs().getString("last_group", null)
+                if (lastGroup != null && allChannels.any { it.group == lastGroup }) {
+                    currentGroup = lastGroup
+                    groupAdapter.setSelected(lastGroup)
+                    applyFilter()
+                }
+            }
+        } catch (ignored: Throwable) {
         }
 
         // 启动时显示覆盖层，随后自动淡出
@@ -260,6 +287,9 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                         "\n" + sw.toString(),
                     Charsets.UTF_8
                 )
+                // 新崩溃：重置"已提示"标志，下次启动会再次提示
+                getSharedPreferences("settings", MODE_PRIVATE)
+                    .edit().putBoolean("crash_prompted", false).apply()
             } catch (ignored: Exception) {
             }
             defaultHandler?.uncaughtException(thread, throwable)
@@ -285,16 +315,22 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     private fun showLastCrashIfAny() {
         val f = crashFile()
         if (!f.exists()) return
+        val prefs = getSharedPreferences("settings", MODE_PRIVATE)
+        // 每条新崩溃只提示一次：日志保留，供调试区导出/清除
+        if (prefs.getBoolean("crash_prompted", false)) return
         val log = try {
             f.readText(Charsets.UTF_8)
         } catch (e: Exception) {
             return
         }
-        // 显示后删除，避免每次启动都弹（只在崩溃后首次启动提示一次）
-        f.delete()
+        prefs.edit().putBoolean("crash_prompted", true).apply()
         val brief = log.lineSequence().take(6).joinToString("\n")
         runOnUiThread {
-            Toast.makeText(this, "上次运行崩溃：\n$brief", Toast.LENGTH_LONG).show()
+            Toast.makeText(
+                this,
+                "上次运行崩溃（可在 设置-调试 中导出）：\n$brief",
+                Toast.LENGTH_LONG
+            ).show()
         }
     }
 
@@ -411,10 +447,13 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         refreshSettingsSourceInput()
         updateSourceStatus()
         refreshCrashLog()
+        updateSourceOptions()
         // 默认焦点到左侧导航列第一项（线路选择）
         binding.navLineup.requestFocus()
         updateLineupLabel()
         updateTimeoutSelection()
+        updateDecoderSelection()
+        updateAspectRatioSelection()
         val navs = settingsNavs()
         navs[currentSettingsTab.coerceIn(0, navs.size - 1)].requestFocus()
     }
@@ -467,13 +506,12 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     private fun updateLineupLabel() {
         try {
             val count = playback.sourceCount()
-            if (count > 1) {
-                binding.btnSwitchLineup.text =
-                    getString(R.string.line_fmt, playback.currentSourceIndex() + 1, count) +
-                        " · " + getString(R.string.switch_line)
-            } else {
-                binding.btnSwitchLineup.text = "单线路 · " + getString(R.string.switch_line)
-            }
+            binding.tvBtnSwitchLine.text =
+                if (count > 1) {
+                    getString(R.string.line_fmt, playback.currentSourceIndex() + 1, count)
+                } else {
+                    "线路 1/1"
+                }
         } catch (ignored: Throwable) {
         }
     }
@@ -482,6 +520,59 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
 
     private fun setupSourceBar() {
         binding.tvSourceBar.setOnClickListener { switchToNextSource() }
+    }
+
+    /** 设置面板：动态渲染直播源切换列表（当前源高亮，点击切换） */
+    private fun updateSourceOptions() {
+        try {
+            binding.sourceListContainer.removeAllViews()
+            val sources = repository.getSources()
+            if (sources.isEmpty()) {
+                val tv = TextView(this).apply {
+                    text = "暂无直播源，请在下方添加"
+                    setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_secondary))
+                    textSize = 13f
+                    setPadding(16, 12, 8, 12)
+                }
+                binding.sourceListContainer.addView(tv)
+                return
+            }
+            val active = repository.activeSourceIndex
+            sources.forEachIndexed { i, url ->
+                val row = TextView(this).apply {
+                    text = "直播源 " + (i + 1) + "/" + sources.size + "  ·  " + sourceLabel(url)
+                    textSize = 15f
+                    setPadding(16, 12, 8, 12)
+                    isFocusable = true
+                    isClickable = true
+                    if (i == active) {
+                        setTextColor(ContextCompat.getColor(this@MainActivity, R.color.accent))
+                        setTypeface(typeface, Typeface.BOLD)
+                        setBackgroundColor(0x4FFFFFFF.toInt())
+                    } else {
+                        setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_primary))
+                    }
+                }
+                row.setOnClickListener {
+                    if (i != repository.activeSourceIndex) {
+                        repository.setActiveSource(i)
+                        currentChannel = null
+                        adapter.setSelected(null)
+                        updateSourceOptions()
+                        updateSourceBar()
+                        updateSourceStatus()
+                        reloadPlaylist()
+                        Toast.makeText(
+                            this,
+                            getString(R.string.switch_source) + "：" + sourceLabel(url),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+                binding.sourceListContainer.addView(row)
+            }
+        } catch (ignored: Throwable) {
+        }
     }
 
     private fun switchToNextSource() {
@@ -559,6 +650,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                 adapter.setSelected(null)
                 updateSourceBar()
                 updateSourceStatus()
+                updateSourceOptions()
                 reloadPlaylist()
                 loadEpgIfConfigured()
                 Toast.makeText(
@@ -643,6 +735,27 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
 
     // ---------- 设置面板 ----------
 
+    private fun containsFocus(root: View): Boolean {
+        if (root.hasFocus()) return true
+        if (root is ViewGroup) {
+            for (i in 0 until root.childCount) {
+                if (containsFocus(root.getChildAt(i))) return true
+            }
+        }
+        return false
+    }
+
+    private fun rememberGroupPrefs() = getSharedPreferences("settings", MODE_PRIVATE)
+
+    private fun rememberLastGroup(group: String) {
+        try {
+            if (rememberGroupPrefs().getBoolean("remember_group", false)) {
+                rememberGroupPrefs().edit().putString("last_group", group).apply()
+            }
+        } catch (ignored: Throwable) {
+        }
+    }
+
     private fun settingsNavs(): List<View> = listOf(
         binding.navLineup, binding.navRatio, binding.navDecoder,
         binding.navTimeout, binding.navPrefs, binding.navUpdate,
@@ -673,6 +786,66 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                 )
             }
         }
+        focusValueInSettingsSection(index)
+    }
+
+    /** 切 tab 后把焦点定位到当前选中值（展开式分区）。 */
+    private fun focusValueInSettingsSection(index: Int) {
+        try {
+            when (index) {
+                1 -> { // 画面比例
+                    val id = when (repository.aspectRatio) {
+                        "16:9" -> R.id.ratio169
+                        "4:3" -> R.id.ratio43
+                        "zoom" -> R.id.ratiozoom
+                        "fill" -> R.id.ratiofill
+                        else -> R.id.ratiofit
+                    }
+                    binding.root.findViewById<View>(id)?.requestFocus()
+                }
+                2 -> { // 播放解码
+                    val id = when (playback.currentDecoderMode()) {
+                        "hardware" -> R.id.decoderHard
+                        "software" -> R.id.decoderSoft
+                        else -> R.id.decoderAuto
+                    }
+                    binding.root.findViewById<View>(id)?.requestFocus()
+                }
+                3 -> { // 超时换源
+                    val id = when (repository.switchTimeoutSec) {
+                        5 -> R.id.timeout5
+                        10 -> R.id.timeout10
+                        15 -> R.id.timeout15
+                        20 -> R.id.timeout20
+                        25 -> R.id.timeout25
+                        30 -> R.id.timeout30
+                        else -> R.id.timeout60
+                    }
+                    binding.root.findViewById<View>(id)?.requestFocus()
+                }
+                6 -> { // 调试：定位到清空日志
+                    binding.btnClearCrashLog.requestFocus()
+                }
+                else -> {
+                    val section = settingsSections()[index.coerceIn(0, settingsSections().size - 1)]
+                    firstFocusableChild(section)?.requestFocus()
+                }
+            }
+        } catch (ignored: Throwable) {
+        }
+    }
+
+    /** 深度优先找第一个可聚焦子 View。 */
+    private fun firstFocusableChild(parent: View): View? {
+        if (parent is ViewGroup) {
+            for (i in 0 until parent.childCount) {
+                val child = parent.getChildAt(i)
+                if (child.isFocusable) return child
+                val sub = firstFocusableChild(child)
+                if (sub != null) return sub
+            }
+        }
+        return null
     }
 
     private fun setupSettingsPanel() {
@@ -702,8 +875,8 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             Toast.makeText(this, R.string.cleared, Toast.LENGTH_SHORT).show()
         }
 
-        // 线路选择（当前频道线路）
-        binding.btnSwitchLineup.setOnClickListener { switchToNextLine() }
+        // 直播源切换列表（多播放列表）
+        updateSourceOptions()
 
         // 超时换源（展开式选项）
         setupTimeoutOptions()
@@ -742,8 +915,14 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         setupAspectRatioOptions()
         updateAspectRatioSelection()
 
-        binding.btnDecoderMode.setOnClickListener { cycleDecoderMode() }
-        updateDecoderModeLabel()
+        setupDecoderOptions()
+        updateDecoderSelection()
+
+        // 记住上次分组
+        binding.chkRememberGroup.isChecked = rememberGroupPrefs().getBoolean("remember_group", false)
+        binding.chkRememberGroup.setOnCheckedChangeListener { _, checked ->
+            rememberGroupPrefs().edit().putBoolean("remember_group", checked).apply()
+        }
 
         updateFavCount()
 
@@ -762,6 +941,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         binding.btnExportAboutCrash.setOnClickListener { launchCrashExport() }
         binding.btnClearCrashLog.setOnClickListener {
             crashFile().delete()
+            rememberGroupPrefs().edit().putBoolean("crash_prompted", false).apply()
             binding.tvCrashLog.text = "无"
             Toast.makeText(this, R.string.cleared_crash_log, Toast.LENGTH_SHORT).show()
         }
@@ -1109,23 +1289,45 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
 
     private val decoderModeCycle = listOf("auto", "hardware", "software")
 
-    private fun cycleDecoderMode() {
-        val current = playback.currentDecoderMode()
-        val idx = decoderModeCycle.indexOf(current)
-        val next = decoderModeCycle[(idx + 1 + decoderModeCycle.size) % decoderModeCycle.size]
-        playback.applyDecoderMode(next)
-        updateDecoderModeLabel()
-        Toast.makeText(this, getString(R.string.decoder_mode) + "：" + labelForMode(next), Toast.LENGTH_SHORT).show()
-    }
-
     private fun labelForMode(mode: String): String = when (mode) {
         "hardware" -> getString(R.string.decoder_hardware)
         "software" -> getString(R.string.decoder_software)
         else -> getString(R.string.decoder_auto)
     }
 
-    private fun updateDecoderModeLabel() {
-        binding.btnDecoderMode.text = labelForMode(playback.currentDecoderMode())
+    private fun updateDecoderSelection() {
+        val current = playback.currentDecoderMode()
+        val decoderViews = listOf(
+            "auto" to binding.decoderAuto,
+            "hardware" to binding.decoderHard,
+            "software" to binding.decoderSoft
+        )
+        for ((key, view) in decoderViews) {
+            if (key == current) {
+                view.setBackgroundColor(0x4FFFFFFF.toInt())
+                view.setTextColor(0xFF64B5F6.toInt())
+                view.paint.isFakeBoldText = true
+            } else {
+                view.setBackgroundColor(0x00000000)
+                view.setTextColor(0xFFCCCCCC.toInt())
+                view.paint.isFakeBoldText = false
+            }
+        }
+    }
+
+    private fun setupDecoderOptions() {
+        val decoderViews = listOf(
+            "auto" to binding.decoderAuto,
+            "hardware" to binding.decoderHard,
+            "software" to binding.decoderSoft
+        )
+        for ((key, view) in decoderViews) {
+            view.setOnClickListener {
+                playback.applyDecoderMode(key)
+                updateDecoderSelection()
+                Toast.makeText(this, getString(R.string.decoder_mode) + "：" + labelForMode(key), Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     private fun cycleAspectRatio() {
@@ -1201,6 +1403,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         adapter.setSelected(null)
         updateSourceBar()
         updateSourceStatus()
+        updateSourceOptions()
         reloadPlaylist()
         loadEpgIfConfigured()
         Toast.makeText(this, R.string.loading_playlist, Toast.LENGTH_SHORT).show()
@@ -1460,15 +1663,35 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         }.start()
     }
 
+    /** 频道名归一化：小写、去符号空格、去画质后缀（极清/高清/4K…），用于 EPG 模糊匹配 */
+    private fun normalizeEpgName(name: String): String {
+        var s = name.trim().lowercase(Locale.getDefault())
+        s = s.replace(Regex("[^a-z0-9\u4e00-\u9fa5]"), "")
+        for (suffix in listOf(
+            "极清", "超清", "高清", "标清", "流畅", "原画", "蓝光",
+            "4k", "8k", "uhd", "fhd", "hd", "sd", "2160p", "1080p", "720p"
+        )) {
+            s = s.removeSuffix(suffix)
+        }
+        return s
+    }
+
     private fun indexEpg(data: EpgParser.EpgData): Map<String, List<EpgProgram>> {
         val map = HashMap<String, List<EpgProgram>>()
         val byName = HashMap<String, MutableList<EpgProgram>>()
+        val byNorm = HashMap<String, MutableList<EpgProgram>>()
         for (p in data.programs) {
             byName.getOrPut(p.channelId) { ArrayList() }.add(p)
+            byNorm.getOrPut(normalizeEpgName(p.channelId)) { ArrayList() }.add(p)
         }
         for (ch in allChannels) {
-            val list = byName[ch.tvgId] ?: byName[ch.name] ?: continue
-            map[ch.id] = list.sortedBy { it.start }
+            // 1) 精确匹配 tvgId / 频道名
+            var list = byName[ch.tvgId] ?: byName[ch.name]
+            // 2) 归一化匹配（覆盖"频道名带画质后缀"的常见情况）
+            if (list == null) {
+                list = byNorm[normalizeEpgName(ch.name)]
+            }
+            if (list != null) map[ch.id] = list.sortedBy { it.start }
         }
         return map
     }
@@ -1487,22 +1710,33 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         return map
     }
 
-    /** 更新右侧节目信息栏（EPG 当前/下一个节目） */
-    private fun updateProgramInfo() {
+    /** 更新右侧节目信息栏（EPG 当前/下一个节目）。ch 为空时用当前播放频道。 */
+    private fun updateProgramInfo(ch: Channel? = null) {
         try {
-            val ch = currentChannel ?: return
-            binding.tvInfoChannel.text = ch.name
-            val epgText = adapter.epgNow[ch.id] ?: ""
+            val target = ch ?: currentChannel
+            if (target == null) {
+                binding.tvInfoChannel.text = "未选择频道"
+                binding.tvInfoNow.text = "请先选择频道，或在设置中添加节目指南地址"
+                binding.tvInfoNext.text = ""
+                binding.tvInfoMeta.text = ""
+                return
+            }
+            binding.tvInfoChannel.text = target.name
+            val epgText = adapter.epgNow[target.id] ?: ""
             if (epgText.isNotEmpty()) {
                 binding.tvInfoNow.text = epgText
             } else {
-                binding.tvInfoNow.text = "暂无节目单"
+                binding.tvInfoNow.text = "暂无节目单（请在设置-直播源中添加节目指南）"
             }
             // 下一个节目：从 EPG 数据里找
-            binding.tvInfoNext.text = "—"
+            val programs = epgPrograms[target.id] ?: emptyList()
+            val now = System.currentTimeMillis()
+            val next = programs.firstOrNull { it.start >= now }
+            binding.tvInfoNext.text =
+                if (next != null) "稍后播放: " + next.title + "  " + formatTime(next.start) else "—"
             // 元信息：分组 + 线路数
             val lineCount = playback.sourceCount()
-            binding.tvInfoMeta.text = (ch.group ?: "") + if (lineCount > 1) " · ${lineCount}条线路" else ""
+            binding.tvInfoMeta.text = (target.group ?: "") + if (lineCount > 1) " · ${lineCount}条线路" else ""
         } catch (ignored: Throwable) {
         }
     }
@@ -1597,11 +1831,29 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     // ---------- 遥控器按键 ----------
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
-        // 设置面板打开：OK/上下键交给面板内控件；BACK 关闭
+        // 设置面板打开：BACK 关闭；左右键在导航列与详情区之间切换焦点
         if (isSettingsPanelVisible) {
             return when (keyCode) {
                 KeyEvent.KEYCODE_BACK -> {
                     hideSettingsPanel(); true
+                }
+                KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                    // 焦点在导航列 -> 进入详情区并定位到当前值
+                    if (settingsNavs().any { it.hasFocus() }) {
+                        focusValueInSettingsSection(currentSettingsTab); true
+                    } else {
+                        super.onKeyDown(keyCode, event)
+                    }
+                }
+                KeyEvent.KEYCODE_DPAD_LEFT -> {
+                    // 焦点在详情区 -> 回到导航列当前项
+                    if (settingsSections().any { s -> containsFocus(s) }) {
+                        val navs = settingsNavs()
+                        navs[currentSettingsTab.coerceIn(0, navs.size - 1)].requestFocus()
+                        true
+                    } else {
+                        super.onKeyDown(keyCode, event)
+                    }
                 }
                 else -> super.onKeyDown(keyCode, event)
             }
@@ -1632,8 +1884,12 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                     true
                 }
                 KeyEvent.KEYCODE_DPAD_RIGHT -> {
-                    // 右移：如果焦点在分组列表，切到频道列表
+                    // 右移：如果焦点在分组列表，先滚动定位到目标频道再切焦点
                     if (binding.groupList.hasFocus()) {
+                        if (pendingChannelScrollPos >= 0) {
+                            binding.channelList.scrollToPosition(pendingChannelScrollPos)
+                            pendingChannelScrollPos = -1
+                        }
                         binding.channelList.requestFocus()
                     }
                     true
