@@ -408,15 +408,15 @@ class PlaybackManager(
     /** 当前线路地址 */
     fun currentSourceUrl(): String? = currentUrl
     /** 当前估计带宽（kbps），用于顶部"显示网速" */
-    @OptIn(UnstableApi::class)
-    fun bandwidthKbps(): Long {
-        return try {
-            val meter = bandwidthMeter ?: return 0L
-            meter.getBitrateEstimate() / 1000
-        } catch (e: Exception) {
-            0L
-        }
+@OptIn(UnstableApi::class)
+fun bandwidthKbps(): Long {
+    return try {
+        val localMeter = bandwidthMeter ?: return 0L
+        localMeter.getBitrateEstimate() / 1000L
+    } catch (e: Exception) {
+        0L
     }
+}
     private fun retryPlay(url: String, channelName: String) {
         val p = player ?: return
         p.stop()
