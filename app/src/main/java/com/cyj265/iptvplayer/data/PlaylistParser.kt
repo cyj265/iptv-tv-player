@@ -4,6 +4,9 @@ import java.util.regex.Pattern
 
 /**
  * 解析 M3U / M3U8 播放列表，或 TXT 播放列表（自动识别）。
+ *
+ * v1.7.1 起：解析完成后按（分组, 频道名）合并同名单频道为多线路，
+ * 播放列表里重复出现的同名频道（如多个 CCTV1 源）只显示一个条目。
  */
 object PlaylistParser {
 
@@ -13,11 +16,12 @@ object PlaylistParser {
 
     fun parseAuto(content: String): List<Channel> {
         val trimmed = content.trimStart()
-        return if (trimmed.startsWith("#EXTM3U") || trimmed.startsWith("#EXTINF")) {
-            parse(content)
+        val raw = if (trimmed.startsWith("#EXTM3U") || trimmed.startsWith("#EXTINF")) {
+            parseRaw(content)
         } else {
-            parseTxt(content)
+            parseTxtRaw(content)
         }
+        return mergeChannels(raw)
     }
 
     /**
@@ -26,7 +30,7 @@ object PlaylistParser {
      *  频道名，http://...（中文逗号）
      *  纯 URL 行（自动用序号命名）
      */
-    fun parseTxt(content: String): List<Channel> {
+    private fun parseTxtRaw(content: String): List<Channel> {
         val channels = ArrayList<Channel>()
         var index = 0
         for (raw in content.split("\n", "\r\n")) {
@@ -96,7 +100,7 @@ object PlaylistParser {
         return channels
     }
 
-    fun parse(content: String): List<Channel> {
+    private fun parseRaw(content: String): List<Channel> {
         val channels = ArrayList<Channel>()
         val lines = content.split("\n", "\r\n")
         var pending: Channel? = null
@@ -144,6 +148,41 @@ object PlaylistParser {
             // 其他 # 开头的行（#EXTM3U / #EXTVLCOPT 等）直接忽略
         }
         return channels
+    }
+
+    /**
+     * 按（分组, 频道名）合并同名单频道，URL 列表按出现顺序保留，
+     * 并生成稳定的频道 id（基于分组+名称），保证收藏/缓存跨版本可用。
+     */
+    private fun mergeChannels(raw: List<Channel>): List<Channel> {
+        if (raw.isEmpty()) return raw
+        val urlsByKey = LinkedHashMap<Pair<String, String>, MutableList<String>>()
+        val metaByKey = LinkedHashMap<Pair<String, String>, Channel>()
+
+        for (c in raw) {
+            val key = c.group to c.name
+            val urls = urlsByKey.getOrPut(key) { ArrayList() }
+            if (!urls.contains(c.url)) urls.add(c.url)
+            if (!metaByKey.containsKey(key)) metaByKey[key] = c
+        }
+
+        val out = ArrayList<Channel>(urlsByKey.size)
+        for ((key, urls) in urlsByKey) {
+            val base = metaByKey[key] ?: continue
+            val stableId = "ch-" + key.first.hashCode().toString(16) + "-" + key.second.hashCode().toString(16)
+            out.add(
+                Channel(
+                    id = stableId,
+                    name = key.second,
+                    url = urls[0],
+                    group = key.first,
+                    logo = base.logo,
+                    tvgId = base.tvgId,
+                    sources = urls.toList()
+                )
+            )
+        }
+        return out
     }
 
     private fun extractAttr(attrText: String, key: String): String {
