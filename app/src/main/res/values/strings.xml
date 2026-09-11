@@ -6,7 +6,8 @@
     <!-- 直播源 -->
     <string name="playlist_url">播放列表地址（每行一个，支持多个源）</string>
     <string name="source_manage_hint">每行填一个播放列表地址（.m3u/.m3u8/.txt），保存后列表顶部可快速切换</string>
-    <string name="epg_url">节目指南地址（EPG/XMLTV URL，可选）</string>
+    <string name="epg_url">节目指南地址（EPG/XMLTV URL）</string>
+    <string name="epg_url_hint">每行填一个节目指南地址，多个地址将全部加载合并</string>
     <string name="load">加载</string>
     <string name="loading_playlist">正在加载播放列表…</string>
     <string name="load_failed">加载失败，请检查地址</string>
@@ -56,10 +57,37 @@
     <string name="aspect_zoom">缩放裁剪（填满）</string>
     <string name="aspect_fill">拉伸全屏</string>
     <string name="auto_resume">打开应用时自动恢复上次频道</string>
-    <string name="decoder_mode">解码方式</string>
+    <string name="decoder_mode">播放解码</string>
     <string name="decoder_auto">自动（硬解优先，失败自动回退）</string>
     <string name="decoder_hardware">仅硬件解码</string>
     <string name="decoder_software">仅软件解码</string>
+
+    <!-- 线路选择（v1.7.1） -->
+    <string name="nav_lineup">线路选择</string>
+    <string name="current_line">当前线路</string>
+    <string name="switch_line">OK 切换线路</string>
+    <string name="line_fmt">线路 %1$d/%2$d</string>
+    <string name="line_switch_hint">同名的多个频道源已合并为一条，播放时可手动或超时自动切换线路</string>
+    <string name="btn_switch_line">换源</string>
+
+    <!-- 超时换源（v1.7.1） -->
+    <string name="nav_timeout">超时换源</string>
+    <string name="switch_timeout">线路起播超时（秒）</string>
+    <string name="switch_timeout_hint">当前线路在设定时间内没有起播，将自动切换下一条线路</string>
+
+    <!-- 偏好设置（v1.7.1） -->
+    <string name="nav_prefs">偏好设置</string>
+    <string name="pref_show_clock">显示时间</string>
+    <string name="pref_show_speed">显示网速</string>
+    <string name="pref_reverse_zap">换台反转</string>
+    <string name="pref_cross_category">跨选分类</string>
+    <string name="pref_reverse_zap_hint">上下方向键换台顺序反转</string>
+    <string name="pref_cross_category_hint">关闭后换台只在当前分类内循环</string>
+
+    <!-- 退出 -->
+    <string name="nav_exit">退出直播</string>
+    <string name="exit_confirm">确定退出揽星 TV？将结束全部进程。</string>
+    <string name="exit_hint">退出并结束全部进程，不再有后台声音</string>
 
     <!-- 界面 -->
     <string name="auto_hide_overlay">无操作时自动隐藏信息条与按钮</string>
