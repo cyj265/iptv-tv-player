@@ -823,7 +823,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             content.addView(qrView, LinearLayout.LayoutParams(420, 420))
         }
         val tv = android.widget.TextView(this)
-        tv.setTextColor(0xFFFFFFFF.toInt())
+        tv.setTextColor(0xFF333333.toInt())
         tv.textSize = 15f
         tv.setLineSpacing(4f, 1f)
         tv.text = "请用手机（与机顶盒同一 Wi-Fi）扫描：\n$url\n\n可添加/切换直播源、设置节目指南、直接播放"
