@@ -167,6 +167,33 @@ class PlaylistRepository(private val context: Context) {
         return getActiveSource()
     }
 
+    // ---------- 源健康度 ----------
+
+    /** 设置某个源的健康度 */
+    fun setSourceHealth(url: String, health: SourceHealthChecker.SourceHealth) {
+        sourceHealthCache[url] = health
+    }
+
+    /** 获取某个源的健康度（未检测返回 UNTESTED） */
+    fun getSourceHealth(url: String): SourceHealthChecker.SourceHealth {
+        return sourceHealthCache[url] ?: SourceHealthChecker.SourceHealth(
+            url = url,
+            available = false,
+            latencyMs = -1,
+            status = SourceHealthChecker.SourceHealth.Status.UNTESTED
+        )
+    }
+
+    /** 获取全部源的健康度列表（按源顺序） */
+    fun getAllSourceHealth(): List<SourceHealthChecker.SourceHealth> {
+        return getSources().map { getSourceHealth(it) }
+    }
+
+    /** 清除所有源健康度缓存 */
+    fun clearSourceHealth() {
+        sourceHealthCache.clear()
+    }
+
     // ---------- EPG ----------
 
     /**
