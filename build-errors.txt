@@ -6,45 +6,54 @@ Daemon will be stopped at the end of the build
 > Task :app:preReleaseBuild UP-TO-DATE
 > Task :app:dataBindingMergeDependencyArtifactsRelease
 > Task :app:generateReleaseResValues FROM-CACHE
-> Task :app:generateReleaseResources
-> Task :app:packageReleaseResources
-> Task :app:mergeReleaseResources
-> Task :app:generateReleaseBuildConfig
-> Task :app:checkReleaseAarMetadata
+> Task :app:generateReleaseResources FROM-CACHE
+> Task :app:mergeReleaseResources FROM-CACHE
+> Task :app:packageReleaseResources FROM-CACHE
+> Task :app:parseReleaseLocalResources FROM-CACHE
+> Task :app:dataBindingGenBaseClassesRelease FROM-CACHE
+> Task :app:generateReleaseBuildConfig FROM-CACHE
 > Task :app:mapReleaseSourceSetPaths
 > Task :app:createReleaseCompatibleScreenManifests
+> Task :app:checkReleaseAarMetadata
 > Task :app:extractDeepLinksRelease FROM-CACHE
-> Task :app:parseReleaseLocalResources
-> Task :app:processReleaseMainManifest
-> Task :app:dataBindingGenBaseClassesRelease
-> Task :app:processReleaseManifest
+> Task :app:processReleaseMainManifest FROM-CACHE
+> Task :app:processReleaseManifest FROM-CACHE
+> Task :app:processReleaseManifestForPackage FROM-CACHE
+> Task :app:processReleaseResources FROM-CACHE
 > Task :app:javaPreCompileRelease FROM-CACHE
 > Task :app:extractProguardFiles
 > Task :app:mergeReleaseJniLibFolders
-> Task :app:processReleaseManifestForPackage
 > Task :app:checkReleaseDuplicateClasses
 > Task :app:mergeReleaseNativeLibs
+> Task :app:desugarReleaseFileDependencies FROM-CACHE
+> Task :app:mergeReleaseStartupProfile
 
 > Task :app:stripReleaseDebugSymbols
 Unable to strip the following libraries, packaging them as they are: libc++_shared.so, libvlc.so, libvlcjni.so.
 
-> Task :app:processReleaseResources
-> Task :app:desugarReleaseFileDependencies
-> Task :app:mergeReleaseStartupProfile
-> Task :app:extractReleaseNativeSymbolTables
-
-> Task :app:compileReleaseKotlin
-e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:68:20 Unresolved reference: setMediaPlayer
-e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:117:27 Unresolved reference: width
-e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:117:46 Unresolved reference: height
-e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:118:55 Unresolved reference: width
-e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:118:68 Unresolved reference: height
-e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:174:20 Unresolved reference: setMediaPlayer
-e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:236:26 Unresolved reference: mediaPlayer
+> Task :app:mergeExtDexRelease FROM-CACHE
+> Task :app:extractReleaseNativeSymbolTables FROM-CACHE
+> Task :app:mergeReleaseNativeDebugMetadata NO-SOURCE
+> Task :app:mergeReleaseArtProfile
+> Task :app:mergeReleaseShaders
+> Task :app:compileReleaseShaders NO-SOURCE
+> Task :app:generateReleaseAssets UP-TO-DATE
+> Task :app:mergeReleaseAssets
+> Task :app:compressReleaseAssets
+> Task :app:extractReleaseVersionControlInfo
+> Task :app:collectReleaseDependencies
+> Task :app:sdkReleaseDependencyData
+> Task :app:validateSigningRelease
+> Task :app:writeReleaseAppMetadata
+> Task :app:writeReleaseSigningConfigVersions
+> Task :app:optimizeReleaseResources
 
 > Task :app:compileReleaseKotlin FAILED
-> Task :app:mergeExtDexRelease
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_2-1789087456598.json
+e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:68:20 Unresolved reference: attachViews
+e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:173:24 Unresolved reference: detachViews
+e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:182:20 Unresolved reference: attachViews
+e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:244:26 Unresolved reference: detachViews
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_2-1789087695836.json
 
 FAILURE: Build failed with an exception.
 
@@ -59,5 +68,5 @@ Execution failed for task ':app:compileReleaseKotlin'.
 > Run with --scan to get full insights.
 > Get more help at https://help.gradle.org.
 
-BUILD FAILED in 1m 5s
-29 actionable tasks: 26 executed, 3 from cache
+BUILD FAILED in 24s
+40 actionable tasks: 24 executed, 16 from cache
