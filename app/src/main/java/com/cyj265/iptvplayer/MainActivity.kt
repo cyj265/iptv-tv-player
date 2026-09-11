@@ -449,14 +449,15 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         updateSourceStatus()
         refreshCrashLog()
         updateSourceOptions()
-        // 默认焦点到左侧导航列第一项（线路选择）
-        binding.navLineup.requestFocus()
         updateLineupLabel()
         updateTimeoutSelection()
         updateDecoderSelection()
         updateAspectRatioSelection()
+        // 焦点默认落在导航列当前项（上下键切换分区）；延迟到面板布局完成后，
+        // 避免 updateSourceOptions() 重建直播源列表导致焦点被抢进二级菜单。
         val navs = settingsNavs()
-        navs[currentSettingsTab.coerceIn(0, navs.size - 1)].requestFocus()
+        val navIdx = currentSettingsTab.coerceIn(0, navs.size - 1)
+        binding.settingsPanel.post { navs[navIdx].requestFocus() }
     }
 
     private fun hideSettingsPanel() {
@@ -769,7 +770,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         binding.sectionDebug, binding.sectionAbout, binding.sectionExit
     )
 
-    private fun selectSettingsTab(index: Int) {
+    private fun selectSettingsTab(index: Int, focusDetail: Boolean = false) {
         currentSettingsTab = index
         val navs = settingsNavs()
         val sections = settingsSections()
@@ -787,7 +788,9 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                 )
             }
         }
-        focusValueInSettingsSection(index)
+        // 默认不抢焦点：焦点保持在导航列（上下键可在各分区间切换）；
+        // 只有用户按右键（或主动要求进详情）时才定位到当前选中值。
+        if (focusDetail) focusValueInSettingsSection(index)
     }
 
     /** 切 tab 后把焦点定位到当前选中值（展开式分区）。 */
