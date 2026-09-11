@@ -414,7 +414,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         // 默认焦点到左侧导航列第一项（线路选择）
         binding.navLineup.requestFocus()
         updateLineupLabel()
-        updateTimeoutLabel()
+        updateTimeoutSelection()
         val navs = settingsNavs()
         navs[currentSettingsTab.coerceIn(0, navs.size - 1)].requestFocus()
     }
@@ -879,7 +879,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         val next = timeoutCycle[(idx + 1) % timeoutCycle.size]
         repository.switchTimeoutSec = next
         playback.setSourceTimeoutMs(next * 1000L)
-        updateTimeoutLabel()
+        updateTimeoutSelection()
         Toast.makeText(this, getString(R.string.switch_timeout) + "：" + next + " 秒", Toast.LENGTH_SHORT).show()
     }
 
@@ -1134,7 +1134,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         val next = ratioCycle[(idx + 1 + ratioCycle.size) % ratioCycle.size]
         repository.aspectRatio = next
         playback.setAspectRatio(next)
-        updateAspectRatioLabel()
+        updateAspectRatioSelection()
     }
 
     private fun updateAspectRatioSelection() {
