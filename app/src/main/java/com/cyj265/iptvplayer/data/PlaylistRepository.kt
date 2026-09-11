@@ -116,10 +116,13 @@ class PlaylistRepository(private val context: Context) {
         if (index < 0 || index >= cur.size) return null
         val removed = cur.removeAt(index)
         saveSources(cur)
-        if (cur.isEmpty()) {
-            activeSourceIndex = 0
-        } else if (activeSourceIndex >= cur.size) {
-            activeSourceIndex = cur.size - 1
+        val curIdx = activeSourceIndex
+        when {
+            cur.isEmpty() -> activeSourceIndex = 0
+            // 删除当前源之前的源：当前源索引前移
+            index < curIdx -> activeSourceIndex = (curIdx - 1).coerceIn(0, cur.size - 1)
+            // 删除当前源或之后的源：索引可能越界则修正
+            curIdx >= cur.size -> activeSourceIndex = cur.size - 1
         }
         deleteCacheFor(removed)
         return removed
@@ -318,9 +321,11 @@ class PlaylistRepository(private val context: Context) {
     }
 
     // ---------- 本地文件导入缓存（不算直播源，重启后仍在） ----------
+    // 用 filesDir 而非 cacheDir：cacheDir 可能被系统在存储空间不足时清理，
+    // 导致用户手动导入的本地频道丢失。
 
     private val localCacheFile: File
-        get() = File(context.cacheDir, "playlist_cache_local.json")
+        get() = File(context.filesDir, "playlist_cache_local.json")
 
     fun saveLocalChannels(channels: List<Channel>) {
         try {
@@ -334,7 +339,7 @@ class PlaylistRepository(private val context: Context) {
             val f = localCacheFile
             if (!f.exists()) {
                 // 兼容 v1.6.4 及更早的旧缓存文件（playlist_cache.json）
-                val legacy = File(context.cacheDir, "playlist_cache.json")
+                val legacy = File(context.filesDir, "playlist_cache.json")
                 if (legacy.exists()) {
                     return fromJsonArray(legacy.readText(Charsets.UTF_8))
                 }
