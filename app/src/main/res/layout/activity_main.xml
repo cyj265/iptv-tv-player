@@ -663,28 +663,61 @@
                     android:paddingTop="14dp"
                     android:paddingBottom="24dp">
 
-                    <!-- ===== 分区：线路选择 ===== -->
+                    <!-- ===== 分区：直播源 ===== -->
                     <LinearLayout
                         android:id="@+id/sectionLineup"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical">
 
+                        <!-- 当前源状态 -->
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="直播源切换"
+                            android:text="当前直播源"
                             android:textColor="@color/text_secondary"
                             android:textSize="14sp" />
 
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:id="@+id/tvCurrentSource"
+                                android:layout_width="0dp"
+                                android:layout_height="46dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/bg_search"
+                                android:gravity="center_vertical"
+                                android:paddingLeft="14dp"
+                                android:paddingRight="14dp"
+                                android:textColor="#FFFFFF"
+                                android:textSize="13sp"
+                                android:singleLine="true"
+                                android:ellipsize="middle"
+                                android:text="" />
+
+                            <Button
+                                android:id="@+id/btnNextSource"
+                                android:layout_width="wrap_content"
+                                android:layout_height="46dp"
+                                android:layout_marginLeft="10dp"
+                                android:text="切换源"
+                                android:textSize="14sp"
+                                android:backgroundTint="@color/accent"
+                                android:textColor="#FFFFFF" />
+                        </LinearLayout>
+
+                        <!-- 源列表 -->
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:text="选择要使用的播放列表，当前高亮项为生效源"
+                            android:layout_marginTop="18dp"
+                            android:text="直播源列表（点击切换，右侧删除）"
                             android:textColor="@color/text_secondary"
-                            android:textSize="12sp"
-                            android:lineSpacingExtra="2dp" />
+                            android:textSize="14sp" />
 
                         <LinearLayout
                             android:id="@+id/sourceListContainer"
@@ -693,165 +726,117 @@
                             android:layout_marginTop="6dp"
                             android:orientation="vertical" />
 
+                        <!-- 添加源 -->
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="18dp"
-                            android:text="@string/playlist_url"
+                            android:text="添加直播源"
                             android:textColor="@color/text_secondary"
                             android:textSize="14sp" />
-
-                        <EditText
-                            android:id="@+id/inputPlaylistUrl"
-                            android:layout_width="match_parent"
-                            android:layout_height="100dp"
-                            android:layout_marginTop="6dp"
-                            android:background="@drawable/bg_search"
-                            android:paddingLeft="14dp"
-                            android:paddingRight="14dp"
-                            android:paddingTop="10dp"
-                            android:paddingBottom="10dp"
-                            android:gravity="top"
-                            android:textColor="#FFFFFF"
-                android:textStyle="bold"
-                android:shadowColor="#99000000"
-                android:shadowRadius="3"
-                            android:textColorHint="@color/text_secondary"
-                            android:textSize="14sp"
-                            android:inputType="textUri|textMultiLine"
-                            android:hint="https://example.com/list.m3u&#10;https://example2.com/list.m3u" />
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:text="@string/source_manage_hint"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="12sp"
-                            android:lineSpacingExtra="2dp" />
 
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="8dp"
+                            android:layout_marginTop="6dp"
                             android:orientation="horizontal">
 
-                            <Button
-                                android:id="@+id/btnImportFile"
+                            <EditText
+                                android:id="@+id/inputPlaylistUrl"
                                 android:layout_width="0dp"
                                 android:layout_height="46dp"
                                 android:layout_weight="1"
-                                android:text="@string/choose_file"
-                                android:textSize="14sp"
-                                android:backgroundTint="@color/bg_item"
+                                android:background="@drawable/bg_search"
+                                android:paddingLeft="14dp"
+                                android:paddingRight="14dp"
+                                android:gravity="center_vertical"
                                 android:textColor="#FFFFFF"
-                android:textStyle="bold"
-                android:shadowColor="#99000000"
-                android:shadowRadius="3" />
+                                android:textColorHint="@color/text_secondary"
+                                android:textSize="14sp"
+                                android:inputType="textUri"
+                                android:hint="https://example.com/list.m3u" />
 
                             <Button
                                 android:id="@+id/btnLoadPlaylist"
-                                android:layout_width="0dp"
+                                android:layout_width="wrap_content"
                                 android:layout_height="46dp"
-                                android:layout_weight="1"
                                 android:layout_marginLeft="10dp"
-                                android:text="@string/load"
+                                android:text="添加"
                                 android:textSize="14sp"
                                 android:backgroundTint="@color/accent"
                                 android:textColor="#FFFFFF" />
                         </LinearLayout>
 
-                        <TextView
-                            android:id="@+id/tvSourceStatus"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="12dp"
-                            android:background="@color/bg_item"
-                            android:padding="12dp"
-                            android:textColor="#FFFFFF"
-                android:textStyle="bold"
-                android:shadowColor="#99000000"
-                android:shadowRadius="3"
-                            android:textSize="13sp"
-                            android:lineSpacingExtra="3dp"
-                            android:text="" />
-
                         <Button
-                            android:id="@+id/btnScanManage"
+                            android:id="@+id/btnImportFile"
                             android:layout_width="match_parent"
                             android:layout_height="46dp"
-                            android:layout_marginTop="10dp"
-                            android:text="@string/scan_manage"
+                            android:layout_marginTop="8dp"
+                            android:text="导入本地 M3U/TXT 文件"
                             android:textSize="14sp"
                             android:backgroundTint="@color/bg_item"
-                            android:textColor="@color/accent_soft" />
+                            android:textColor="#FFFFFF" />
 
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="6dp"
-                            android:text="@string/scan_manage_hint"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="12sp"
-                            android:lineSpacingExtra="2dp" />
-
+                        <!-- 节目指南 -->
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="18dp"
-                            android:text="@string/epg_url"
+                            android:text="节目指南（EPG，可选）"
                             android:textColor="@color/text_secondary"
                             android:textSize="14sp" />
 
-                        <EditText
-                            android:id="@+id/inputEpgUrl"
-                            android:layout_width="match_parent"
-                            android:layout_height="96dp"
-                            android:layout_marginTop="6dp"
-                            android:background="@drawable/bg_search"
-                            android:paddingLeft="14dp"
-                            android:paddingRight="14dp"
-                            android:paddingTop="10dp"
-                            android:paddingBottom="10dp"
-                            android:gravity="top"
-                            android:textColor="#FFFFFF"
-                android:textStyle="bold"
-                android:shadowColor="#99000000"
-                android:shadowRadius="3"
-                            android:textColorHint="@color/text_secondary"
-                            android:textSize="14sp"
-                            android:inputType="textUri|textMultiLine"
-                            android:hint="https://example.com/epg.xml（每行一个，可选）" />
-
-                        <TextView
+                        <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:text="@string/epg_url_hint"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="12sp"
-                            android:lineSpacingExtra="2dp" />
+                            android:layout_marginTop="6dp"
+                            android:orientation="horizontal">
 
+                            <EditText
+                                android:id="@+id/inputEpgUrl"
+                                android:layout_width="0dp"
+                                android:layout_height="46dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/bg_search"
+                                android:paddingLeft="14dp"
+                                android:paddingRight="14dp"
+                                android:gravity="center_vertical"
+                                android:textColor="#FFFFFF"
+                                android:textColorHint="@color/text_secondary"
+                                android:textSize="14sp"
+                                android:inputType="textUri"
+                                android:hint="https://example.com/epg.xml" />
+
+                            <Button
+                                android:id="@+id/btnLoadEpg"
+                                android:layout_width="wrap_content"
+                                android:layout_height="46dp"
+                                android:layout_marginLeft="10dp"
+                                android:text="加载"
+                                android:textSize="14sp"
+                                android:backgroundTint="@color/accent"
+                                android:textColor="#FFFFFF" />
+                        </LinearLayout>
+
+                        <!-- 直接播放 -->
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="18dp"
-                            android:text="@string/direct_stream"
+                            android:text="直接播放流地址"
                             android:textColor="@color/text_secondary"
                             android:textSize="14sp" />
 
                         <EditText
                             android:id="@+id/inputDirectUrl"
                             android:layout_width="match_parent"
-                            android:layout_height="48dp"
+                            android:layout_height="46dp"
                             android:layout_marginTop="6dp"
                             android:background="@drawable/bg_search"
                             android:paddingLeft="14dp"
                             android:paddingRight="14dp"
+                            android:gravity="center_vertical"
                             android:textColor="#FFFFFF"
-                android:textStyle="bold"
-                android:shadowColor="#99000000"
-                android:shadowRadius="3"
                             android:textColorHint="@color/text_secondary"
                             android:textSize="15sp"
                             android:inputType="textUri"
@@ -862,10 +847,34 @@
                             android:layout_width="match_parent"
                             android:layout_height="46dp"
                             android:layout_marginTop="8dp"
-                            android:text="@string/play_direct"
+                            android:text="播放"
                             android:textSize="14sp"
                             android:backgroundTint="@color/accent"
                             android:textColor="#FFFFFF" />
+
+                        <!-- 状态 -->
+                        <TextView
+                            android:id="@+id/tvSourceStatus"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:background="@color/bg_item"
+                            android:padding="12dp"
+                            android:textColor="#FFFFFF"
+                            android:textSize="13sp"
+                            android:lineSpacingExtra="3dp"
+                            android:text="" />
+
+                        <!-- 扫码 -->
+                        <Button
+                            android:id="@+id/btnScanManage"
+                            android:layout_width="match_parent"
+                            android:layout_height="46dp"
+                            android:layout_marginTop="10dp"
+                            android:text="手机扫码管理（局域网）"
+                            android:textSize="14sp"
+                            android:backgroundTint="@color/bg_item"
+                            android:textColor="@color/accent_soft" />
                     </LinearLayout>
 
                     <!-- ===== 分区：画面比例（展开式，上下键选择） ===== -->
