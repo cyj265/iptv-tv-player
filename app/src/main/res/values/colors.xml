@@ -1,14 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="bg_dark">#101216</color>
+    <color name="bg_dark">#0E1116</color>
     <color name="bg_panel">#1A1E24</color>
     <color name="bg_item">#232830</color>
+    <color name="bg_item_focused">#2C3542</color>
     <color name="bg_item_selected">#2F7CF6</color>
     <color name="text_primary">#F2F4F8</color>
     <color name="text_secondary">#9AA3B0</color>
-    <color name="accent">#2F7CF6</color>
+    <color name="accent">#3D8BFF</color>
     <color name="accent_dim">#1F5CC8</color>
-    <color name="bg_overlay">#CC101216</color>
-    <color name="bg_overlay_strong">#F2101216</color>
+    <color name="accent_soft">#7CB0FF</color>
+    <color name="bg_overlay">#CC0E1116</color>
+    <color name="bg_overlay_strong">#F20E1116</color>
     <color name="ic_launcher_background">#0E1116</color>
 </resources>

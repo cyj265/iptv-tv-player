@@ -4,30 +4,43 @@
     android:layout_height="wrap_content"
     android:orientation="horizontal"
     android:gravity="center_vertical"
-    android:paddingLeft="16dp"
-    android:paddingRight="16dp"
-    android:paddingTop="12dp"
-    android:paddingBottom="8dp"
+    android:background="@drawable/bg_group_header"
+    android:paddingLeft="14dp"
+    android:paddingRight="14dp"
+    android:paddingTop="13dp"
+    android:paddingBottom="13dp"
+    android:layout_marginLeft="6dp"
+    android:layout_marginRight="6dp"
+    android:layout_marginTop="4dp"
     android:focusable="true"
-    android:clickable="true"
-    android:background="?attr/selectableItemBackground">
+    android:clickable="true">
 
     <TextView
         android:id="@+id/groupArrow"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textColor="@color/accent"
-        android:textSize="12sp"
-        android:text="▾"
-        android:layout_marginRight="6dp" />
+        android:textSize="14sp"
+        android:text="▸"
+        android:layout_marginRight="8dp" />
 
     <TextView
         android:id="@+id/groupTitle"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:textColor="@color/accent"
-        android:textSize="15sp"
+        android:layout_weight="1"
+        android:textColor="@color/text_primary"
+        android:textSize="16sp"
         android:textStyle="bold"
         android:maxLines="1"
         android:ellipsize="end" />
+
+    <TextView
+        android:id="@+id/groupCount"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="8dp"
+        android:textColor="@color/text_secondary"
+        android:textSize="12sp"
+        android:text="0 个频道" />
 </LinearLayout>

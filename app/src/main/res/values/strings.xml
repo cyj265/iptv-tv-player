@@ -1,13 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">IPTV 播放器</string>
+    <string name="app_name">揽星 TV</string>
     <string name="settings">设置</string>
-    <string name="playlist_url">播放列表地址 (M3U URL)</string>
-    <string name="epg_url">节目指南地址 (EPG/XMLTV URL，可选)</string>
+
+    <!-- 直播源 -->
+    <string name="playlist_url">播放列表地址（每行一个，支持多个源）</string>
+    <string name="source_manage_hint">每行填一个播放列表地址（.m3u/.m3u8/.txt），保存后列表顶部可快速切换</string>
+    <string name="epg_url">节目指南地址（EPG/XMLTV URL，可选）</string>
     <string name="load">加载</string>
     <string name="loading_playlist">正在加载播放列表…</string>
     <string name="load_failed">加载失败，请检查地址</string>
     <string name="no_channels">未找到频道</string>
+    <string name="saved">已保存</string>
+    <string name="save_sources_hint">保存后自动刷新当前源</string>
+    <string name="current_source">当前直播源</string>
+    <string name="switch_source">切换直播源</string>
+    <string name="source_updated">上次更新</string>
+    <string name="source_never">从未更新</string>
+    <string name="source_switch_hint">OK 切换直播源 · 返回继续选台</string>
+
+    <!-- 扫码管理 -->
+    <string name="scan_manage">扫码管理（手机添加直播源）</string>
+    <string name="scan_manage_hint">手机与机顶盒连接同一 Wi-Fi，用浏览器扫码打开管理页，即可在手机上添加/切换直播源、设置节目指南</string>
+    <string name="scan_qr_title">用手机扫码打开管理页</string>
+    <string name="scan_no_wifi">未获取到局域网地址，请确认机顶盒已联网</string>
+    <string name="scan_server_off">局域网管理服务未启动</string>
+
+    <!-- 搜索/收藏/列表 -->
     <string name="search_hint">搜索频道…</string>
     <string name="favorites">收藏</string>
     <string name="all_channels">全部频道</string>
@@ -27,6 +46,8 @@
     <string name="direct_stream_hint">无需播放列表，输入单个直播流地址即可播放</string>
     <string name="play_direct">播放</string>
     <string name="importing">正在读取文件…</string>
+
+    <!-- 播放器 -->
     <string name="playback_options">播放选项</string>
     <string name="aspect_ratio">画面比例</string>
     <string name="aspect_fit">原始比例</string>
@@ -35,26 +56,45 @@
     <string name="aspect_zoom">缩放裁剪（填满）</string>
     <string name="aspect_fill">拉伸全屏</string>
     <string name="auto_resume">打开应用时自动恢复上次频道</string>
-    <string name="decoder_mode">解码方式（高清报错时切换试试）</string>
+    <string name="decoder_mode">解码方式</string>
     <string name="decoder_auto">自动（硬解优先，失败自动回退）</string>
-    <string name="decoder_hardware">仅硬件解码（硬解失败不再回退软解）</string>
-    <string name="decoder_software">仅软件解码（兼容性最好，较费 CPU）</string>
-    <string name="about">关于</string>
-    <string name="close">关闭</string>
-    <string name="cleared">已清除</string>
-    <string name="playback_hint">方向键换台 · OK 频道列表 · 菜单键设置</string>
+    <string name="decoder_hardware">仅硬件解码</string>
+    <string name="decoder_software">仅软件解码</string>
+
+    <!-- 界面 -->
+    <string name="auto_hide_overlay">无操作时自动隐藏信息条与按钮</string>
+    <string name="ui_hint">关闭后信息条与底部按钮将常驻显示</string>
+
+    <!-- 设置导航 -->
     <string name="nav_source">直播源</string>
     <string name="nav_player">播放器</string>
     <string name="nav_ui">界面</string>
     <string name="nav_fav">收藏</string>
     <string name="nav_update">更新</string>
     <string name="nav_debug">调试</string>
-    <string name="auto_hide_overlay">无操作时自动隐藏信息条与按钮</string>
-    <string name="ui_hint">关闭后信息条与底部按钮将常驻显示</string>
+    <string name="about">关于</string>
+    <string name="close">关闭</string>
+    <string name="cleared">已清除</string>
+    <string name="playback_hint">方向键换台 · OK 频道列表 · 菜单键设置</string>
+
+    <!-- 更新 -->
     <string name="current_version">当前版本</string>
-    <string name="check_update">检查更新（打开 GitHub 发布页）</string>
+    <string name="check_update">检查更新</string>
+    <string name="checking_update">正在检查更新…</string>
+    <string name="update_latest">已是最新版本</string>
+    <string name="update_found">发现新版本，正在下载…</string>
+    <string name="update_downloading">下载中 %1$d%%</string>
+    <string name="update_done">下载完成，正在安装…</string>
+    <string name="update_failed">更新失败：%1$s</string>
+    <string name="update_install_hint">下载完成后会自动弹出系统安装界面，确认即可升级（配置与收藏都会保留）</string>
+
+    <!-- 调试 -->
     <string name="crash_log">崩溃日志（真机问题定位用）</string>
     <string name="clear_crash_log">清空崩溃日志</string>
     <string name="cleared_crash_log">崩溃日志已清空</string>
+    <string name="export_crash_log">导出崩溃日志（txt）</string>
+    <string name="exported">已导出</string>
+    <string name="export_empty">崩溃日志为空，无需导出</string>
+
     <string name="fav_count">已收藏 %1$d 个频道</string>
 </resources>
