@@ -4,11 +4,11 @@
     android:layout_height="wrap_content"
     android:orientation="horizontal"
     android:gravity="center_vertical"
-    android:background="@drawable/bg_channel"
-    android:paddingLeft="14dp"
-    android:paddingRight="14dp"
-    android:paddingTop="12dp"
-    android:paddingBottom="12dp"
+    android:background="@drawable/bg_channel_card"
+    android:paddingLeft="10dp"
+    android:paddingRight="12dp"
+    android:paddingTop="9dp"
+    android:paddingBottom="9dp"
     android:layout_marginLeft="6dp"
     android:layout_marginRight="6dp"
     android:layout_marginTop="2dp"
@@ -18,26 +18,55 @@
     <!-- 序号 -->
     <TextView
         android:id="@+id/tvIndex"
-        android:layout_width="32dp"
+        android:layout_width="28dp"
         android:layout_height="wrap_content"
-        android:textColor="@color/text_secondary"
-        android:textSize="14sp"
+        android:textColor="@color/text_tertiary"
+        android:textSize="12sp"
         android:gravity="center"
         android:maxLines="1" />
 
+    <!-- 频道 Logo（圆形，无 Logo 时显示首字母占位） -->
+    <FrameLayout
+        android:layout_width="38dp"
+        android:layout_height="38dp"
+        android:layout_marginLeft="6dp"
+        android:layout_marginRight="10dp">
+
+        <ImageView
+            android:id="@+id/ivChannelLogo"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"
+            android:background="@drawable/bg_circle"
+            android:visibility="gone"
+            android:contentDescription="@string/channel_logo" />
+
+        <TextView
+            android:id="@+id/tvLogoPlaceholder"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:background="@drawable/bg_circle_accent"
+            android:maxLines="1" />
+    </FrameLayout>
+
+    <!-- 频道名 + EPG -->
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:orientation="vertical"
-        android:layout_marginLeft="8dp">
+        android:orientation="vertical">
 
         <TextView
             android:id="@+id/tvChannelName"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textColor="@color/text_primary"
-            android:textSize="16sp"
+            android:textSize="15sp"
+            android:textStyle="bold"
             android:maxLines="1"
             android:ellipsize="end" />
 
@@ -47,15 +76,17 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
             android:textColor="@color/text_secondary"
-            android:textSize="12sp"
+            android:textSize="11sp"
             android:maxLines="1"
             android:ellipsize="end" />
     </LinearLayout>
 
+    <!-- 收藏图标 -->
     <ImageView
         android:id="@+id/ivFavorite"
-        android:layout_width="22dp"
-        android:layout_height="22dp"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:layout_marginLeft="8dp"
         android:src="@drawable/ic_star"
         android:contentDescription="@string/favorite_hint" />
 </LinearLayout>
