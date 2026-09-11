@@ -23,13 +23,13 @@ Daemon will be stopped at the end of the build
 > Task :app:mergeReleaseJniLibFolders
 > Task :app:mergeReleaseNativeLibs NO-SOURCE
 > Task :app:stripReleaseDebugSymbols NO-SOURCE
+> Task :app:processReleaseManifestForPackage
 > Task :app:extractReleaseNativeSymbolTables NO-SOURCE
 > Task :app:mergeReleaseNativeDebugMetadata NO-SOURCE
-> Task :app:processReleaseManifestForPackage
 > Task :app:checkReleaseDuplicateClasses
+> Task :app:processReleaseResources
 > Task :app:desugarReleaseFileDependencies FROM-CACHE
 > Task :app:mergeReleaseStartupProfile
-> Task :app:processReleaseResources
 > Task :app:mergeExtDexRelease FROM-CACHE
 > Task :app:mergeReleaseShaders
 > Task :app:compileReleaseShaders NO-SOURCE
@@ -40,20 +40,16 @@ Daemon will be stopped at the end of the build
 > Task :app:extractReleaseVersionControlInfo
 > Task :app:collectReleaseDependencies
 > Task :app:sdkReleaseDependencyData
+> Task :app:optimizeReleaseResources
 > Task :app:validateSigningRelease
 > Task :app:writeReleaseAppMetadata
-> Task :app:optimizeReleaseResources
 > Task :app:writeReleaseSigningConfigVersions
 
-> Task :app:compileReleaseKotlin
-e: file:///home/runner/work/lanxing-tv/lanxing-tv/app/src/main/java/com/cyj265/iptvplayer/MainActivity.kt:753:17 Unresolved reference: switchAutoUpdate
-e: file:///home/runner/work/lanxing-tv/lanxing-tv/app/src/main/java/com/cyj265/iptvplayer/MainActivity.kt:753:34 Variable expected
-e: file:///home/runner/work/lanxing-tv/lanxing-tv/app/src/main/java/com/cyj265/iptvplayer/MainActivity.kt:754:17 Unresolved reference: switchAutoUpdate
-e: file:///home/runner/work/lanxing-tv/lanxing-tv/app/src/main/java/com/cyj265/iptvplayer/MainActivity.kt:754:63 Cannot infer a type for this parameter. Please specify it explicitly.
-e: file:///home/runner/work/lanxing-tv/lanxing-tv/app/src/main/java/com/cyj265/iptvplayer/MainActivity.kt:754:66 Cannot infer a type for this parameter. Please specify it explicitly.
-
 > Task :app:compileReleaseKotlin FAILED
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_3-1789113642222.json
+e: file:///home/runner/work/lanxing-tv/lanxing-tv/app/src/main/java/com/cyj265/iptvplayer/MainActivity.kt:417:9 Unresolved reference: updateTimeoutLabel
+e: file:///home/runner/work/lanxing-tv/lanxing-tv/app/src/main/java/com/cyj265/iptvplayer/MainActivity.kt:882:9 Unresolved reference: updateTimeoutLabel
+e: file:///home/runner/work/lanxing-tv/lanxing-tv/app/src/main/java/com/cyj265/iptvplayer/MainActivity.kt:1137:9 Unresolved reference: updateAspectRatioLabel
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_3-1789114195476.json
 
 FAILURE: Build failed with an exception.
 
@@ -68,5 +64,5 @@ Execution failed for task ':app:compileReleaseKotlin'.
 > Run with --scan to get full insights.
 > Get more help at https://help.gradle.org.
 
-BUILD FAILED in 29s
+BUILD FAILED in 31s
 37 actionable tasks: 26 executed, 11 from cache
