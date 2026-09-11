@@ -6,17 +6,17 @@ Daemon will be stopped at the end of the build
 > Task :app:preReleaseBuild UP-TO-DATE
 > Task :app:dataBindingMergeDependencyArtifactsRelease
 > Task :app:generateReleaseResValues FROM-CACHE
-> Task :app:generateReleaseResources FROM-CACHE
-> Task :app:mergeReleaseResources FROM-CACHE
-> Task :app:packageReleaseResources FROM-CACHE
-> Task :app:parseReleaseLocalResources FROM-CACHE
-> Task :app:dataBindingGenBaseClassesRelease FROM-CACHE
+> Task :app:generateReleaseResources
+> Task :app:packageReleaseResources
 > Task :app:generateReleaseBuildConfig
+> Task :app:parseReleaseLocalResources
 > Task :app:mapReleaseSourceSetPaths
 > Task :app:createReleaseCompatibleScreenManifests
 > Task :app:checkReleaseAarMetadata
 > Task :app:extractDeepLinksRelease FROM-CACHE
+> Task :app:mergeReleaseResources
 > Task :app:processReleaseMainManifest
+> Task :app:dataBindingGenBaseClassesRelease
 > Task :app:processReleaseManifest
 > Task :app:javaPreCompileRelease FROM-CACHE
 > Task :app:extractProguardFiles
@@ -27,19 +27,40 @@ Daemon will be stopped at the end of the build
 > Task :app:extractReleaseNativeSymbolTables NO-SOURCE
 > Task :app:mergeReleaseNativeDebugMetadata NO-SOURCE
 > Task :app:checkReleaseDuplicateClasses
-> Task :app:processReleaseResources FAILED
+> Task :app:processReleaseResources
 > Task :app:desugarReleaseFileDependencies FROM-CACHE
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_3-1789134149929.json
+> Task :app:mergeReleaseStartupProfile
+> Task :app:mergeExtDexRelease FROM-CACHE
+> Task :app:mergeReleaseArtProfile
+> Task :app:mergeReleaseShaders
+> Task :app:compileReleaseShaders NO-SOURCE
+> Task :app:generateReleaseAssets UP-TO-DATE
+> Task :app:mergeReleaseAssets
+> Task :app:compressReleaseAssets FROM-CACHE
+> Task :app:extractReleaseVersionControlInfo
+> Task :app:collectReleaseDependencies
+> Task :app:sdkReleaseDependencyData
+> Task :app:optimizeReleaseResources
+> Task :app:validateSigningRelease
+> Task :app:writeReleaseAppMetadata
+> Task :app:writeReleaseSigningConfigVersions
+
+> Task :app:compileReleaseKotlin FAILED
+e: file:///home/runner/work/lanxing-tv/lanxing-tv/app/src/main/java/com/cyj265/iptvplayer/MainActivity.kt:595:41 Unresolved reference: getSourceHealth
+e: file:///home/runner/work/lanxing-tv/lanxing-tv/app/src/main/java/com/cyj265/iptvplayer/MainActivity.kt:596:33 'when' expression must be exhaustive, add necessary 'else' branch
+e: file:///home/runner/work/lanxing-tv/lanxing-tv/app/src/main/java/com/cyj265/iptvplayer/MainActivity.kt:597:21 Comparison of incompatible enums '[Error type: Error property type]' and 'SourceHealthChecker.SourceHealth.Status' is always unsuccessful
+e: file:///home/runner/work/lanxing-tv/lanxing-tv/app/src/main/java/com/cyj265/iptvplayer/MainActivity.kt:598:21 Comparison of incompatible enums '[Error type: Error property type]' and 'SourceHealthChecker.SourceHealth.Status' is always unsuccessful
+e: file:///home/runner/work/lanxing-tv/lanxing-tv/app/src/main/java/com/cyj265/iptvplayer/MainActivity.kt:599:21 Comparison of incompatible enums '[Error type: Error property type]' and 'SourceHealthChecker.SourceHealth.Status' is always unsuccessful
+e: file:///home/runner/work/lanxing-tv/lanxing-tv/app/src/main/java/com/cyj265/iptvplayer/MainActivity.kt:600:21 Comparison of incompatible enums '[Error type: Error property type]' and 'SourceHealthChecker.SourceHealth.Status' is always unsuccessful
+e: file:///home/runner/work/lanxing-tv/lanxing-tv/app/src/main/java/com/cyj265/iptvplayer/MainActivity.kt:1096:32 Unresolved reference: setSourceHealth
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_3-1789138157698.json
 
 FAILURE: Build failed with an exception.
 
 * What went wrong:
-Execution failed for task ':app:processReleaseResources'.
-> A failure occurred while executing com.android.build.gradle.internal.res.LinkApplicationAndroidResourcesTask$TaskAction
-   > Android resource linking failed
-     com.cyj265.iptvplayer.app-mergeReleaseResources-30:/layout/activity_main.xml:28: error: resource color/bg_top_gradient (aka com.cyj265.iptvplayer:color/bg_top_gradient) not found.
-     error: failed linking file resources.
-
+Execution failed for task ':app:compileReleaseKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+   > Compilation error. See log for more details
 
 * Try:
 > Run with --stacktrace option to get the stack trace.
@@ -47,5 +68,5 @@ Execution failed for task ':app:processReleaseResources'.
 > Run with --scan to get full insights.
 > Get more help at https://help.gradle.org.
 
-BUILD FAILED in 16s
-23 actionable tasks: 14 executed, 9 from cache
+BUILD FAILED in 35s
+37 actionable tasks: 31 executed, 6 from cache
