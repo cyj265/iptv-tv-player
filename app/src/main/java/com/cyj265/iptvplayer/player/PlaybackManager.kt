@@ -4,10 +4,10 @@ import android.content.Context
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
+import android.view.TextureView
 import org.videolan.libvlc.LibVLC
 import org.videolan.libvlc.Media
 import org.videolan.libvlc.MediaPlayer
-import org.videolan.libvlc.util.VLCVideoLayout
 import java.io.File
 
 /**
@@ -40,7 +40,7 @@ class PlaybackManager(
 
     private var libVLC: LibVLC? = null
     private var mediaPlayer: MediaPlayer? = null
-    private var videoLayout: VLCVideoLayout? = null
+    private var textureView: TextureView? = null
     private var currentUrl: String? = null
     private var currentChannelName: String? = null
 
@@ -57,15 +57,16 @@ class PlaybackManager(
         context.getSharedPreferences("iptv_prefs", Context.MODE_PRIVATE)
             .getString("aspect_ratio", "fit") ?: "fit"
 
-    fun attach(layout: VLCVideoLayout) {
+    fun attach(textureView: TextureView) {
         if (mediaPlayer != null) return
-        this.videoLayout = layout
+        this.textureView = textureView
         try {
             val vlc = LibVLC(context, vlcArgs())
             val mp = MediaPlayer(vlc)
             libVLC = vlc
             mediaPlayer = mp
-            layout.attachViews(mp, null, false)
+            mp.vlcVout.setVideoTextureView(textureView)
+            mp.vlcVout.attachViews()
             mp.setEventListener { event -> onVlcEvent(event) }
         } catch (t: Throwable) {
             log("VLC 初始化失败: " + t)
@@ -165,12 +166,12 @@ class PlaybackManager(
         decoderMode = mode
         context.getSharedPreferences("iptv_prefs", Context.MODE_PRIVATE)
             .edit().putString("decoder_mode", mode).apply()
-        val layout = videoLayout ?: return
+        val tex = textureView ?: return
         val url = currentUrl
         val name = currentChannelName
         try {
             try {
-                layout.detachViews()
+                mediaPlayer?.vlcVout?.detachViews()
             } catch (ignored: Throwable) {
             }
             mediaPlayer?.release()
@@ -179,7 +180,8 @@ class PlaybackManager(
             val mp = MediaPlayer(vlc)
             libVLC = vlc
             mediaPlayer = mp
-            layout.attachViews(mp, null, false)
+            mp.vlcVout.setVideoTextureView(tex)
+            mp.vlcVout.attachViews()
             mp.setEventListener { event -> onVlcEvent(event) }
         } catch (t: Throwable) {
             log("切换解码方式失败: $t")
@@ -211,15 +213,14 @@ class PlaybackManager(
 
     /** zoom/fill 通过放大画面实现（fill 视觉上接近无黑边），fit 恢复原始 */
     private fun applyTextureScale() {
-        val layout = videoLayout ?: return
+        val tex = textureView ?: return
         val scale = when (aspectRatio) {
             "zoom" -> 1.12f
             "fill" -> 1.15f
             else -> 1f
         }
-        layout.post {
+        tex.post {
             try {
-                val tex = layout.getChildAt(0) ?: return@post
                 tex.scaleX = scale
                 tex.scaleY = scale
                 tex.pivotX = tex.width / 2f
@@ -241,14 +242,14 @@ class PlaybackManager(
     fun release() {
         retryHandler.removeCallbacksAndMessages(null)
         try {
-            videoLayout?.detachViews()
+            mediaPlayer?.vlcVout?.detachViews()
         } catch (ignored: Throwable) {
         }
         mediaPlayer?.release()
         mediaPlayer = null
         libVLC?.release()
         libVLC = null
-        videoLayout = null
+        textureView = null
     }
 
     /** 诊断日志：写入 filesDir/crash.log（设置→调试 可查看） */

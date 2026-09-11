@@ -5,8 +5,8 @@
     android:layout_height="match_parent"
     android:background="@color/bg_dark">
 
-    <!-- ===== 全屏视频画面（VLC 内核，自带 TextureView 显示） ===== -->
-    <org.videolan.libvlc.util.VLCVideoLayout
+    <!-- ===== 全屏视频画面（VLC 内核，TextureView 显示） ===== -->
+    <TextureView
         android:id="@+id/playerView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
