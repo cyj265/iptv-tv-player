@@ -248,12 +248,12 @@
             <!-- 左侧：分组列表 -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/groupList"
-                android:layout_width="170dp"
+                android:layout_width="140dp"
                 android:layout_height="match_parent"
                 android:background="@color/bg_item"
                 android:clipToPadding="false" />
 
-            <!-- 右侧：频道列表 -->
+            <!-- 中间：频道列表 -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/channelList"
                 android:layout_width="0dp"
@@ -261,6 +261,85 @@
                 android:layout_weight="1"
                 android:clipToPadding="false"
                 android:paddingBottom="8dp" />
+
+            <!-- 右侧：节目信息栏 -->
+            <LinearLayout
+                android:id="@+id/programInfo"
+                android:layout_width="170dp"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:background="@color/bg_item"
+                android:padding="12dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="节目信息"
+                    android:textColor="@color/accent_soft"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:paddingBottom="8dp" />
+
+                <TextView
+                    android:id="@+id/tvInfoChannel"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/text_primary"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    android:maxLines="2"
+                    android:ellipsize="end"
+                    android:paddingBottom="12dp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="正在播放"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11sp"
+                    android:paddingBottom="2dp" />
+
+                <TextView
+                    android:id="@+id/tvInfoNow"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/text_primary"
+                    android:textSize="13sp"
+                    android:maxLines="4"
+                    android:ellipsize="end"
+                    android:paddingBottom="12dp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="即将播出"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11sp"
+                    android:paddingBottom="2dp" />
+
+                <TextView
+                    android:id="@+id/tvInfoNext"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp"
+                    android:maxLines="4"
+                    android:ellipsize="end" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1" />
+
+                <TextView
+                    android:id="@+id/tvInfoMeta"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11sp"
+                    android:maxLines="2"
+                    android:ellipsize="end" />
+            </LinearLayout>
         </LinearLayout>
     </LinearLayout>
 
@@ -928,35 +1007,49 @@
                             android:textColor="@color/text_secondary"
                             android:textSize="14sp" />
 
-                        <TextView
-                            android:id="@+id/tvCrashLog"
+                        <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="6dp"
-                            android:textColor="@color/text_primary"
-                            android:textSize="12sp"
-                            android:lineSpacingExtra="2dp"
-                            android:text="无" />
+                            android:orientation="horizontal"
+                            android:layout_marginTop="8dp">
 
-                        <Button
-                            android:id="@+id/btnExportCrashLog"
-                            android:layout_width="match_parent"
-                            android:layout_height="46dp"
-                            android:layout_marginTop="10dp"
-                            android:text="@string/export_crash_log"
-                            android:textSize="14sp"
-                            android:backgroundTint="@color/accent"
-                            android:textColor="#FFFFFF" />
+                            <Button
+                                android:id="@+id/btnClearCrashLog"
+                                android:layout_width="0dp"
+                                android:layout_height="42dp"
+                                android:layout_weight="1"
+                                android:text="@string/clear_crash_log"
+                                android:textSize="13sp"
+                                android:backgroundTint="@color/bg_item"
+                                android:textColor="@color/text_primary" />
 
-                        <Button
-                            android:id="@+id/btnClearCrashLog"
+                            <Button
+                                android:id="@+id/btnExportCrashLog"
+                                android:layout_width="0dp"
+                                android:layout_height="42dp"
+                                android:layout_weight="1"
+                                android:layout_marginLeft="8dp"
+                                android:text="@string/export_crash_log"
+                                android:textSize="13sp"
+                                android:backgroundTint="@color/accent"
+                                android:textColor="#FFFFFF" />
+                        </LinearLayout>
+
+                        <ScrollView
                             android:layout_width="match_parent"
-                            android:layout_height="46dp"
-                            android:layout_marginTop="10dp"
-                            android:text="@string/clear_crash_log"
-                            android:textSize="14sp"
-                            android:backgroundTint="@color/bg_item"
-                            android:textColor="@color/text_primary" />
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:maxHeight="320dp">
+
+                            <TextView
+                                android:id="@+id/tvCrashLog"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:textColor="@color/text_primary"
+                                android:textSize="12sp"
+                                android:lineSpacingExtra="2dp"
+                                android:text="无" />
+                        </ScrollView>
                     </LinearLayout>
 
                     <!-- ===== 分区：关于 ===== -->
