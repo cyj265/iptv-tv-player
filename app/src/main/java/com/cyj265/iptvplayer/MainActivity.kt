@@ -4,6 +4,7 @@ import android.app.AlertDialog
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Color
+import android.graphics.Typeface
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
@@ -172,13 +173,13 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         groupAdapter = GroupAdapter { group ->
             currentGroup = group
             groupAdapter.setSelected(group)
-            rememberLastGroup(group)
+            rememberLastGroup(group ?: "")
             applyFilter()
             // 定位：当前播放频道在该分组则定位到它，否则定位到分组第一个频道
             val targetPos = currentChannel
                 ?.let { adapter.positionOfChannel(it.id) }
                 ?.takeIf { it >= 0 }
-                ?: adapter.firstPositionOfGroup(group)
+                ?: adapter.firstPositionOfGroup(group ?: "")
             if (targetPos >= 0) {
                 pendingChannelScrollPos = targetPos
                 binding.channelList.scrollToPosition(targetPos)
@@ -555,7 +556,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                 }
                 row.setOnClickListener {
                     if (i != repository.activeSourceIndex) {
-                        repository.setActiveSource(i)
+                        repository.activeSourceIndex = i
                         currentChannel = null
                         adapter.setSelected(null)
                         updateSourceOptions()
