@@ -6,56 +6,45 @@ Daemon will be stopped at the end of the build
 > Task :app:preReleaseBuild UP-TO-DATE
 > Task :app:dataBindingMergeDependencyArtifactsRelease
 > Task :app:generateReleaseResValues FROM-CACHE
-> Task :app:generateReleaseResources FROM-CACHE
-> Task :app:packageReleaseResources FROM-CACHE
+> Task :app:generateReleaseResources
+> Task :app:packageReleaseResources
 > Task :app:mergeReleaseResources
-> Task :app:parseReleaseLocalResources FROM-CACHE
-> Task :app:dataBindingGenBaseClassesRelease
 > Task :app:generateReleaseBuildConfig
-> Task :app:mapReleaseSourceSetPaths
 > Task :app:checkReleaseAarMetadata
+> Task :app:mapReleaseSourceSetPaths
 > Task :app:createReleaseCompatibleScreenManifests
 > Task :app:extractDeepLinksRelease FROM-CACHE
+> Task :app:parseReleaseLocalResources
 > Task :app:processReleaseMainManifest
+> Task :app:dataBindingGenBaseClassesRelease
 > Task :app:processReleaseManifest
 > Task :app:javaPreCompileRelease FROM-CACHE
 > Task :app:extractProguardFiles
 > Task :app:mergeReleaseJniLibFolders
-> Task :app:mergeReleaseNativeLibs NO-SOURCE
-> Task :app:stripReleaseDebugSymbols NO-SOURCE
-> Task :app:extractReleaseNativeSymbolTables NO-SOURCE
-> Task :app:mergeReleaseNativeDebugMetadata NO-SOURCE
+> Task :app:processReleaseManifestForPackage
 > Task :app:checkReleaseDuplicateClasses
+> Task :app:mergeReleaseNativeLibs
+
+> Task :app:stripReleaseDebugSymbols
+Unable to strip the following libraries, packaging them as they are: libc++_shared.so, libvlc.so, libvlcjni.so.
+
+> Task :app:processReleaseResources
 > Task :app:desugarReleaseFileDependencies
 > Task :app:mergeReleaseStartupProfile
-> Task :app:processReleaseManifestForPackage
-> Task :app:processReleaseResources
-> Task :app:mergeReleaseArtProfile
-> Task :app:mergeReleaseShaders
-> Task :app:compileReleaseShaders NO-SOURCE
-> Task :app:generateReleaseAssets UP-TO-DATE
-> Task :app:mergeReleaseAssets
-> Task :app:compressReleaseAssets FROM-CACHE
-> Task :app:extractReleaseVersionControlInfo
-> Task :app:collectReleaseDependencies
-> Task :app:sdkReleaseDependencyData
-> Task :app:optimizeReleaseResources
-> Task :app:validateSigningRelease
-> Task :app:writeReleaseAppMetadata
-> Task :app:writeReleaseSigningConfigVersions
-> Task :app:mergeExtDexRelease
+> Task :app:extractReleaseNativeSymbolTables
+
+> Task :app:compileReleaseKotlin
+e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:68:20 Unresolved reference: setMediaPlayer
+e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:117:27 Unresolved reference: width
+e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:117:46 Unresolved reference: height
+e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:118:55 Unresolved reference: width
+e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:118:68 Unresolved reference: height
+e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:174:20 Unresolved reference: setMediaPlayer
+e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:236:26 Unresolved reference: mediaPlayer
 
 > Task :app:compileReleaseKotlin FAILED
-e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:103:44 Type checking has run into a recursive problem. Easiest workaround: specify types of your declarations explicitly
-e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:108:62 Type checking has run into a recursive problem. Easiest workaround: specify types of your declarations explicitly
-e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:108:62 Variable 'playerListener' must be initialized
-e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:227:13 Object 'HardwareOnlySelector' is not abstract and does not implement abstract member public abstract fun getDecoderInfos(p0: String, p1: Boolean, p2: Boolean): (Mutable)List<MediaCodecInfo> defined in androidx.media3.exoplayer.mediacodec.MediaCodecSelector
-e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:228:9 'getDecoderInfos' overrides nothing
-e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:232:61 No value passed for parameter 'p2'
-e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:238:13 Object 'SoftwareOnlySelector' is not abstract and does not implement abstract member public abstract fun getDecoderInfos(p0: String, p1: Boolean, p2: Boolean): (Mutable)List<MediaCodecInfo> defined in androidx.media3.exoplayer.mediacodec.MediaCodecSelector
-e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:239:9 'getDecoderInfos' overrides nothing
-e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/player/PlaybackManager.kt:243:61 No value passed for parameter 'p2'
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_2-1789060625563.json
+> Task :app:mergeExtDexRelease
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_2-1789087456598.json
 
 FAILURE: Build failed with an exception.
 
@@ -70,5 +59,5 @@ Execution failed for task ':app:compileReleaseKotlin'.
 > Run with --scan to get full insights.
 > Get more help at https://help.gradle.org.
 
-BUILD FAILED in 57s
-37 actionable tasks: 30 executed, 7 from cache
+BUILD FAILED in 1m 5s
+29 actionable tasks: 26 executed, 3 from cache
