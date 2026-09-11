@@ -50,14 +50,17 @@ class ChannelAdapter(
     /** 当前 EPG 节目文本：channelId -> "正在播放: xxx"（用于频道项副行） */
     var epgNow: Map<String, String> = emptyMap()
         set(value) {
+            if (field == value) return
             field = value
-            notifyDataSetChanged()
+            // 修复：EPG 只影响可见项的副行文本，用 notifyItemRangeChanged 替代全量刷新
+            if (itemCount > 0) notifyItemRangeChanged(0, itemCount)
         }
 
     var favorites: Set<String> = emptySet()
         set(value) {
+            if (field == value) return
             field = value
-            notifyDataSetChanged()
+            if (itemCount > 0) notifyItemRangeChanged(0, itemCount)
         }
     private var selectedChannelId: String? = null
 
@@ -122,8 +125,10 @@ class ChannelAdapter(
     }
 
     fun setSelected(channelId: String?) {
+        if (selectedChannelId == channelId) return
         selectedChannelId = channelId
-        notifyDataSetChanged()
+        // 选中态只影响文字颜色，用范围刷新替代全量
+        if (itemCount > 0) notifyItemRangeChanged(0, itemCount)
     }
 
     /** 双栏模式下按全局显示顺序查找频道所在行位置；找不到返回 -1。 */
