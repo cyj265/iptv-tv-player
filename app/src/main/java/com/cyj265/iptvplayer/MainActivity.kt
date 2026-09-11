@@ -76,6 +76,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     private lateinit var groupAdapter: GroupAdapter
     private var currentGroup: String? = null  // null = 全部频道
     private var lastBackPressTime: Long = 0
+    private var autoUpdateCheck: Boolean = true
     private var favorites: MutableSet<String> = HashSet()
     private var showFavoritesOnly = false
     private var currentChannel: Channel? = null
@@ -201,6 +202,12 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         updateSourceBar()
         updateSourceStatus()
         updateClockVisibility()
+
+        // 启动自动检查更新（可在设置-关于里开关）
+        autoUpdateCheck = getSharedPreferences("settings", MODE_PRIVATE).getBoolean("auto_update_check", true)
+        if (autoUpdateCheck) {
+            checkUpdateSilent()
+        }
     }
 
     /** 启动失败：记录日志并弹窗显示堆栈。 */
@@ -385,7 +392,9 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         binding.channelPanel.alpha = 0f
         binding.channelPanel.animate().alpha(1f).setDuration(160).start()
         updateSourceBar()
-        binding.channelList.requestFocus()
+        updateProgramInfo()
+        // 默认焦点到左侧分组列表（先选分组再选频道）
+        binding.groupList.requestFocus()
     }
 
     private fun hideChannelPanel() {
@@ -402,6 +411,8 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         refreshSettingsSourceInput()
         updateSourceStatus()
         refreshCrashLog()
+        // 默认焦点到左侧导航列第一项（线路选择）
+        binding.navLineup.requestFocus()
         updateLineupLabel()
         updateTimeoutLabel()
         val navs = settingsNavs()
@@ -738,6 +749,13 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
 
         binding.tvVersion.text = "v" + BuildConfig.VERSION_NAME
         binding.btnCheckUpdate.setOnClickListener { checkUpdate() }
+        // 启动自动检查更新开关
+        binding.switchAutoUpdate.isChecked = autoUpdateCheck
+        binding.switchAutoUpdate.setOnCheckedChangeListener { _, isChecked ->
+            autoUpdateCheck = isChecked
+            getSharedPreferences("settings", MODE_PRIVATE).edit()
+                .putBoolean("auto_update_check", isChecked).apply()
+        }
 
         refreshCrashLog()
         binding.btnExportCrashLog.setOnClickListener { launchCrashExport() }
@@ -870,6 +888,51 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     }
 
     // ---------- 检查更新（自动下载安装） ----------
+
+    /** 启动时静默检查更新：有更新弹窗确认，没更新不打扰，失败也不打扰 */
+    private fun checkUpdateSilent() {
+        Thread {
+            try {
+                val conn = URL(
+                    "https://api.github.com/repos/cyj265/lanxing-tv/releases/latest"
+                ).openConnection() as HttpURLConnection
+                conn.connectTimeout = 10000
+                conn.readTimeout = 10000
+                conn.setRequestProperty("User-Agent", "LanXingTV")
+                val json = JSONObject(conn.inputStream.bufferedReader().readText())
+                val tag = json.getString("tag_name").removePrefix("v")
+                val assets = json.getJSONArray("assets")
+                var apkUrl: String? = null
+                for (i in 0 until assets.length()) {
+                    val a = assets.getJSONObject(i)
+                    if (a.getString("name").endsWith(".apk")) {
+                        apkUrl = a.getString("browser_download_url")
+                        break
+                    }
+                }
+                val current = BuildConfig.VERSION_NAME
+                val newer = compareVersions(tag, current) > 0
+                if (newer && !apkUrl.isNullOrEmpty()) {
+                    runOnUiThread {
+                        try {
+                            AlertDialog.Builder(this)
+                                .setTitle("发现新版本")
+                                .setMessage("揽星TV v$tag 已发布\n当前版本：v$current\n\n是否立即更新？")
+                                .setPositiveButton("立即更新") { _, _ ->
+                                    downloadAndInstall(apkUrl)
+                                }
+                                .setNegativeButton("取消", null)
+                                .show()
+                        } catch (ignored: Throwable) {
+                        }
+                    }
+                }
+                // 没更新或没有APK：什么都不做（不打扰）
+            } catch (e: Exception) {
+                // 检查失败：什么都不做（不打扰）
+            }
+        }.start()
+    }
 
     private fun checkUpdate() {
         binding.tvUpdateStatus.text = getString(R.string.checking_update)
@@ -1479,7 +1542,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                 else -> super.onKeyDown(keyCode, event)
             }
         }
-        // 频道列表打开：BACK 关闭；源切换条聚焦时 OK/左右键切换直播源
+        // 频道列表打开：BACK 关闭；左右键在分组/频道间切换焦点
         if (isChannelPanelVisible) {
             if (binding.tvSourceBar.hasFocus()) {
                 return when (keyCode) {
@@ -1497,8 +1560,22 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                 KeyEvent.KEYCODE_BACK -> {
                     hideChannelPanel(); true
                 }
+                KeyEvent.KEYCODE_DPAD_LEFT -> {
+                    // 左移：如果焦点在频道列表，切到分组列表
+                    if (binding.channelList.hasFocus() || binding.programInfo.hasFocus()) {
+                        binding.groupList.requestFocus()
+                    }
+                    true
+                }
+                KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                    // 右移：如果焦点在分组列表，切到频道列表
+                    if (binding.groupList.hasFocus()) {
+                        binding.channelList.requestFocus()
+                    }
+                    true
+                }
                 KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
-                    // 交给当前聚焦项处理（频道项点击 / 分组头折叠）
+                    // 交给当前聚焦项处理（频道项点击 / 分组选择）
                     super.onKeyDown(keyCode, event)
                 }
                 else -> super.onKeyDown(keyCode, event)
@@ -1601,13 +1678,25 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                     RecyclerView.LayoutParams.WRAP_CONTENT
                 )
                 setPadding(48, 36, 24, 36)
-                setTextColor(0xFFFFFFFF.toInt())
+                setTextColor(0xFFCCCCCC.toInt())
                 textSize = 16f
                 maxLines = 1
                 ellipsize = android.text.TextUtils.TruncateAt.END
                 gravity = android.view.Gravity.CENTER_VERTICAL
                 isFocusable = true
-                isClickable = false
+                isClickable = true
+                // 焦点高亮
+                onFocusChangeListener = View.OnFocusChangeListener { _, focused ->
+                    if (focused) {
+                        setBackgroundColor(0x4FFFFFFF.toInt())
+                        setTextColor(0xFF64B5F6.toInt())
+                        paint.isFakeBoldText = true
+                    } else {
+                        setBackgroundColor(0x00000000)
+                        setTextColor(0xFFCCCCCC.toInt())
+                        paint.isFakeBoldText = false
+                    }
+                }
             }
             return VH(tv)
         }
