@@ -136,17 +136,6 @@
             android:layout_marginLeft="16dp" />
 
         <ImageButton
-            android:id="@+id/btnPlayPause"
-            android:layout_width="60dp"
-            android:layout_height="60dp"
-            android:contentDescription="@string/play_pause"
-            android:background="@drawable/bg_control_accent"
-            android:src="@drawable/ic_pause"
-            android:scaleType="centerInside"
-            android:layout_marginLeft="16dp"
-            android:layout_marginRight="16dp" />
-
-        <ImageButton
             android:id="@+id/btnNext"
             android:layout_width="52dp"
             android:layout_height="52dp"
@@ -180,7 +169,7 @@
     <!-- ===== 左侧：频道列表悬浮层（OK 唤出，默认隐藏） ===== -->
     <LinearLayout
         android:id="@+id/channelPanel"
-        android:layout_width="420dp"
+        android:layout_width="680dp"
         android:layout_height="match_parent"
         android:layout_gravity="left"
         android:orientation="vertical"
@@ -250,13 +239,29 @@
             android:textColor="@color/text_secondary"
             android:textSize="13sp" />
 
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/channelList"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            android:clipToPadding="false"
-            android:paddingBottom="8dp" />
+            android:orientation="horizontal">
+
+            <!-- 左侧：分组列表 -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/groupList"
+                android:layout_width="170dp"
+                android:layout_height="match_parent"
+                android:background="@color/bg_item"
+                android:clipToPadding="false" />
+
+            <!-- 右侧：频道列表 -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/channelList"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:clipToPadding="false"
+                android:paddingBottom="8dp" />
+        </LinearLayout>
     </LinearLayout>
 
     <!-- ===== 右侧：设置悬浮层（菜单键唤出：左侧导航 + 右侧详情） ===== -->
