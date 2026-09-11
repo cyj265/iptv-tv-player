@@ -5,7 +5,7 @@
     android:layout_height="match_parent"
     android:background="@color/bg_dark">
 
-    <!-- ===== 全屏视频画面（Media3 ExoPlayer 内核，影视仓同款） ===== -->
+    <!-- ===== 全屏视频画面（Media3 ExoPlayer 内核） ===== -->
     <androidx.media3.ui.PlayerView
         android:id="@+id/playerView"
         android:layout_width="match_parent"
@@ -14,7 +14,7 @@
         app:use_controller="false"
         app:resize_mode="fit" />
 
-    <!-- ===== 顶部：当前频道信息（覆盖层，柠檬TV 风格） ===== -->
+    <!-- ===== 顶部：当前频道信息（覆盖层） ===== -->
     <LinearLayout
         android:id="@+id/nowPlayingBar"
         android:layout_width="match_parent"
@@ -154,7 +154,6 @@
             android:scaleType="centerInside"
             android:layout_marginLeft="16dp" />
 
-        <!-- 更多设置（菜单键等价入口，柠檬TV 底部也有“更多设置”） -->
         <ImageButton
             android:id="@+id/btnSettings"
             android:layout_width="52dp"
@@ -175,6 +174,23 @@
         android:orientation="vertical"
         android:background="@color/bg_overlay_strong"
         android:visibility="gone">
+
+        <!-- 直播源快速切换条（OK 切换） -->
+        <TextView
+            android:id="@+id/tvSourceBar"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:gravity="center_vertical"
+            android:paddingLeft="16dp"
+            android:paddingRight="16dp"
+            android:background="@color/bg_item"
+            android:focusable="true"
+            android:clickable="true"
+            android:textColor="@color/accent_soft"
+            android:textSize="14sp"
+            android:singleLine="true"
+            android:ellipsize="end"
+            android:text="" />
 
         <!-- 工具条：搜索 + 收藏 -->
         <LinearLayout
@@ -231,7 +247,7 @@
             android:paddingBottom="8dp" />
     </LinearLayout>
 
-    <!-- ===== 右侧：设置悬浮层（菜单键唤出，柠檬TV 风格：左侧导航 + 右侧详情） ===== -->
+    <!-- ===== 右侧：设置悬浮层（菜单键唤出，左侧导航 + 右侧详情） ===== -->
     <LinearLayout
         android:id="@+id/settingsPanel"
         android:layout_width="640dp"
@@ -241,7 +257,6 @@
         android:background="@color/bg_overlay_strong"
         android:visibility="gone">
 
-        <!-- 标题栏 -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -277,7 +292,6 @@
             android:layout_weight="1"
             android:orientation="horizontal">
 
-            <!-- 左侧导航列 -->
             <LinearLayout
                 android:layout_width="160dp"
                 android:layout_height="match_parent"
@@ -378,7 +392,6 @@
                     android:textSize="16sp" />
             </LinearLayout>
 
-            <!-- 右侧内容区（各分区按导航切换显示） -->
             <ScrollView
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
@@ -411,16 +424,28 @@
                         <EditText
                             android:id="@+id/inputPlaylistUrl"
                             android:layout_width="match_parent"
-                            android:layout_height="48dp"
+                            android:layout_height="100dp"
                             android:layout_marginTop="6dp"
                             android:background="@drawable/bg_search"
                             android:paddingLeft="14dp"
                             android:paddingRight="14dp"
+                            android:paddingTop="10dp"
+                            android:paddingBottom="10dp"
+                            android:gravity="top"
                             android:textColor="@color/text_primary"
                             android:textColorHint="@color/text_secondary"
-                            android:textSize="15sp"
-                            android:inputType="textUri"
-                            android:hint="https://example.com/list.m3u 或 list.txt" />
+                            android:textSize="14sp"
+                            android:inputType="textUri|textMultiLine"
+                            android:hint="https://example.com/list.m3u&#10;https://example2.com/list.m3u" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="@string/source_manage_hint"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="12sp"
+                            android:lineSpacingExtra="2dp" />
 
                         <LinearLayout
                             android:layout_width="match_parent"
@@ -449,6 +474,37 @@
                                 android:backgroundTint="@color/accent"
                                 android:textColor="#FFFFFF" />
                         </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/tvSourceStatus"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:background="@color/bg_item"
+                            android:padding="12dp"
+                            android:textColor="@color/text_primary"
+                            android:textSize="13sp"
+                            android:lineSpacingExtra="3dp"
+                            android:text="" />
+
+                        <Button
+                            android:id="@+id/btnScanManage"
+                            android:layout_width="match_parent"
+                            android:layout_height="46dp"
+                            android:layout_marginTop="10dp"
+                            android:text="@string/scan_manage"
+                            android:textSize="14sp"
+                            android:backgroundTint="@color/bg_item"
+                            android:textColor="@color/accent_soft" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:text="@string/scan_manage_hint"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="12sp"
+                            android:lineSpacingExtra="2dp" />
 
                         <TextView
                             android:layout_width="match_parent"
@@ -647,6 +703,25 @@
                             android:textSize="14sp"
                             android:backgroundTint="@color/accent"
                             android:textColor="#FFFFFF" />
+
+                        <TextView
+                            android:id="@+id/tvUpdateStatus"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="10dp"
+                            android:textColor="@color/text_primary"
+                            android:textSize="13sp"
+                            android:lineSpacingExtra="3dp"
+                            android:text="" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:text="@string/update_install_hint"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="12sp"
+                            android:lineSpacingExtra="2dp" />
                     </LinearLayout>
 
                     <!-- ===== 分区：调试 ===== -->
@@ -675,10 +750,20 @@
                             android:text="无" />
 
                         <Button
+                            android:id="@+id/btnExportCrashLog"
+                            android:layout_width="match_parent"
+                            android:layout_height="46dp"
+                            android:layout_marginTop="10dp"
+                            android:text="@string/export_crash_log"
+                            android:textSize="14sp"
+                            android:backgroundTint="@color/bg_item"
+                            android:textColor="@color/text_primary" />
+
+                        <Button
                             android:id="@+id/btnClearCrashLog"
                             android:layout_width="match_parent"
                             android:layout_height="46dp"
-                            android:layout_marginTop="12dp"
+                            android:layout_marginTop="10dp"
                             android:text="@string/clear_crash_log"
                             android:textSize="14sp"
                             android:backgroundTint="@color/bg_item"
