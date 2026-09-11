@@ -69,12 +69,12 @@ object HttpLoader {
         // UTF-8 无 BOM 时检查有效性
         val utf8 = String(bytes, Charsets.UTF_8)
         if (!utf8.contains('\uFFFD')) return utf8
-        return String(bytes, Charsets.ISO_8859_1).let {
-            try {
-                String(bytes, Charset.forName("GBK"))
-            } catch (e: Exception) {
-                utf8
-            }
+        // 尝试 GBK，同样检查是否含替换字符（乱码标志）
+        return try {
+            val gbk = String(bytes, Charset.forName("GBK"))
+            if (!gbk.contains('\uFFFD')) gbk else utf8
+        } catch (e: Exception) {
+            utf8
         }
     }
 }
