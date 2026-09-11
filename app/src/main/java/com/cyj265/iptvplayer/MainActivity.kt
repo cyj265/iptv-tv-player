@@ -51,7 +51,7 @@ import java.util.Locale
  *
  * v1.7.0：多直播源（列表顶部 OK 快速切换）、扫码局域网手机管理、检查更新自动下载安装、
  * 崩溃日志导出、二级分组默认收起、EPG 节目在频道列表中体现。
- * 注意：播放/解码路径自 v1.6.4 起冻结，不再改动（用户多次要求"解码器别动"）。
+ * 注意：播放/解码路径自 v1.6.4 起冻结，不再改动（用户多次要求“解码器别动”）。
  */
 class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
 
@@ -71,7 +71,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     private var videoH = 0
     private var currentSettingsTab = 0
 
-    // 覆盖层自动隐藏：4 秒无操作淡出顶部信息条与底部控制条（TiviMate 风格）
+    // 覆盖层自动隐藏：4 秒无操作淡出顶部信息条与底部控制条（主流电视直播应用风格）
     private val overlayHandler = Handler(Looper.getMainLooper())
     private val overlayHideRunnable = Runnable { hideOverlay() }
 
@@ -714,7 +714,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         Thread {
             try {
                 val conn = URL(
-                    "https://api.github.com/repos/cyj265/iptv-tv-player/releases/latest"
+                    "https://api.github.com/repos/cyj265/lanxing-tv/releases/latest"
                 ).openConnection() as HttpURLConnection
                 conn.connectTimeout = 15000
                 conn.readTimeout = 15000
@@ -1168,7 +1168,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             }
             binding.tvChannelName.text = ch.name
 
-            // 序号 / 总数 + 分辨率（柠檬TV 风格）
+            // 序号 / 总数 + 分辨率（同类应用风格）
             val idx = allChannels.indexOfFirst { it.id == ch.id }
             val meta = StringBuilder()
             if (idx >= 0) {
