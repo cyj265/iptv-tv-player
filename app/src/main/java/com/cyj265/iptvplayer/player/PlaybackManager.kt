@@ -95,20 +95,7 @@ class PlaybackManager(
                 degradedToSoftware = true
                 val name = currentChannelName
                 listener.onPlaybackError("硬解失败，正在切换到软件解码…")
-                retryHandler.postDelayed({
-                    val pv = playerView ?: return@postDelayed
-                    decoderMode = "software"
-                    context.getSharedPreferences("iptv_prefs", Context.MODE_PRIVATE)
-                        .edit().putString("decoder_mode", "software").apply()
-                    player?.removeListener(this@PlaybackManager.playerListener)
-                    player?.release()
-                    pv.player = null
-                    player = buildPlayer()
-                    pv.player = player
-                    player?.addListener(this@PlaybackManager.playerListener)
-                    retryCount = 0
-                    play(url, name ?: url)
-                }, 800)
+                retryHandler.postDelayed({ degradeToSoftware(url, name ?: url) }, 800)
                 return
             }
             // 自动重试最多 2 次，间隔递增（1.5s / 3s）
@@ -165,6 +152,26 @@ class PlaybackManager(
     }
 
     fun currentDecoderMode(): String = decoderMode
+
+    /**
+     * 硬解解码器初始化/解码失败时，把播放器重建为软件解码模式续播（影视仓同款兜底）。
+     * 单独抽成方法：避免在 playerListener 初始化期间被 lambda 引用自身，
+     * 触发 Kotlin "Type checking has run into a recursive problem"。
+     */
+    private fun degradeToSoftware(url: String, channelName: String) {
+        val pv = playerView ?: return
+        decoderMode = "software"
+        context.getSharedPreferences("iptv_prefs", Context.MODE_PRIVATE)
+            .edit().putString("decoder_mode", "software").apply()
+        player?.removeListener(playerListener)
+        player?.release()
+        pv.player = null
+        player = buildPlayer()
+        pv.player = player
+        player?.addListener(playerListener)
+        retryCount = 0
+        play(url, channelName)
+    }
 
     @OptIn(UnstableApi::class)
     private fun buildPlayer(): ExoPlayer {
@@ -227,9 +234,10 @@ class PlaybackManager(
     private object HardwareOnlySelector : MediaCodecSelector {
         override fun getDecoderInfos(
             mimeType: String,
-            requiresSecureDecoder: Boolean
+            requiresSecureDecoder: Boolean,
+            requiresTunnelingDecoder: Boolean
         ): List<MediaCodecInfo> {
-            return MediaCodecUtil.getDecoderInfos(mimeType, requiresSecureDecoder)
+            return MediaCodecUtil.getDecoderInfos(mimeType, requiresSecureDecoder, requiresTunnelingDecoder)
                 .filter { !it.softwareOnly }
         }
     }
@@ -238,9 +246,10 @@ class PlaybackManager(
     private object SoftwareOnlySelector : MediaCodecSelector {
         override fun getDecoderInfos(
             mimeType: String,
-            requiresSecureDecoder: Boolean
+            requiresSecureDecoder: Boolean,
+            requiresTunnelingDecoder: Boolean
         ): List<MediaCodecInfo> {
-            return MediaCodecUtil.getDecoderInfos(mimeType, requiresSecureDecoder)
+            return MediaCodecUtil.getDecoderInfos(mimeType, requiresSecureDecoder, requiresTunnelingDecoder)
                 .filter { it.softwareOnly }
         }
     }
