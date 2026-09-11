@@ -13,12 +13,11 @@ import com.cyj265.iptvplayer.databinding.ItemChannelBinding
 import com.cyj265.iptvplayer.databinding.ItemGroupHeaderBinding
 
 /**
- * 频道列表适配器：二级分组体验。
+ * 频道列表适配器。
  *
- * 一级 = 分组头（分组名 + 频道数 + 展开箭头，可聚焦点击）；
- * 二级 = 分组内频道项（组名 + 当前 EPG 节目 + 收藏星标）。
- * 未手动折叠过时默认全部收起（v1.7.0 起），列表只显示分组，展开才见频道，
- * 避免几百个频道平铺太长找不到台。
+ * 双栏模式（showGroupHeaders=false）：左侧已有独立分组列表，右侧只显示纯频道列表，
+ *   每项带全局序号，适合 OK 唤出的左分组右频道双栏布局。
+ * 单栏模式（showGroupHeaders=true）：分组头 + 频道项混合在一个列表里，分组可折叠。
  */
 class ChannelAdapter(
     private val onChannelClick: (Channel) -> Unit,
@@ -30,11 +29,19 @@ class ChannelAdapter(
         private const val TYPE_CHANNEL = 1
     }
 
-    data class Row(val isHeader: Boolean, val group: String = "", val channel: Channel? = null)
+    data class Row(val isHeader: Boolean, val group: String = "", val channel: Channel? = null, val index: Int = 0)
 
     private val rows = ArrayList<Row>()
     private val collapsedGroups = HashSet<String>()
     private var groups = listOf<String>()
+    private val groupCache = HashMap<String, List<Channel>>()
+
+    /** 双栏模式：false=纯频道列表（带序号），true=分组头+频道混合列表 */
+    var showGroupHeaders = true
+        set(value) {
+            field = value
+            rebuild()
+        }
 
     /** 用户从未折叠过时默认全部收起（二级列表）。由 MainActivity 按偏好设置。 */
     private var defaultCollapsed = true
@@ -64,16 +71,15 @@ class ChannelAdapter(
         rebuild()
     }
 
-    fun collapsedState(): Set<String> = HashSet(collapsedGroups)
+    fun collapsedState(): Set<String> =
+        collapsedGroups.toSet()
 
-    private val groupCache = HashMap<String, List<Channel>>()
-
-    /** 入口：先存全量，再重建分组缓存 */
     fun submitChannels(channels: List<Channel>) {
         groupCache.clear()
         val byGroup = LinkedHashMap<String, MutableList<Channel>>()
-        for (c in channels) {
-            byGroup.getOrPut(c.group) { ArrayList() }.add(c)
+        for (ch in channels) {
+            val g = ch.group ?: "未分组"
+            byGroup.getOrPut(g) { ArrayList() }.add(ch)
         }
         for ((g, list) in byGroup) {
             groupCache[g] = list
@@ -84,16 +90,30 @@ class ChannelAdapter(
 
     private fun rebuild() {
         rows.clear()
-        for (g in groups) {
-            val collapsed = if (collapsedGroups.isEmpty() && defaultCollapsed) {
-                true
-            } else {
-                collapsedGroups.contains(g)
-            }
-            rows.add(Row(isHeader = true, group = g))
-            if (!collapsed) {
+        if (!showGroupHeaders) {
+            // 双栏模式：纯频道列表，带全局序号
+            var idx = 1
+            for (g in groups) {
                 for (c in groupCache[g] ?: emptyList()) {
-                    rows.add(Row(isHeader = false, channel = c))
+                    rows.add(Row(isHeader = false, channel = c, index = idx))
+                    idx++
+                }
+            }
+        } else {
+            // 单栏模式：分组头 + 频道
+            var idx = 1
+            for (g in groups) {
+                val collapsed = if (collapsedGroups.isEmpty() && defaultCollapsed) {
+                    true
+                } else {
+                    collapsedGroups.contains(g)
+                }
+                rows.add(Row(isHeader = true, group = g))
+                if (!collapsed) {
+                    for (c in groupCache[g] ?: emptyList()) {
+                        rows.add(Row(isHeader = false, channel = c, index = idx))
+                        idx++
+                    }
                 }
             }
         }
@@ -137,6 +157,7 @@ class ChannelAdapter(
             }
         } else if (holder is ChannelHolder) {
             val ch = row.channel ?: return
+            holder.binding.tvIndex.text = row.index.toString()
             holder.binding.tvChannelName.text = ch.name
             holder.binding.tvEpgLine.text = epgNow[ch.id] ?: ch.group
             val isFav = favorites.contains(ch.url)
