@@ -191,6 +191,13 @@ class ChannelAdapter(
                 if (isFav) ContextCompat.getColor(holder.binding.root.context, R.color.accent) else 0
             )
             holder.binding.root.isSelected = ch.id == selectedChannelId
+            // 当前播放频道：蓝字标识（无背景），与焦点亮蓝背景区分
+            holder.binding.tvChannelName.setTextColor(
+                if (ch.id == selectedChannelId)
+                    ContextCompat.getColor(holder.binding.root.context, R.color.accent)
+                else
+                    ContextCompat.getColor(holder.binding.root.context, R.color.text_primary)
+            )
             holder.binding.root.setOnClickListener { onChannelClick(ch) }
             holder.binding.root.onFocusChangeListener = View.OnFocusChangeListener { v, has ->
                 if (has) onChannelFocused(ch)
