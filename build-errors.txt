@@ -8,15 +8,13 @@ Daemon will be stopped at the end of the build
 > Task :app:generateReleaseResValues FROM-CACHE
 > Task :app:generateReleaseResources
 > Task :app:packageReleaseResources
-> Task :app:mergeReleaseResources
 > Task :app:generateReleaseBuildConfig FROM-CACHE
 > Task :app:mapReleaseSourceSetPaths
+> Task :app:checkReleaseAarMetadata
 > Task :app:createReleaseCompatibleScreenManifests
 > Task :app:extractDeepLinksRelease FROM-CACHE
-> Task :app:checkReleaseAarMetadata
 > Task :app:parseReleaseLocalResources
 > Task :app:processReleaseMainManifest FROM-CACHE
-> Task :app:dataBindingGenBaseClassesRelease
 > Task :app:processReleaseManifest FROM-CACHE
 > Task :app:processReleaseManifestForPackage FROM-CACHE
 > Task :app:javaPreCompileRelease FROM-CACHE
@@ -26,10 +24,12 @@ Daemon will be stopped at the end of the build
 > Task :app:stripReleaseDebugSymbols NO-SOURCE
 > Task :app:extractReleaseNativeSymbolTables NO-SOURCE
 > Task :app:mergeReleaseNativeDebugMetadata NO-SOURCE
+> Task :app:mergeReleaseResources
 > Task :app:checkReleaseDuplicateClasses
+> Task :app:dataBindingGenBaseClassesRelease
 > Task :app:processReleaseResources FAILED
 > Task :app:desugarReleaseFileDependencies FROM-CACHE
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_3-1789132328371.json
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_3-1789133328598.json
 
 FAILURE: Build failed with an exception.
 
@@ -37,11 +37,8 @@ FAILURE: Build failed with an exception.
 Execution failed for task ':app:processReleaseResources'.
 > A failure occurred while executing com.android.build.gradle.internal.res.LinkApplicationAndroidResourcesTask$TaskAction
    > Android resource linking failed
-     com.cyj265.iptvplayer.app-mergeReleaseResources-30:/layout/item_channel.xml:16: error: resource drawable/bg_channel_card (aka com.cyj265.iptvplayer:drawable/bg_channel_card) not found.
      com.cyj265.iptvplayer.app-mergeReleaseResources-30:/layout/item_channel.xml:26: error: resource color/text_tertiary (aka com.cyj265.iptvplayer:color/text_tertiary) not found.
      com.cyj265.iptvplayer.app-mergeReleaseResources-30:/layout/item_channel.xml:42: error: resource string/channel_logo (aka com.cyj265.iptvplayer:string/channel_logo) not found.
-     com.cyj265.iptvplayer.app-mergeReleaseResources-30:/layout/item_channel.xml:42: error: resource drawable/bg_circle (aka com.cyj265.iptvplayer:drawable/bg_circle) not found.
-     com.cyj265.iptvplayer.app-mergeReleaseResources-30:/layout/item_channel.xml:53: error: resource drawable/bg_circle_accent (aka com.cyj265.iptvplayer:drawable/bg_circle_accent) not found.
      error: failed linking file resources.
 
 
@@ -51,5 +48,5 @@ Execution failed for task ':app:processReleaseResources'.
 > Run with --scan to get full insights.
 > Get more help at https://help.gradle.org.
 
-BUILD FAILED in 16s
+BUILD FAILED in 15s
 23 actionable tasks: 15 executed, 8 from cache
