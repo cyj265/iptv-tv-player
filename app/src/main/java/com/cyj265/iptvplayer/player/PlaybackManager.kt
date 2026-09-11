@@ -65,7 +65,7 @@ class PlaybackManager(
             val mp = MediaPlayer(vlc)
             libVLC = vlc
             mediaPlayer = mp
-            mp.vlcVout.setVideoTextureView(textureView)
+            mp.vlcVout.setVideoView(textureView)
             mp.vlcVout.attachViews()
             mp.setEventListener { event -> onVlcEvent(event) }
         } catch (t: Throwable) {
@@ -180,7 +180,7 @@ class PlaybackManager(
             val mp = MediaPlayer(vlc)
             libVLC = vlc
             mediaPlayer = mp
-            mp.vlcVout.setVideoTextureView(tex)
+            mp.vlcVout.setVideoView(tex)
             mp.vlcVout.attachViews()
             mp.setEventListener { event -> onVlcEvent(event) }
         } catch (t: Throwable) {
