@@ -8,17 +8,56 @@ Daemon will be stopped at the end of the build
 > Task :app:generateReleaseResValues FROM-CACHE
 > Task :app:generateReleaseResources
 > Task :app:packageReleaseResources
-> Task :app:mergeReleaseResources FAILED
+> Task :app:generateReleaseBuildConfig FROM-CACHE
 > Task :app:parseReleaseLocalResources
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_3-1789094617690.json
+> Task :app:mapReleaseSourceSetPaths
+> Task :app:checkReleaseAarMetadata
+> Task :app:createReleaseCompatibleScreenManifests
+> Task :app:extractDeepLinksRelease FROM-CACHE
+> Task :app:mergeReleaseResources
+> Task :app:processReleaseMainManifest FROM-CACHE
+> Task :app:dataBindingGenBaseClassesRelease FROM-CACHE
+> Task :app:processReleaseManifest FROM-CACHE
+> Task :app:processReleaseManifestForPackage FROM-CACHE
+> Task :app:javaPreCompileRelease FROM-CACHE
+> Task :app:extractProguardFiles
+> Task :app:mergeReleaseJniLibFolders
+> Task :app:mergeReleaseNativeLibs NO-SOURCE
+> Task :app:stripReleaseDebugSymbols NO-SOURCE
+> Task :app:extractReleaseNativeSymbolTables NO-SOURCE
+> Task :app:mergeReleaseNativeDebugMetadata NO-SOURCE
+> Task :app:checkReleaseDuplicateClasses
+> Task :app:processReleaseResources
+> Task :app:desugarReleaseFileDependencies FROM-CACHE
+> Task :app:mergeReleaseStartupProfile
+> Task :app:mergeExtDexRelease FROM-CACHE
+> Task :app:mergeReleaseArtProfile
+> Task :app:mergeReleaseShaders
+> Task :app:compileReleaseShaders NO-SOURCE
+> Task :app:generateReleaseAssets UP-TO-DATE
+> Task :app:mergeReleaseAssets
+> Task :app:compressReleaseAssets FROM-CACHE
+> Task :app:extractReleaseVersionControlInfo
+> Task :app:collectReleaseDependencies
+> Task :app:sdkReleaseDependencyData
+> Task :app:validateSigningRelease
+> Task :app:optimizeReleaseResources
+> Task :app:writeReleaseAppMetadata
+> Task :app:writeReleaseSigningConfigVersions
+
+> Task :app:compileReleaseKotlin
+e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/data/LanRemoteServer.kt:26:95 Type mismatch: inferred type is String but InputStream! was expected
+e: file:///home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/java/com/cyj265/iptvplayer/data/LanRemoteServer.kt:27:107 Type mismatch: inferred type is String but InputStream! was expected
+
+> Task :app:compileReleaseKotlin FAILED
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_3-1789094751505.json
 
 FAILURE: Build failed with an exception.
 
 * What went wrong:
-Execution failed for task ':app:mergeReleaseResources'.
-> A failure occurred while executing com.android.build.gradle.internal.res.Aapt2CompileRunnable
-   > AAPT2 aapt2-8.7.3-12006047-linux Daemon #0: Unexpected error during compile '/home/runner/work/iptv-tv-player/iptv-tv-player/app/src/main/res/mipmap-xxhdpi/ic_launcher.png', attempting to stop daemon.
-     This should not happen under normal circumstances, please file an issue if it does.
+Execution failed for task ':app:compileReleaseKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+   > Compilation error. See log for more details
 
 * Try:
 > Run with --stacktrace option to get the stack trace.
@@ -26,5 +65,5 @@ Execution failed for task ':app:mergeReleaseResources'.
 > Run with --scan to get full insights.
 > Get more help at https://help.gradle.org.
 
-BUILD FAILED in 15s
-8 actionable tasks: 7 executed, 1 from cache
+BUILD FAILED in 26s
+37 actionable tasks: 26 executed, 11 from cache
