@@ -625,7 +625,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
 
         binding.tvAbout.text = getString(R.string.app_name) + " v" + BuildConfig.VERSION_NAME +
             "\n播放内核：Media3 ExoPlayer（开源）" +
-            "\n代码仓库：https://github.com/cyj265/iptv-tv-player" +
+            "\n代码仓库：https://github.com/cyj265/lanxing-tv" +
             "\n开源许可：Apache-2.0 / MIT / GPL-2.0" +
             "\n部分源码来自开源项目（详见仓库 README 来源致谢）"
     }
