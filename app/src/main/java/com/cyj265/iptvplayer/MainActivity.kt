@@ -84,6 +84,11 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     private var showFavoritesOnly = false
     private var currentChannel: Channel? = null
     private var epgPrograms: Map<String, List<EpgProgram>> = emptyMap()
+    /** EPG 加载状态：区分"未配置/加载中/就绪/失败"四种提示 */
+    private enum class EpgLoadState { NOT_CONFIGURED, LOADING, READY, FAILED }
+    private var epgLoadState = EpgLoadState.NOT_CONFIGURED
+    private var epgLoadedCount = 0
+    private var lastEpgAttemptAt = 0L
 
     private var videoW = 0
     private var videoH = 0
@@ -185,6 +190,8 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                 binding.channelList.scrollToPosition(targetPos)
                 adapter.channelAt(targetPos)?.let { updateProgramInfo(it) }
             }
+            // 选中分组后焦点直接进入频道列表（定位已由 scrollToPosition 完成）
+            binding.channelList.requestFocus()
         }
         binding.groupList.layoutManager = LinearLayoutManager(this)
         binding.groupList.adapter = groupAdapter
@@ -430,6 +437,10 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         binding.channelPanel.animate().alpha(1f).setDuration(160).start()
         updateSourceBar()
         updateProgramInfo()
+        // 若 EPG 已配置但之前加载失败，打开列表时自动重试（网络恢复后无需重启）
+        if (epgLoadState == EpgLoadState.FAILED && repository.getEpgUrls().isNotEmpty()) {
+            loadEpgIfConfigured()
+        }
         // 默认焦点到左侧分组列表（先选分组再选频道）
         binding.groupList.requestFocus()
     }
@@ -1628,14 +1639,22 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     private fun loadEpgIfConfigured() {
         val epgUrls = repository.getEpgUrls()
         if (epgUrls.isEmpty()) {
+            epgLoadState = EpgLoadState.NOT_CONFIGURED
             updateNowPlaying()
             return
         }
+        // 节流：距上次尝试不足 10 秒不重复加载
+        val nowMs = System.currentTimeMillis()
+        if (nowMs - lastEpgAttemptAt < 10000 && epgLoadState == EpgLoadState.LOADING) return
+        lastEpgAttemptAt = nowMs
+        epgLoadState = EpgLoadState.LOADING
+        updateProgramInfo()
         Thread {
+            var totalPrograms = 0
+            val mergedPrograms = ArrayList<EpgProgram>()
+            val mergedNames = HashMap<String, String>()
+            var loadError: String? = null
             try {
-                var totalPrograms = 0
-                val mergedPrograms = ArrayList<EpgProgram>()
-                val mergedNames = HashMap<String, String>()
                 for (epgUrl in epgUrls) {
                     try {
                         val content = HttpLoader.fetch(epgUrl)
@@ -1643,26 +1662,46 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                         mergedPrograms.addAll(data.programs)
                         mergedNames.putAll(data.channelNames)
                         totalPrograms += data.programs.size
-                    } catch (ignored: Exception) {
+                    } catch (e: Exception) {
+                        if (loadError == null) loadError = e.message ?: e.javaClass.simpleName
                     }
                 }
-                if (mergedPrograms.isEmpty()) {
-                    runOnUiThread { updateNowPlaying() }
-                    return@Thread
-                }
+            } catch (e: Exception) {
+                if (loadError == null) loadError = e.message ?: e.javaClass.simpleName
+            }
+            val finalState: EpgLoadState
+            if (mergedPrograms.isEmpty()) {
+                finalState = EpgLoadState.FAILED
+            } else {
                 epgPrograms = indexEpg(EpgParser.EpgData(mergedNames, mergedPrograms))
                 repository.epgProgramCount = totalPrograms
                 repository.epgUpdatedAt = System.currentTimeMillis()
-                runOnUiThread {
-                    try {
-                        updateNowPlaying()
-                        adapter.epgNow = buildEpgNowMap()
+                epgLoadedCount = totalPrograms
+                finalState = EpgLoadState.READY
+            }
+            val err = loadError
+            runOnUiThread {
+                try {
+                    epgLoadState = finalState
+                    updateNowPlaying()
+                    adapter.epgNow = buildEpgNowMap()
                     updateProgramInfo()
-                        updateSourceStatus()
-                    } catch (ignored: Throwable) {
+                    updateSourceStatus()
+                    if (finalState == EpgLoadState.FAILED) {
+                        Toast.makeText(
+                            this,
+                            "节目指南加载失败" + (if (err != null) "：" + err else ""),
+                            Toast.LENGTH_LONG
+                        ).show()
+                    } else if (finalState == EpgLoadState.READY && totalPrograms > 0) {
+                        Toast.makeText(
+                            this,
+                            "节目指南加载成功（" + totalPrograms + " 条节目）",
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
+                } catch (ignored: Throwable) {
                 }
-            } catch (ignored: Exception) {
             }
         }.start()
     }
@@ -1730,7 +1769,12 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             if (epgText.isNotEmpty()) {
                 binding.tvInfoNow.text = epgText
             } else {
-                binding.tvInfoNow.text = "暂无节目单（请在设置-直播源中添加节目指南）"
+                binding.tvInfoNow.text = when (epgLoadState) {
+                    EpgLoadState.NOT_CONFIGURED -> "暂无节目单（请在设置-直播源中添加节目指南）"
+                    EpgLoadState.LOADING -> "节目指南加载中…"
+                    EpgLoadState.FAILED -> "节目指南加载失败（请检查地址/网络）"
+                    EpgLoadState.READY -> "该频道暂无节目信息（EPG 未匹配此频道）"
+                }
             }
             // 下一个节目：从 EPG 数据里找
             val programs = epgPrograms[target.id] ?: emptyList()
@@ -2009,18 +2053,6 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                 gravity = android.view.Gravity.CENTER_VERTICAL
                 isFocusable = true
                 isClickable = true
-                // 焦点高亮
-                onFocusChangeListener = View.OnFocusChangeListener { _, focused ->
-                    if (focused) {
-                        setBackgroundColor(0x4FFFFFFF.toInt())
-                        setTextColor(0xFF64B5F6.toInt())
-                        paint.isFakeBoldText = true
-                    } else {
-                        setBackgroundColor(0x00000000)
-                        setTextColor(0xFFCCCCCC.toInt())
-                        paint.isFakeBoldText = false
-                    }
-                }
             }
             return VH(tv)
         }
@@ -2029,13 +2061,30 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             val group = groups[position]
             holder.tvName.text = group ?: "全部"
             val isSelected = (selected == null && group == null) || selected == group
+            // 选中样式：亮蓝背景 + 白字加粗
             holder.tvName.setBackgroundColor(
-                if (isSelected) 0x2FFFFFFF.toInt() else 0x00000000
+                if (isSelected) 0xFF2F7CF6.toInt() else 0x00000000
             )
             holder.tvName.setTextColor(
-                if (isSelected) 0xFF64B5F6.toInt() else 0xFFCCCCCC.toInt()
+                if (isSelected) 0xFFFFFFFF.toInt() else 0xFFCCCCCC.toInt()
             )
             holder.tvName.paint.isFakeBoldText = isSelected
+            // 焦点样式：更亮的蓝色 + 白字加粗（醒目）
+            holder.tvName.onFocusChangeListener = View.OnFocusChangeListener { _, focused ->
+                if (focused) {
+                    holder.tvName.setBackgroundColor(0xFF3D8BFF.toInt())
+                    holder.tvName.setTextColor(0xFFFFFFFF.toInt())
+                    holder.tvName.paint.isFakeBoldText = true
+                } else {
+                    holder.tvName.setBackgroundColor(
+                        if (isSelected) 0xFF2F7CF6.toInt() else 0x00000000
+                    )
+                    holder.tvName.setTextColor(
+                        if (isSelected) 0xFFFFFFFF.toInt() else 0xFFCCCCCC.toInt()
+                    )
+                    holder.tvName.paint.isFakeBoldText = isSelected
+                }
+            }
             holder.itemView.setOnClickListener { onGroupClick(group) }
         }
 
