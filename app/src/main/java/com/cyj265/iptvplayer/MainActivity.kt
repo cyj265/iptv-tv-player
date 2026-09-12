@@ -1990,8 +1990,11 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         updateSourceBar()
         updateSourceStatus()
         loadEpgIfConfigured()
-        // 若启动时还没有播放（恢复失败/无缓存），自动播第一个频道
-        if (currentChannel == null && channels.isNotEmpty() && repository.autoResume) {
+        // 启动播放统一由 waitForSurfaceAndResume() 处理（等 surfaceCreated 后再播）。
+        // 仅当 surface 已就绪（说明 waitForSurfaceAndResume 已执行过但当时无频道可播）
+        // 且当前还没播放时，才在这里补调一次，避免重复初始化播放器。
+        if (currentChannel == null && channels.isNotEmpty() && repository.autoResume && surfaceReady) {
+            logStartup("onChannelsLoaded: surface already ready but no channel playing, resumeLastChannel")
             resumeLastChannel()
         }
     }
