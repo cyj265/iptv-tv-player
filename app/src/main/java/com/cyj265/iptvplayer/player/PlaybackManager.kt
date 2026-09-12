@@ -77,6 +77,8 @@ class PlaybackManager(
     private var currentSourceIndex = 0
     private var autoTryStartIndex = 0
     private var retryCount = 0
+    /** 当前线路是否曾成功起播（STATE_READY）。用于区分"起播失败"和"播放中途失败" */
+    private var hasStartedPlaying = false
     private val retryHandler = Handler(Looper.getMainLooper())
     private val sourceTimeoutHandler = Handler(Looper.getMainLooper())
     private var sourceTimeoutMs: Long = 10_000L
@@ -104,6 +106,7 @@ class PlaybackManager(
         override fun onPlaybackStateChanged(playbackState: Int) {
             if (playbackState == Player.STATE_READY) {
                 // 起播成功：取消超时换源
+                hasStartedPlaying = true
                 sourceTimeoutHandler.removeCallbacksAndMessages(null)
             }
             listener.onPlaybackStateChanged(player?.isPlaying == true)
@@ -123,8 +126,16 @@ class PlaybackManager(
             val isDecoderError =
                 error.errorCode == PlaybackException.ERROR_CODE_DECODER_INIT_FAILED ||
                         error.errorCode == PlaybackException.ERROR_CODE_DECODING_FAILED
-            // 多线路 + 非解码类错误：自动切下一条线路（网络/协议问题换线路通常能解决）
+            // 多线路 + 非解码类错误：
+            // - 起播失败（从未 STATE_READY）：自动切下一条线路（换线路通常能解决）
+            // - 播放中途失败（曾成功起播）：直接报错停止，避免"黑屏→切线路→再黑屏"反复循环
             if (!isDecoderError && currentSources.size > 1) {
+                if (hasStartedPlaying) {
+                    retryCount = 0
+                    retryHandler.removeCallbacksAndMessages(null)
+                    listener.onPlaybackError("播放中断（线路 ${currentSourceIndex + 1}），请手动换线路或重新打开")
+                    return
+                }
                 autoFail("线路 ${currentSourceIndex + 1} 播放失败")
                 return
             }
@@ -374,6 +385,7 @@ class PlaybackManager(
     private fun playCurrentSource() {
         val p = player ?: return
         val url = currentSources.getOrNull(currentSourceIndex) ?: return
+        hasStartedPlaying = false
         currentUrl = url
         currentChannelName = currentChannelName ?: url
         p.stop()
@@ -455,6 +467,7 @@ class PlaybackManager(
 
     private fun retryPlay(url: String, channelName: String) {
         val p = player ?: return
+        hasStartedPlaying = false
         p.stop()
         p.clearMediaItems()
         p.setMediaSource(buildMediaSource(url, channelName))
