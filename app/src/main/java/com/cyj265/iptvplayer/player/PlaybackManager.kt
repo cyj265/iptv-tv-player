@@ -495,9 +495,6 @@ class PlaybackManager(
         val type = Util.inferContentType(Uri.parse(url))
         return when (type) {
             C.CONTENT_TYPE_HLS -> HlsMediaSource.Factory(dataSourceFactory)
-                // 允许无 chunk 准备：对不标准 HLS 流（时间戳异常）更宽容，避免 H.265 流
-                // SampleQueue.commitSample 时间戳校验失败导致播放几秒后崩溃
-                .setAllowChunklessPreparation(true)
                 // 时间戳调整器初始化超时从 5s 增加到 10s，兼容慢响应源
                 .setTimestampAdjusterInitializationTimeoutMs(10_000)
                 .createMediaSource(mediaItem)
