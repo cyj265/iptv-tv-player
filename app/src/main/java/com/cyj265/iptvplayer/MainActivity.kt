@@ -649,7 +649,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                         currentChannel = null
                         adapter.setSelected(null)
                         refreshSourceUI()
-                        reloadPlaylist()
+                        reloadPlaylist(true)
                         Toast.makeText(
                             this,
                             getString(R.string.switch_source) + "：源 " + (i + 1),
@@ -706,7 +706,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         adapter.setSelected(null)
         updateSourceBar()
         updateSourceStatus()
-        reloadPlaylist()
+        reloadPlaylist(true)
         Toast.makeText(
             this,
             getString(R.string.switch_source) + "：" + sourceLabel(next),
@@ -724,7 +724,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         adapter.setSelected(null)
         updateSourceBar()
         updateSourceStatus()
-        reloadPlaylist()
+        reloadPlaylist(true)
         Toast.makeText(
             this,
             getString(R.string.switch_source) + "：" + sourceLabel(prev),
@@ -790,7 +790,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                 updateSourceBar()
                 updateSourceStatus()
                 updateSourceOptions()
-                reloadPlaylist()
+                reloadPlaylist(true)
                 loadEpgIfConfigured()
                 Toast.makeText(
                     this,
@@ -1123,7 +1123,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                                 currentChannel = null
                                 adapter.setSelected(null)
                                 refreshSourceUI()
-                                reloadPlaylist()
+                                reloadPlaylist(true)
                                 Toast.makeText(this, "已自动切换到最快源（源${fastestIdx + 1}）", Toast.LENGTH_SHORT).show()
                             } else {
                                 Toast.makeText(this, "测速完成，当前已是最快源", Toast.LENGTH_SHORT).show()
@@ -1311,7 +1311,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         currentChannel = null
         adapter.setSelected(null)
         refreshSourceUI()
-        reloadPlaylist()
+        reloadPlaylist(true)
         Toast.makeText(this, "已添加并切换到直播源 " + sources.size, Toast.LENGTH_SHORT).show()
     }
 
@@ -1332,7 +1332,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         currentChannel = null
         adapter.setSelected(null)
         refreshSourceUI()
-        if (sources.isNotEmpty()) reloadPlaylist()
+        if (sources.isNotEmpty()) reloadPlaylist(true)
         Toast.makeText(this, "已删除直播源", Toast.LENGTH_SHORT).show()
     }
 
@@ -1838,17 +1838,30 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         updateSourceBar()
         updateSourceStatus()
         updateSourceOptions()
-        reloadPlaylist()
+        reloadPlaylist(true)
         loadEpgIfConfigured()
         Toast.makeText(this, R.string.loading_playlist, Toast.LENGTH_SHORT).show()
     }
 
-    private fun reloadPlaylist() {
+    private fun reloadPlaylist(forceRefresh: Boolean = false) {
         val url = repository.getActiveSource()
         if (url.isNullOrEmpty()) {
             val cached = repository.loadLocalChannels()
             if (!cached.isNullOrEmpty()) onChannelsLoaded(cached)
             return
+        }
+        // ★ v1.13.1：直播源缓存 24 小时内直接使用（频道列表相对稳定，无需每次启动重新下载）。
+        // 用户手动操作（切换源/保存/扫码/刷新）时 forceRefresh=true 强制下载最新列表。
+        if (!forceRefresh) {
+            val updatedAt = repository.getSourceUpdatedAt(url)
+            val cached = repository.loadCachedChannels(url)
+            if (updatedAt > 0 &&
+                System.currentTimeMillis() - updatedAt < 24 * 3600_000L &&
+                !cached.isNullOrEmpty()
+            ) {
+                onChannelsLoaded(cached)
+                return
+            }
         }
         Thread {
             try {
@@ -2075,6 +2088,20 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         val nowMs = System.currentTimeMillis()
         if (nowMs - lastEpgAttemptAt < 10000 && epgLoadState == EpgLoadState.LOADING) return
         lastEpgAttemptAt = nowMs
+        // ★ v1.13.1：EPG 本地缓存 2 小时内直接使用（节目单按时间线显示，无需每次启动重新下载）。
+        // 缓存过期或不存在才后台重新获取；加载完成后再写回缓存。
+        val cachedAge = nowMs - repository.epgUpdatedAt
+        val epgCache = repository.loadEpgCache()
+        if (cachedAge in 0 until 2 * 3600_000L && epgCache != null) {
+            val channelsSnapshot = allChannels
+            epgPrograms = indexEpgWithChannels(epgCache, channelsSnapshot)
+            epgLoadState = EpgLoadState.READY
+            updateNowPlaying()
+            adapter.epgNow = buildEpgNowMap()
+            adapter.epgNext = buildEpgNextMap()
+            updateProgramInfo()
+            return
+        }
         epgLoadState = EpgLoadState.LOADING
         updateProgramInfo()
         Thread {
@@ -2107,6 +2134,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                 epgPrograms = indexEpgWithChannels(EpgParser.EpgData(mergedNames, mergedPrograms), channelsSnapshot)
                 repository.epgProgramCount = totalPrograms
                 repository.epgUpdatedAt = System.currentTimeMillis()
+                repository.saveEpgCache(mergedNames, mergedPrograms)
                 epgLoadedCount = totalPrograms
                 finalState = EpgLoadState.READY
             }

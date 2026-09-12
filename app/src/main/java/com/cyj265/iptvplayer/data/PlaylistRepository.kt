@@ -386,6 +386,68 @@ class PlaylistRepository(private val context: Context) {
         }
     }
 
+    // ---------- EPG 缓存（持久化，重启后按时间线直接显示，不用每次重新下载） ----------
+
+    private val epgCacheFile: File
+        get() = File(context.filesDir, "epg_cache.json")
+
+    /** 保存 EPG 数据缓存（节目单 + 频道名映射） */
+    fun saveEpgCache(channelNames: Map<String, String>, programs: List<EpgProgram>) {
+        try {
+            val arr = JSONArray()
+            for (p in programs) {
+                arr.put(
+                    JSONObject()
+                        .put("c", p.channelId)
+                        .put("s", p.start)
+                        .put("e", p.end)
+                        .put("t", p.title)
+                        .put("d", p.description)
+                )
+            }
+            val names = JSONObject()
+            for ((k, v) in channelNames) names.put(k, v)
+            epgCacheFile.writeText(
+                JSONObject().put("names", names).put("programs", arr).toString(),
+                Charsets.UTF_8
+            )
+        } catch (ignored: Exception) {
+        }
+    }
+
+    /** 读取 EPG 缓存；无缓存或损坏返回 null */
+    fun loadEpgCache(): EpgParser.EpgData? {
+        return try {
+            val f = epgCacheFile
+            if (!f.exists()) return null
+            val root = JSONObject(f.readText(Charsets.UTF_8))
+            val names = HashMap<String, String>()
+            val namesObj = root.optJSONObject("names") ?: JSONObject()
+            val it = namesObj.keys()
+            while (it.hasNext()) {
+                val k = it.next()
+                names[k] = namesObj.optString(k)
+            }
+            val arr = root.optJSONArray("programs") ?: JSONArray()
+            val programs = ArrayList<EpgProgram>(arr.length())
+            for (i in 0 until arr.length()) {
+                val o = arr.getJSONObject(i)
+                programs.add(
+                    EpgProgram(
+                        channelId = o.optString("c"),
+                        start = o.optLong("s"),
+                        end = o.optLong("e"),
+                        title = o.optString("t"),
+                        description = o.optString("d")
+                    )
+                )
+            }
+            if (programs.isEmpty()) null else EpgParser.EpgData(names, programs)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     /** 频道列表 → JSON 数组（含多线路 sources，旧字段 url 保留） */
     private fun toJsonArray(channels: List<Channel>): String {
         val arr = JSONArray()
