@@ -22,22 +22,22 @@ to this project's gradle.properties.
 > Task :app:preReleaseBuild UP-TO-DATE
 > Task :app:dataBindingMergeDependencyArtifactsRelease
 > Task :app:generateReleaseResValues FROM-CACHE
-> Task :app:generateReleaseResources
-> Task :app:packageReleaseResources
+> Task :app:generateReleaseResources FROM-CACHE
+> Task :app:mergeReleaseResources FROM-CACHE
+> Task :app:packageReleaseResources FROM-CACHE
+> Task :app:parseReleaseLocalResources FROM-CACHE
+> Task :app:dataBindingGenBaseClassesRelease FROM-CACHE
 > Task :app:generateReleaseBuildConfig FROM-CACHE
 > Task :app:mapReleaseSourceSetPaths
-> Task :app:checkReleaseAarMetadata
 > Task :app:createReleaseCompatibleScreenManifests
-> Task :app:parseReleaseLocalResources
+> Task :app:checkReleaseAarMetadata
 > Task :app:extractDeepLinksRelease FROM-CACHE
 > Task :app:processReleaseMainManifest FROM-CACHE
 > Task :app:processReleaseManifest FROM-CACHE
 > Task :app:processReleaseManifestForPackage FROM-CACHE
 > Task :app:javaPreCompileRelease FROM-CACHE
 > Task :app:extractProguardFiles
-> Task :app:mergeReleaseResources
 > Task :app:mergeReleaseJniLibFolders
-> Task :app:dataBindingGenBaseClassesRelease
 > Task :app:mergeReleaseNativeLibs NO-SOURCE
 > Task :app:stripReleaseDebugSymbols NO-SOURCE
 > Task :app:extractReleaseNativeSymbolTables NO-SOURCE
@@ -45,7 +45,7 @@ to this project's gradle.properties.
 > Task :app:checkReleaseDuplicateClasses
 > Task :app:processReleaseResources FAILED
 > Task :app:desugarReleaseFileDependencies FROM-CACHE
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_3-1789213948899.json
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_3-1789214332823.json
 
 FAILURE: Build failed with an exception.
 
@@ -63,5 +63,5 @@ Execution failed for task ':app:processReleaseResources'.
 > Run with --scan to get full insights.
 > Get more help at https://help.gradle.org.
 
-BUILD FAILED in 18s
-22 actionable tasks: 14 executed, 8 from cache
+BUILD FAILED in 12s
+22 actionable tasks: 9 executed, 13 from cache
