@@ -851,18 +851,15 @@
                         </LinearLayout>
 
                         <!-- 添加直播源（弹窗输入） -->
-                        <TextView
+                        <Button
                             android:id="@+id/btnAddSource"
                             android:layout_width="match_parent"
                             android:layout_height="46dp"
                             android:layout_marginTop="18dp"
-                            android:background="@drawable/bg_search"
-                            android:gravity="center_vertical"
-                            android:paddingLeft="14dp"
-                            android:paddingRight="14dp"
-                            android:text="➕ 添加直播源（URL）"
-                            android:textColor="#FFFFFF"
+                            android:text="添加直播源（URL）"
                             android:textSize="14sp"
+                            android:backgroundTint="@color/bg_item"
+                            android:textColor="#FFFFFF"
                             android:focusable="true"
                             android:clickable="true" />
 
@@ -886,7 +883,7 @@
                             android:text="手机扫码管理（局域网）"
                             android:textSize="14sp"
                             android:backgroundTint="@color/bg_item"
-                            android:textColor="@color/accent_soft" />
+                            android:textColor="#FFFFFF" />
                     </LinearLayout>
 
                     <!-- ===== 分区：节目单（EPG） ===== -->
