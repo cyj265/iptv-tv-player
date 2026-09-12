@@ -43,6 +43,10 @@
                 android:textStyle="bold"
                 android:maxLines="1"
                 android:ellipsize="end"
+                android:shadowColor="#CC000000"
+                android:shadowRadius="3"
+                android:shadowDx="1"
+                android:shadowDy="1"
                 android:text="@string/no_channels" />
 
             <TextView
@@ -66,6 +70,10 @@
             android:textSize="13sp"
             android:maxLines="1"
             android:ellipsize="end"
+            android:shadowColor="#CC000000"
+            android:shadowRadius="2"
+            android:shadowDx="1"
+            android:shadowDy="1"
             android:text="" />
 
         <TextView
@@ -77,6 +85,10 @@
             android:textSize="14sp"
             android:maxLines="1"
             android:ellipsize="end"
+            android:shadowColor="#CC000000"
+            android:shadowRadius="2.5"
+            android:shadowDx="1"
+            android:shadowDy="1"
             android:text="@string/no_epg" />
 
         <!-- EPG 当前节目进度条 -->
@@ -100,6 +112,10 @@
             android:textSize="13sp"
             android:maxLines="1"
             android:ellipsize="end"
+            android:shadowColor="#CC000000"
+            android:shadowRadius="2"
+            android:shadowDx="1"
+            android:shadowDy="1"
             android:text="" />
     </LinearLayout>
 
