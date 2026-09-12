@@ -128,27 +128,40 @@ class PlaybackManager(
                 autoFail("线路 ${currentSourceIndex + 1} 播放失败")
                 return
             }
-            // 解码器初始化/解码失败：后台检测解码器是否坏状态
-            // （T1 老 Amlogic 硬解组件长时间运行会卡死：format_supported=YES 但
-            // OMX 组件 init failed，应用内无法修复），确认坏了就明确提示重启机顶盒，
-            // 同时降级软解让用户先能看。
-            if (!degradedToSoftware && decoderMode == "auto" && url != null && isDecoderError) {
-                degradedToSoftware = true // 防重复进入检测流程
-                val name = currentChannelName
-                listener.onPlaybackError("硬解失败，正在检测解码器状态…")
-                Thread {
-                    val broken = !DecoderHealthCheck.isHardwareHevcHealthy()
-                    Handler(Looper.getMainLooper()).post {
-                        listener.onPlaybackError(
-                            if (broken) "解码器异常，请重启机顶盒后重试（已临时切换软解）"
-                            else "硬解失败，已切换软件解码"
-                        )
-                        retryHandler.postDelayed({ degradeToSoftware(url, name ?: url) }, 800)
-                    }
-                }.start()
+            // ===== 解码类错误：只降级一次软解，软解再失败直接报错停止，避免黑屏反复重载 =====
+            if (isDecoderError) {
+                // 已降级过软解仍失败：说明软解也放不了（T1 软解 4K HEVC 撑不住），
+                // 重试只会"黑屏→重载→再黑屏"循环，直接停止并给出明确提示。
+                if (degradedToSoftware) {
+                    retryCount = 0
+                    retryHandler.removeCallbacksAndMessages(null)
+                    listener.onPlaybackError("解码失败：硬解/软解均无法播放，请尝试更换清晰度或重启机顶盒")
+                    return
+                }
+                // 未降级过：auto 模式下降级软解一次（仅当解码器健康检测通过/提示后）
+                if (decoderMode == "auto" && url != null) {
+                    degradedToSoftware = true // 防重复进入检测流程
+                    val name = currentChannelName
+                    listener.onPlaybackError("硬解失败，正在检测解码器状态…")
+                    Thread {
+                        val broken = !DecoderHealthCheck.isHardwareHevcHealthy()
+                        Handler(Looper.getMainLooper()).post {
+                            listener.onPlaybackError(
+                                if (broken) "解码器异常，请重启机顶盒后重试（已临时切换软解）"
+                                else "硬解失败，已切换软件解码"
+                            )
+                            retryHandler.postDelayed({ degradeToSoftware(url, name ?: url) }, 800)
+                        }
+                    }.start()
+                    return
+                }
+                // 仅硬解/仅软解模式下解码失败：不重试，直接报错
+                retryCount = 0
+                retryHandler.removeCallbacksAndMessages(null)
+                listener.onPlaybackError("解码失败（${error.errorCodeName}），请尝试切换解码方式或重启机顶盒")
                 return
             }
-            // 自动重试最多 2 次，间隔递增（1.5s / 3s）——仅单线路时生效
+            // ===== 非解码类错误（网络/协议）：最多自动重试 2 次，间隔递增（1.5s / 3s） =====
             if (retryCount < 2 && url != null) {
                 retryCount++
                 val delay = 1500L * retryCount
@@ -158,6 +171,7 @@ class PlaybackManager(
                 return
             }
             retryCount = 0
+            retryHandler.removeCallbacksAndMessages(null)
             listener.onPlaybackError(error.errorCodeName)
         }
         override fun onIsPlayingChanged(isPlaying: Boolean) {
