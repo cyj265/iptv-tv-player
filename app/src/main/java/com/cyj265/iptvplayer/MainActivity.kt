@@ -1598,64 +1598,94 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     }
 
     private fun downloadAndInstall(originalUrl: String) {
-        // GitHub release 资产在部分网络下直连慢/断，走镜像加速
-        val downloadUrl = if (originalUrl.startsWith("https://github.com/")) {
+        // 双线下载：先直连，失败自动换加速中转
+        val proxyUrl = if (originalUrl.startsWith("https://github.com/")) {
             "https://gh-proxy.com/" + originalUrl
         } else {
             originalUrl
         }
+        val urls = if (originalUrl == proxyUrl) {
+            listOf(originalUrl)  // 非 GitHub 链接只有一条
+        } else {
+            listOf(originalUrl, proxyUrl)  // GitHub 链接：直连 + 加速
+        }
+        val urlNames = listOf("直连", "加速")
+
         Thread {
-            try {
-                val dir = File(cacheDir, "apk")
-                dir.mkdirs()
-                val apk = File(dir, "update.apk")
-                val conn = URL(downloadUrl).openConnection() as HttpURLConnection
-                conn.connectTimeout = 20000
-                conn.readTimeout = 60000
-                conn.setRequestProperty("User-Agent", "LanXingTV")
-                val total = conn.contentLengthLong
-                val input = conn.inputStream
-                val output = apk.outputStream()
-                val buf = ByteArray(64 * 1024)
-                var read: Int
-                var done = 0L
-                var lastPercent = -1
-                while (input.read(buf).also { read = it } > 0) {
-                    output.write(buf, 0, read)
-                    done += read
-                    if (total > 0) {
-                        val pct = (done * 100 / total).toInt()
-                        if (pct != lastPercent && pct % 5 == 0) {
-                            lastPercent = pct
-                            val p = pct
-                            runOnUiThread {
-                                try {
-                                    binding.tvUpdateStatus.text =
-                                        getString(R.string.update_downloading, p)
-                                } catch (ignored: Throwable) {
+            var lastError: String? = null
+            for ((idx, downloadUrl) in urls.withIndex()) {
+                val urlName = if (urls.size > 1) urlNames.getOrElse(idx) { "线路${idx+1}" } else ""
+                try {
+                    runOnUiThread {
+                        try {
+                            binding.tvUpdateStatus.text = if (urlName.isNotEmpty()) "正在$urlName 下载..." else "正在下载..."
+                        } catch (ignored: Throwable) {}
+                    }
+                    val dir = File(cacheDir, "apk")
+                    dir.mkdirs()
+                    val apk = File(dir, "update.apk")
+                    val conn = URL(downloadUrl).openConnection() as HttpURLConnection
+                    conn.connectTimeout = 15000
+                    conn.readTimeout = 60000
+                    conn.instanceFollowRedirects = true
+                    conn.setRequestProperty("User-Agent", "LanXingTV")
+                    val code = conn.responseCode
+                    if (code !in 200..399) {
+                        throw Exception("HTTP $code")
+                    }
+                    val total = conn.contentLengthLong
+                    val input = conn.inputStream
+                    val output = apk.outputStream()
+                    val buf = ByteArray(64 * 1024)
+                    var read: Int
+                    var done = 0L
+                    var lastPercent = -1
+                    while (input.read(buf).also { read = it } > 0) {
+                        output.write(buf, 0, read)
+                        done += read
+                        if (total > 0) {
+                            val pct = (done * 100 / total).toInt()
+                            if (pct != lastPercent && pct % 5 == 0) {
+                                lastPercent = pct
+                                val p = pct
+                                val name = urlName
+                                runOnUiThread {
+                                    try {
+                                        binding.tvUpdateStatus.text = if (name.isNotEmpty()) "$name 下载中 $p%" else "下载中 $p%"
+                                    } catch (ignored: Throwable) {}
                                 }
                             }
                         }
                     }
-                }
-                output.flush()
-                output.close()
-                input.close()
-                runOnUiThread {
-                    try {
-                        binding.tvUpdateStatus.text = getString(R.string.update_done)
-                        installApk(apk)
-                    } catch (ignored: Throwable) {
+                    output.flush()
+                    output.close()
+                    input.close()
+                    // 下载成功，安装
+                    runOnUiThread {
+                        try {
+                            binding.tvUpdateStatus.text = getString(R.string.update_done)
+                            installApk(apk)
+                        } catch (ignored: Throwable) {}
+                    }
+                    return@Thread  // 下载成功，退出
+                } catch (e: Exception) {
+                    lastError = e.message ?: "下载失败"
+                    // 如果还有下一个链接，自动切换
+                    if (idx < urls.size - 1) {
+                        runOnUiThread {
+                            try {
+                                binding.tvUpdateStatus.text = "${urlName}失败（${lastError}），切换${urlNames[idx+1]}..."
+                            } catch (ignored: Throwable) {}
+                        }
+                        Thread.sleep(500)
                     }
                 }
-            } catch (e: Exception) {
-                runOnUiThread {
-                    try {
-                        binding.tvUpdateStatus.text =
-                            getString(R.string.update_failed, e.message ?: "下载失败")
-                    } catch (ignored: Throwable) {
-                    }
-                }
+            }
+            // 所有链接都失败
+            runOnUiThread {
+                try {
+                    binding.tvUpdateStatus.text = getString(R.string.update_failed, lastError ?: "所有线路均下载失败")
+                } catch (ignored: Throwable) {}
             }
         }.start()
     }
