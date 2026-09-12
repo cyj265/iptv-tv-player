@@ -169,7 +169,11 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         playback.setAspectRatio(repository.aspectRatio)
         playback.setSourceTimeoutMs(repository.switchTimeoutSec * 1000L)
 
-        checkDecoderHealthOnStart()
+        // v1.14.3：禁用启动时解码器健康检测。
+        // 根因：启动时后台线程创建 HEVC 解码器实例，和主线程 resumeLastChannel()
+        // 播放器初始化冲突，导致 OMX 服务状态异常，第一次启动解码器 init 失败黑屏。
+        // 播放失败时 onPlayerError 中已会调用 DecoderHealthCheck 检测，启动时无需重复检测。
+        // checkDecoderHealthOnStart()
 
         adapter = ChannelAdapter(
             onChannelClick = { channel -> onChannelClick(channel) },

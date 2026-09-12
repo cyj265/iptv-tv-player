@@ -78,6 +78,7 @@ class PlaybackManager(
     private var currentSourceIndex = 0
     private var autoTryStartIndex = 0
     private var retryCount = 0
+    private var decoderInitRetryCount = 0
     /** 当前线路是否曾成功起播（STATE_READY）。用于区分"起播失败"和"播放中途失败" */
     private var hasStartedPlaying = false
     private val retryHandler = Handler(Looper.getMainLooper())
@@ -140,9 +141,20 @@ class PlaybackManager(
                 autoFail("线路 ${currentSourceIndex + 1} 播放失败")
                 return
             }
-            // ===== 解码类错误：只降级一次软解，软解再失败直接报错停止，避免黑屏反复重载 =====
+            // ===== 解码类错误：先自动重试一次硬解（瞬时资源冲突），再降级软解 =====
             if (isDecoderError) {
-                // 已降级过软解仍失败：说明软解也放不了（T1 软解 4K HEVC 撑不住），
+                // v1.14.3：解码初始化失败先自动重试一次（延迟500ms）。
+                // N1(Amlogic)快速退出重开时旧 MediaCodec 未释放导致 configure 瞬时失败，
+                // 重试一次通常能恢复（用户实测第二次/第三次启动能正常播放）。
+                if (error.errorCode == PlaybackException.ERROR_CODE_DECODER_INIT_FAILED
+                    && decoderInitRetryCount < 1 && url != null) {
+                    decoderInitRetryCount++
+                    val name = currentChannelName
+                    listener.onPlaybackError("解码器初始化失败，500ms 后自动重试…")
+                    retryHandler.postDelayed({ retryPlay(url, name ?: url) }, 500)
+                    return
+                }
+                // 已降级过软解仍失败：说明软解也放不了（N1 软解 4K HEVC 撑不住），
                 // 重试只会"黑屏→重载→再黑屏"循环，直接停止并给出明确提示。
                 if (degradedToSoftware) {
                     retryCount = 0
@@ -380,6 +392,7 @@ class PlaybackManager(
         currentSourceIndex = 0
         autoTryStartIndex = 0
         retryCount = 0
+        decoderInitRetryCount = 0
         degradedToSoftware = false
         playCurrentSource()
     }
@@ -512,6 +525,12 @@ class PlaybackManager(
         sourceTimeoutHandler.removeCallbacksAndMessages(null)
         // 修复：显式移除 listener，避免 player.release() 过程中回调已销毁的 Activity
         player?.removeListener(playerListener)
+        // v1.14.3：先 stop 再 release，确保 MediaCodec 停止后再释放，
+        // 避免 N1(Amlogic)快速退出重开时旧解码器未释放导致新 configure 失败。
+        try {
+            player?.stop()
+        } catch (ignored: Exception) {
+        }
         player?.release()
         player = null
         bandwidthMeter = null
