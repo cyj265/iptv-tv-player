@@ -257,13 +257,13 @@ class PlaybackManager(
         // 每次重建播放器都新建带宽检测器实例
         val meter = DefaultBandwidthMeter.Builder(context).build()
         bandwidthMeter = meter
-        // 直播缓冲：起播 1.5s、卡顿后 3s、持续目标 15s、上限 45s。
+        // 直播缓冲：起播 1.5s、卡顿后 3s、持续目标 8s、上限 15s。
         // 之前起播缓冲 15s 需要攒够两三个 TS 分片才开播，导致"等待播放时间太长"。
-        // 直播流（TS 10s 分片）缓冲越小起播越快、延迟越低；45s 上限足够吸收网络抖动。
+        // 直播流（TS 10s 分片）缓冲越小起播越快、延迟越低；15s 上限足够吸收网络抖动。
         val loadControl = DefaultLoadControl.Builder()
             .setBufferDurationsMs(
-                15_000,   // minBufferMs：持续缓冲目标
-                45_000,   // maxBufferMs：缓冲上限
+                8_000,    // minBufferMs
+                15_000,   // maxBufferMs
                 1_500,    // bufferForPlaybackMs：起播所需缓冲（秒开）
                 3_000     // bufferForPlaybackAfterRebufferMs：卡顿后恢复所需缓冲
             )

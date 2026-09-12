@@ -94,6 +94,8 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     private enum class EpgLoadState { NOT_CONFIGURED, LOADING, READY, FAILED }
     private var epgLoadState = EpgLoadState.NOT_CONFIGURED
     private var epgLoadedCount = 0
+    /** 复用时间格式化器，避免 EPG 刷新时每频道 new 两次 SimpleDateFormat（GC 压力） */
+    private val epgTimeFmt = SimpleDateFormat("HH:mm", Locale.getDefault())
     private var lastEpgAttemptAt = 0L
 
     private var videoW = 0
@@ -121,7 +123,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                 clockTick++
                 // 每秒更新 EPG 进度条（只更新进度，不更新文字）
                 updateEpgProgressOnly()
-                if (clockTick % 60 == 0 && epgPrograms.isNotEmpty()) {
+                if (clockTick % 300 == 0 && epgPrograms.isNotEmpty()) {
                     adapter.epgNow = buildEpgNowMap()
                     adapter.epgNext = buildEpgNextMap()
                     updateProgramInfo()
@@ -2196,8 +2198,8 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             val programs = epgPrograms[ch.id] ?: continue
             val cur = programs.firstOrNull { now in it.start until it.end }
             if (cur != null) {
-                val startStr = SimpleDateFormat("HH:mm", Locale.getDefault()).format(java.util.Date(cur.start))
-                val endStr = SimpleDateFormat("HH:mm", Locale.getDefault()).format(java.util.Date(cur.end))
+                val startStr = epgTimeFmt.format(java.util.Date(cur.start))
+                val endStr = epgTimeFmt.format(java.util.Date(cur.end))
                 map[ch.id] = "▶ ${cur.title}  [$startStr-$endStr]"
             }
         }
@@ -2212,8 +2214,8 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             val programs = epgPrograms[ch.id] ?: continue
             val next = programs.firstOrNull { it.start >= now }
             if (next != null) {
-                val startStr = SimpleDateFormat("HH:mm", Locale.getDefault()).format(java.util.Date(next.start))
-                val endStr = SimpleDateFormat("HH:mm", Locale.getDefault()).format(java.util.Date(next.end))
+                val startStr = epgTimeFmt.format(java.util.Date(next.start))
+                val endStr = epgTimeFmt.format(java.util.Date(next.end))
                 map[ch.id] = "◷ ${next.title}  [$startStr-$endStr]"
             }
         }
