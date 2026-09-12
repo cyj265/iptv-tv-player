@@ -39,6 +39,7 @@ import com.cyj265.iptvplayer.data.SourceHealthChecker
 import com.cyj265.iptvplayer.databinding.ActivityMainBinding
 import com.cyj265.iptvplayer.player.PlaybackManager
 import com.cyj265.iptvplayer.ui.ChannelAdapter
+import com.cyj265.iptvplayer.ui.EpgListAdapter
 import com.cyj265.iptvplayer.util.QrCodeUtil
 import org.json.JSONArray
 import org.json.JSONObject
