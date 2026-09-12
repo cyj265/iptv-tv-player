@@ -243,10 +243,10 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         }
         loadEpgIfConfigured()
 
-        // 自动恢复上次频道（v1.14.4：延迟300ms，确保 TextureView/Surface 就绪后再播放，
-        // 避免启动时视频解码器init成功但渲染到未就绪Surface导致黑屏有声音）
+        // 自动恢复上次频道（v1.14.5：等待 SurfaceView 的 surfaceCreated 回调后再播放，
+        // 避免启动时视频解码器init成功但渲染到未就绪Surface导致黑屏有声音+native崩溃闪退）
         if (repository.autoResume) {
-            window.decorView.postDelayed({ resumeLastChannel() }, 300)
+            waitForSurfaceAndResume()
         }
 
         // 恢复上次分组
@@ -2062,6 +2062,84 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         updateNowPlaying()
         updateLineupLabel()
         hideChannelPanel()
+    }
+
+    private var surfaceReady = false
+    private var surfaceResumePending = false
+    private val surfaceResumeHandler = android.os.Handler(android.os.Looper.getMainLooper())
+
+    /** 等待 SurfaceView 的 Surface 创建完成后再恢复播放，避免渲染到未就绪 Surface 导致黑屏闪退 */
+    /** 遍历 PlayerView 子视图查找 SurfaceView（兼容各版本 Media3 API） */
+    private fun findSurfaceView(view: android.view.View): android.view.SurfaceView? {
+        if (view is android.view.SurfaceView) return view
+        if (view is android.view.ViewGroup) {
+            for (i in 0 until view.childCount) {
+                val child = view.getChildAt(i)
+                val result = findSurfaceView(child)
+                if (result != null) return result
+            }
+        }
+        return null
+    }
+
+    private fun waitForSurfaceAndResume() {
+        try {
+            val surfaceView = findSurfaceView(binding.playerView)
+            if (surfaceView != null) {
+                val holder = surfaceView.holder
+                if (holder.surface != null && holder.surface.isValid) {
+                    // Surface 已就绪，直接播放
+                    surfaceReady = true
+                    logStartup("Surface already ready, resume immediately")
+                    resumeLastChannel()
+                    return
+                }
+                // 等待 surfaceCreated 回调
+                surfaceResumePending = true
+                logStartup("Surface not ready, waiting for surfaceCreated...")
+                holder.addCallback(object : android.view.SurfaceHolder.Callback {
+                    override fun surfaceCreated(h: android.view.SurfaceHolder) {
+                        surfaceReady = true
+                        logStartup("surfaceCreated callback received")
+                        if (surfaceResumePending) {
+                            surfaceResumePending = false
+                            resumeLastChannel()
+                        }
+                        h.removeCallback(this)
+                    }
+                    override fun surfaceChanged(h: android.view.SurfaceHolder, format: Int, width: Int, height: Int) {}
+                    override fun surfaceDestroyed(h: android.view.SurfaceHolder) {
+                        surfaceReady = false
+                        logStartup("surfaceDestroyed callback received")
+                    }
+                })
+                // 超时保护：5秒内 Surface 未就绪则强制播放
+                surfaceResumeHandler.postDelayed({
+                    if (surfaceResumePending) {
+                        surfaceResumePending = false
+                        logStartup("Surface wait timeout (5s), force resume")
+                        resumeLastChannel()
+                    }
+                }, 5000)
+            } else {
+                logStartup("SurfaceView not found, fallback to delayed resume")
+                window.decorView.postDelayed({ resumeLastChannel() }, 500)
+            }
+        } catch (e: Exception) {
+            logStartup("waitForSurfaceAndResume exception: ${e.message}")
+            window.decorView.postDelayed({ resumeLastChannel() }, 500)
+        }
+    }
+
+    /** 启动日志：写入 crash.log 便于定位启动黑屏/闪退问题 */
+    private fun logStartup(msg: String) {
+        try {
+            val file = crashFile()
+            val timestamp = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", java.util.Locale.getDefault()).format(java.util.Date())
+            val existing = if (file.exists()) file.readText(Charsets.UTF_8) else ""
+            file.writeText("$existing
+[$timestamp][Startup] $msg", Charsets.UTF_8)
+        } catch (ignored: Exception) {}
     }
 
     private fun resumeLastChannel() {
