@@ -1,8 +1,8 @@
 # 揽星 TV（LanXing TV · Android TV IPTV 播放器）
 
-一个专为 **Android TV / 电视盒子** 设计的开源 IPTV 播放器，支持 **Android 7.0+**。
+一个专为 **Android TV / 电视盒子** 设计的开源 IPTV 播放器，支持 **Android 6.0+（minSdk 23）**。
 
-播放内核使用 **Media3 ExoPlayer**（Google 官方播放器内核），对 HLS 直播流兼容性最好，H.265/HEVC 高清源硬解。
+播放内核使用 **Media3 ExoPlayer 1.11.0**（Google 官方播放器内核），对 HLS 直播流兼容性最好，H.265/HEVC 高清源硬解。
 
 > 以下界面为**示意预览**（非真机截图）。
 
@@ -28,7 +28,7 @@
 - 🎬 **解码模式**：自动 / 仅硬件 / 仅软件，自动模式下硬解失败自动回退软解
 - 💾 **自动恢复**：打开应用自动续播上次频道
 - 🚪 **双击返回退出**：连续按两次返回键弹出退出确认，退出后结束所有进程（后台无声音）
-- 📱 **Android 7.0+ 全支持**（minSdk 21），老盒子也能装
+- 📱 **Android 6.0+ 全支持**（minSdk 23），老盒子也能装
 
 ## 遥控器操作
 
@@ -93,7 +93,7 @@
 
 ## 本地构建（可选）
 
-需要 JDK 17 + Android SDK + Gradle 8.9：
+需要 JDK 17 + Android SDK（compileSdk 36）+ Gradle 8.9：
 
 ```bash
 gradle assembleRelease
@@ -116,10 +116,10 @@ gradle assembleRelease
 
 ## 技术栈
 
-- Kotlin + AndroidX (AppCompat / RecyclerView / ViewBinding)
-- **Media3 ExoPlayer**（HLS 专业支持，H.265/HEVC 硬解）
+- Kotlin 2.2.10 + AndroidX (AppCompat / RecyclerView / ViewBinding)
+- **Media3 ExoPlayer 1.11.0**（HLS 专业支持，H.265/HEVC 硬解）
 - **NanoHTTPD**（局域网管理服务）+ **ZXing**（二维码）
-- minSdk 21 / targetSdk 34
+- minSdk 23（Android 6.0）/ targetSdk 34 / compileSdk 36
 
 ## 致谢与许可
 
@@ -141,6 +141,6 @@ gradle assembleRelease
 ## 说明
 
 - 本应用只播放你提供的播放列表，不内置任何直播源
-- 部分运营商标记的源（如甘肃移动 39.134.x.x）通常**只能在对应运营商网络下播放**，与播放器无关
-- H.265/HEVC 频道依赖电视硬件解码能力；部分老盒子（如斐讯 T1）偶发硬解异常，重启盒子可恢复
+- 部分运营商标记的源通常**只能在对应运营商网络下播放**，与播放器无关
+- H.265/HEVC 频道依赖电视硬件解码能力；部分老盒子偶发硬解异常，重启盒子可恢复
 - 自动更新下载走双线：先直连 GitHub，失败自动切换 gh-proxy 加速中转
