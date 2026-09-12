@@ -117,8 +117,11 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                 }
                 binding.tvClock.text = sb.toString()
                 clockTick++
+                // 每秒更新 EPG 进度条（只更新进度，不更新文字）
+                updateEpgProgressOnly()
                 if (clockTick % 60 == 0 && epgPrograms.isNotEmpty()) {
                     adapter.epgNow = buildEpgNowMap()
+                    adapter.epgNext = buildEpgNextMap()
                     updateProgramInfo()
                 }
             } catch (ignored: Throwable) {
@@ -2106,6 +2109,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                     epgLoadState = finalState
                     updateNowPlaying()
                     adapter.epgNow = buildEpgNowMap()
+                    adapter.epgNext = buildEpgNextMap()
                     updateProgramInfo()
                     updateSourceStatus()
                     if (finalState == EpgLoadState.FAILED) {
@@ -2187,7 +2191,25 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             val programs = epgPrograms[ch.id] ?: continue
             val cur = programs.firstOrNull { now in it.start until it.end }
             if (cur != null) {
-                map[ch.id] = "正在播放：" + cur.title
+                val startStr = SimpleDateFormat("HH:mm", Locale.getDefault()).format(java.util.Date(cur.start))
+                val endStr = SimpleDateFormat("HH:mm", Locale.getDefault()).format(java.util.Date(cur.end))
+                map[ch.id] = "▶ ${cur.title}  [$startStr-$endStr]"
+            }
+        }
+        return map
+    }
+
+    /** 构建每个频道的下一个节目文本：channelId -> "下一个：xxx [HH:mm-HH:mm]" */
+    private fun buildEpgNextMap(): Map<String, String> {
+        val now = System.currentTimeMillis()
+        val map = HashMap<String, String>()
+        for (ch in allChannels) {
+            val programs = epgPrograms[ch.id] ?: continue
+            val next = programs.firstOrNull { it.start >= now }
+            if (next != null) {
+                val startStr = SimpleDateFormat("HH:mm", Locale.getDefault()).format(java.util.Date(next.start))
+                val endStr = SimpleDateFormat("HH:mm", Locale.getDefault()).format(java.util.Date(next.end))
+                map[ch.id] = "◷ ${next.title}  [$startStr-$endStr]"
             }
         }
         return map
@@ -2262,11 +2284,49 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             val now = System.currentTimeMillis()
             val current = programs.firstOrNull { now in it.start until it.end }
             val next = programs.firstOrNull { it.start >= now }
-            binding.tvEpgNow.text =
-                if (current != null) "正在播放: " + current.title else getString(R.string.no_epg)
+            if (current != null) {
+                val startStr = formatTime(current.start)
+                val endStr = formatTime(current.end)
+                val remainingMin = ((current.end - now) / 60000).toInt()
+                val remainingStr = if (remainingMin > 0) "剩余 ${remainingMin} 分钟" else "即将结束"
+                binding.tvEpgNow.text = "正在播放: ${current.title}  [$startStr-$endStr]  $remainingStr"
+                // 进度条
+                val duration = current.end - current.start
+                if (duration > 0) {
+                    val progress = ((now - current.start) * 100 / duration).toInt().coerceIn(0, 100)
+                    binding.epgProgressBar.progress = progress
+                    binding.epgProgressBar.visibility = View.VISIBLE
+                } else {
+                    binding.epgProgressBar.visibility = View.GONE
+                }
+            } else {
+                binding.tvEpgNow.text = getString(R.string.no_epg)
+                binding.epgProgressBar.visibility = View.GONE
+            }
             binding.tvEpgNext.text =
-                if (next != null) "稍后播放: " + next.title + "  " + formatTime(next.start) else ""
+                if (next != null) "稍后 ${formatTime(next.start)}-${formatTime(next.end)}  ${next.title}" else ""
             updateFavoriteIcon()
+        } catch (ignored: Throwable) {
+        }
+    }
+
+    /** 仅更新 EPG 进度条（每秒调用，不更新文字，避免频繁重绘） */
+    private fun updateEpgProgressOnly() {
+        try {
+            val ch = currentChannel ?: return
+            val programs = epgPrograms[ch.id] ?: return
+            val now = System.currentTimeMillis()
+            val current = programs.firstOrNull { now in it.start until it.end }
+            if (current != null) {
+                val duration = current.end - current.start
+                if (duration > 0) {
+                    val progress = ((now - current.start) * 100 / duration).toInt().coerceIn(0, 100)
+                    binding.epgProgressBar.progress = progress
+                    binding.epgProgressBar.visibility = View.VISIBLE
+                }
+            } else {
+                binding.epgProgressBar.visibility = View.GONE
+            }
         } catch (ignored: Throwable) {
         }
     }

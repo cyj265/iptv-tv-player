@@ -47,12 +47,19 @@ class ChannelAdapter(
     /** 用户从未折叠过时默认全部收起（二级列表）。由 MainActivity 按偏好设置。 */
     private var defaultCollapsed = true
 
-    /** 当前 EPG 节目文本：channelId -> "正在播放: xxx"（用于频道项副行） */
+    /** 当前 EPG 节目文本：channelId -> "▶ xxx [HH:mm-HH:mm]"（用于频道项副行） */
     var epgNow: Map<String, String> = emptyMap()
         set(value) {
             if (field == value) return
             field = value
-            // 修复：EPG 只影响可见项的副行文本，用 notifyItemRangeChanged 替代全量刷新
+            if (itemCount > 0) notifyItemRangeChanged(0, itemCount)
+        }
+
+    /** 下一个 EPG 节目文本：channelId -> "◷ xxx [HH:mm-HH:mm]"（用于频道项第三行） */
+    var epgNext: Map<String, String> = emptyMap()
+        set(value) {
+            if (field == value) return
+            field = value
             if (itemCount > 0) notifyItemRangeChanged(0, itemCount)
         }
 
@@ -193,6 +200,13 @@ class ChannelAdapter(
             holder.binding.tvIndex.text = row.index.toString()
             holder.binding.tvChannelName.text = ch.name
             holder.binding.tvEpgLine.text = epgNow[ch.id] ?: ch.group
+            val nextText = epgNext[ch.id]
+            if (nextText != null && nextText.isNotEmpty()) {
+                holder.binding.tvEpgNext.visibility = View.VISIBLE
+                holder.binding.tvEpgNext.text = nextText
+            } else {
+                holder.binding.tvEpgNext.visibility = View.GONE
+            }
             // 首字母 Logo 占位（暂不加载网络 Logo，用频道名首字+亮蓝圆形背景）
             val firstChar = ch.name.replace(Regex("[^\\w\\u4e00-\\u9fa5]"), "").firstOrNull()?.toString() ?: "?"
             holder.binding.tvLogoPlaceholder.text = firstChar
