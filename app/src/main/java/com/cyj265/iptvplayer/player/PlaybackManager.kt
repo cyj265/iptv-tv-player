@@ -574,10 +574,11 @@ class PlaybackManager(
                 }
             } catch (ignored: Exception) {}
             try {
+                // 兼容各版本 Media3：不访问具体字段，直接输出异常类型和消息
                 val cause = error.cause
-                if (cause is androidx.media3.exoplayer.mediacodec.MediaCodecRenderer.DecoderInitializationException) {
-                    sb.append("[Decoder] codec=").append(cause.decoderName)
-                        .append(" mime=").append(cause.mimeType)
+                if (cause != null) {
+                    sb.append("[Decoder] type=").append(cause.javaClass.simpleName)
+                        .append(" msg=").append(cause.message ?: cause.toString())
                         .append("\n")
                 }
             } catch (ignored: Exception) {}
