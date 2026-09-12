@@ -159,9 +159,6 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // v1.14.4：启动图片覆盖层初始化——播放器准备完成或超时3秒后淡出
-        initSplashOverlay()
-
         showLastCrashIfAny()
 
         repository = PlaylistRepository(this)
@@ -2600,10 +2597,6 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
 
     override fun onPlaybackStateChanged(isPlaying: Boolean) {
         // 直播无播放/暂停按钮，此回调预留
-        // v1.14.4：播放器开始播放时，淡出启动图片
-        if (isPlaying) {
-            onPlayerReadyForSplash()
-        }
     }
 
     override fun onVideoSizeChanged(width: Int, height: Int) {
@@ -2777,43 +2770,9 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         }
     }
 
-    // ---------- 启动图片（v1.14.4） ----------
-    private val splashHandler = Handler(Looper.getMainLooper())
-    private var splashHidden = false
-
-    private fun initSplashOverlay() {
-        // 播放器准备完成（第一帧渲染）后隐藏启动图片
-        // 超时 3 秒后也隐藏，避免一直显示
-        splashHandler.postDelayed({ hideSplashOverlay() }, 5000)
-    }
-
-    /** 播放器开始播放时调用，淡出启动图片 */
-    fun onPlayerReadyForSplash() {
-        if (!splashHidden) {
-            splashHandler.removeCallbacksAndMessages(null)
-            hideSplashOverlay()
-        }
-    }
-
-    private fun hideSplashOverlay() {
-        if (splashHidden) return
-        splashHidden = true
-        try {
-            // ViewBinding 的 include 字段类型是 SplashOverlayBinding，需 .root 取 View
-            val splash = binding.splashOverlay.root
-            splash.animate()
-                .alpha(0f)
-                .setDuration(300)
-                .withEndAction { splash.visibility = android.view.View.GONE }
-                .start()
-        } catch (ignored: Exception) {
-        }
-    }
-
     override fun onDestroy() {
         overlayHandler.removeCallbacks(overlayHideRunnable)
         clockHandler.removeCallbacks(clockRunnable)
-        splashHandler.removeCallbacksAndMessages(null)
         try {
             remoteServer?.stop()
         } catch (ignored: Exception) {
