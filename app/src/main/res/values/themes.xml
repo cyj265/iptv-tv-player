@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="Theme.IPTVPlayer" parent="Theme.AppCompat.NoActionBar">
-        <item name="android:windowBackground">@drawable/bg_splash</item>
+        <item name="android:windowBackground">@color/bg_dark</item>
         <item name="android:colorAccent">@color/accent</item>
         <item name="colorPrimary">@color/bg_panel</item>
         <item name="colorPrimaryDark">@color/bg_dark</item>
