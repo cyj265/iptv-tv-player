@@ -9,7 +9,7 @@ android {
 
     defaultConfig {
         applicationId = "com.cyj265.iptvplayer"
-        minSdk = 21
+        minSdk = 23
         targetSdk = 34
         versionCode = 53
         versionName = "1.13.0"
