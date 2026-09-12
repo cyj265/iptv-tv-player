@@ -5,7 +5,7 @@
 
 android {
     namespace = "com.cyj265.iptvplayer"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.cyj265.iptvplayer"
