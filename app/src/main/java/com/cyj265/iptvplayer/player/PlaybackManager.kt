@@ -15,9 +15,6 @@ import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.hls.HlsMediaSource
-import androidx.media3.exoplayer.hls.DefaultHlsExtractorFactory
-import androidx.media3.exoplayer.hls.HlsExtractorFactory
-import androidx.media3.extractor.ts.TsExtractor
 import androidx.media3.exoplayer.mediacodec.MediaCodecInfo
 import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
 import androidx.media3.exoplayer.mediacodec.MediaCodecUtil
@@ -480,21 +477,6 @@ class PlaybackManager(
         // 频道名更新由 playCurrentSource 统一处理，真正就绪由 playerListener 回调。
     }
     /**
-     * 容错 HLS 提取器工厂：包装 DefaultHlsExtractorFactory，对 TsExtractor 增加
-     * FLAG_ALLOW_NON_IDR_KEYFRAMES 标志，兼容部分 IPTV 源（如甘肃移动 H.265 流）
-     * 中时间戳不标准导致 SampleQueue.commitSample 抛 IllegalArgumentException 的问题。
-     */
-    @OptIn(UnstableApi::class)
-    private val tolerantHlsExtractorFactory = HlsExtractorFactory { uri, format, muxedCaptionFormats ->
-        val extractor = DefaultHlsExtractorFactory().createExtractor(uri, format, muxedCaptionFormats)
-        if (extractor is TsExtractor) {
-            // 允许非 IDR 关键帧，对不标准 H.265/HLS 流更宽容
-            extractor.setFlags(TsExtractor.FLAG_ALLOW_NON_IDR_KEYFRAMES)
-        }
-        extractor
-    }
-
-    /**
      * 按内容类型显式构建媒体源：
      * .m3u8 → HlsMediaSource（带容错配置）；其余 → ProgressiveMediaSource。
      * 比默认推断更稳，避免个别源被误判容器。
@@ -516,8 +498,6 @@ class PlaybackManager(
                 // 允许无 chunk 准备：对不标准 HLS 流（时间戳异常）更宽容，避免 H.265 流
                 // SampleQueue.commitSample 时间戳校验失败导致播放几秒后崩溃
                 .setAllowChunklessPreparation(true)
-                // 自定义容错提取器：TsExtractor 增加 FLAG_ALLOW_NON_IDR_KEYFRAMES
-                .setExtractorFactory(tolerantHlsExtractorFactory)
                 // 时间戳调整器初始化超时从 5s 增加到 10s，兼容慢响应源
                 .setTimestampAdjusterInitializationTimeoutMs(10_000)
                 .createMediaSource(mediaItem)
