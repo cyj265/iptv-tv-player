@@ -613,6 +613,19 @@
                     android:textSize="16sp" />
 
                 <TextView
+                    android:id="@+id/navEpg"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:gravity="center_vertical"
+                    android:paddingLeft="20dp"
+                    android:focusable="true"
+                    android:clickable="true"
+                    android:background="@drawable/bg_nav_item"
+                    android:text="📅 节目单"
+                    android:textColor="#CCCCCC"
+                    android:textSize="16sp" />
+
+                <TextView
                     android:id="@+id/navRatio"
                     android:layout_width="match_parent"
                     android:layout_height="52dp"
@@ -740,7 +753,7 @@
                         android:layout_height="wrap_content"
                         android:orientation="vertical" android:background="@drawable/bg_settings_card" android:padding="14dp">
 
-                        <!-- 当前源状态 -->
+                        <!-- 当前直播源（点击切换下一个源） -->
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
@@ -748,37 +761,30 @@
                             android:textColor="@color/text_secondary"
                             android:textSize="14sp" />
 
-                        <LinearLayout
+                        <TextView
+                            android:id="@+id/tvCurrentSource"
+                            android:layout_width="match_parent"
+                            android:layout_height="46dp"
+                            android:layout_marginTop="6dp"
+                            android:background="@drawable/bg_search"
+                            android:gravity="center_vertical"
+                            android:paddingLeft="14dp"
+                            android:paddingRight="14dp"
+                            android:textColor="#FFFFFF"
+                            android:textSize="13sp"
+                            android:singleLine="true"
+                            android:ellipsize="middle"
+                            android:focusable="true"
+                            android:clickable="true"
+                            android:text="" />
+
+                        <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="6dp"
-                            android:orientation="horizontal">
-
-                            <TextView
-                                android:id="@+id/tvCurrentSource"
-                                android:layout_width="0dp"
-                                android:layout_height="46dp"
-                                android:layout_weight="1"
-                                android:background="@drawable/bg_search"
-                                android:gravity="center_vertical"
-                                android:paddingLeft="14dp"
-                                android:paddingRight="14dp"
-                                android:textColor="#FFFFFF"
-                                android:textSize="13sp"
-                                android:singleLine="true"
-                                android:ellipsize="middle"
-                                android:text="" />
-
-                            <Button
-                                android:id="@+id/btnNextSource"
-                                android:layout_width="wrap_content"
-                                android:layout_height="46dp"
-                                android:layout_marginLeft="10dp"
-                                android:text="切换源"
-                                android:textSize="14sp"
-                                android:backgroundTint="@color/accent"
-                                android:textColor="#FFFFFF" />
-                        </LinearLayout>
+                            android:layout_marginTop="4dp"
+                            android:text="按 OK 切换到下一个源"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="12sp" />
 
                         <!-- 源列表 + 一键测速 -->
                         <LinearLayout
@@ -792,7 +798,7 @@
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
-                                android:text="直播源列表（点击切换，右侧删除）"
+                                android:text="直播源列表（OK切换，长按删除）"
                                 android:textColor="@color/text_secondary"
                                 android:textSize="14sp" />
 
@@ -843,47 +849,23 @@
                                 android:padding="8dp" />
                         </LinearLayout>
 
-                        <!-- 添加源 -->
+                        <!-- 添加直播源（弹窗输入） -->
                         <TextView
+                            android:id="@+id/btnAddSource"
                             android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
+                            android:layout_height="46dp"
                             android:layout_marginTop="18dp"
-                            android:text="添加直播源"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="14sp" />
+                            android:background="@drawable/bg_search"
+                            android:gravity="center_vertical"
+                            android:paddingLeft="14dp"
+                            android:paddingRight="14dp"
+                            android:text="➕ 添加直播源（URL）"
+                            android:textColor="#FFFFFF"
+                            android:textSize="14sp"
+                            android:focusable="true"
+                            android:clickable="true" />
 
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="6dp"
-                            android:orientation="horizontal">
-
-                            <EditText
-                                android:id="@+id/inputPlaylistUrl"
-                                android:layout_width="0dp"
-                                android:layout_height="46dp"
-                                android:layout_weight="1"
-                                android:background="@drawable/bg_search"
-                                android:paddingLeft="14dp"
-                                android:paddingRight="14dp"
-                                android:gravity="center_vertical"
-                                android:textColor="#FFFFFF"
-                                android:textColorHint="@color/text_secondary"
-                                android:textSize="14sp"
-                                android:inputType="textUri"
-                                android:hint="https://example.com/list.m3u" />
-
-                            <Button
-                                android:id="@+id/btnLoadPlaylist"
-                                android:layout_width="wrap_content"
-                                android:layout_height="46dp"
-                                android:layout_marginLeft="10dp"
-                                android:text="添加"
-                                android:textSize="14sp"
-                                android:backgroundTint="@color/accent"
-                                android:textColor="#FFFFFF" />
-                        </LinearLayout>
-
+                        <!-- 导入本地文件 -->
                         <Button
                             android:id="@+id/btnImportFile"
                             android:layout_width="match_parent"
@@ -894,12 +876,87 @@
                             android:backgroundTint="@color/bg_item"
                             android:textColor="#FFFFFF" />
 
-                        <!-- 节目指南 -->
+                        <!-- 手机扫码管理 -->
+                        <Button
+                            android:id="@+id/btnScanManage"
+                            android:layout_width="match_parent"
+                            android:layout_height="46dp"
+                            android:layout_marginTop="8dp"
+                            android:text="手机扫码管理（局域网）"
+                            android:textSize="14sp"
+                            android:backgroundTint="@color/bg_item"
+                            android:textColor="@color/accent_soft" />
+                    </LinearLayout>
+
+                    <!-- ===== 分区：节目单（EPG） ===== -->
+                    <LinearLayout
+                        android:id="@+id/sectionEpg"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:visibility="gone" android:background="@drawable/bg_settings_card" android:padding="14dp">
+
+                        <!-- 节目单地址（弹窗输入） -->
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="节目单地址（EPG，可选）"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="14sp" />
+
+                        <TextView
+                            android:id="@+id/tvEpgUrl"
+                            android:layout_width="match_parent"
+                            android:layout_height="46dp"
+                            android:layout_marginTop="6dp"
+                            android:background="@drawable/bg_search"
+                            android:gravity="center_vertical"
+                            android:paddingLeft="14dp"
+                            android:paddingRight="14dp"
+                            android:textColor="#FFFFFF"
+                            android:textSize="13sp"
+                            android:singleLine="true"
+                            android:ellipsize="middle"
+                            android:focusable="true"
+                            android:clickable="true"
+                            android:text="未设置（按 OK 输入）" />
+
+                        <!-- 启用开关 -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="18dp"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:background="@drawable/bg_search"
+                            android:padding="12dp">
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="显示节目信息"
+                                android:textColor="#FFFFFF"
+                                android:textSize="14sp" />
+
+                            <TextView
+                                android:id="@+id/tvEpgEnabled"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="开"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="14sp"
+                                android:focusable="true"
+                                android:clickable="true"
+                                android:padding="8dp" />
+                        </LinearLayout>
+
+                        <!-- 刷新频率 -->
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="18dp"
-                            android:text="节目指南（EPG，可选）"
+                            android:text="刷新频率"
                             android:textColor="@color/text_secondary"
                             android:textSize="14sp" />
 
@@ -909,92 +966,61 @@
                             android:layout_marginTop="6dp"
                             android:orientation="horizontal">
 
-                            <EditText
-                                android:id="@+id/inputEpgUrl"
+                            <TextView
+                                android:id="@+id/epgRefresh1h"
                                 android:layout_width="0dp"
-                                android:layout_height="46dp"
+                                android:layout_height="40dp"
                                 android:layout_weight="1"
-                                android:background="@drawable/bg_search"
-                                android:paddingLeft="14dp"
-                                android:paddingRight="14dp"
-                                android:gravity="center_vertical"
-                                android:textColor="#FFFFFF"
-                                android:textColorHint="@color/text_secondary"
+                                android:gravity="center"
+                                android:text="每小时"
+                                android:textColor="#CCCCCC"
                                 android:textSize="14sp"
-                                android:inputType="textUri"
-                                android:hint="https://example.com/epg.xml" />
+                                android:focusable="true"
+                                android:clickable="true"
+                                android:background="@drawable/bg_search" />
 
-                            <Button
-                                android:id="@+id/btnLoadEpg"
-                                android:layout_width="wrap_content"
-                                android:layout_height="46dp"
-                                android:layout_marginLeft="10dp"
-                                android:text="加载"
+                            <TextView
+                                android:id="@+id/epgRefresh2h"
+                                android:layout_width="0dp"
+                                android:layout_height="40dp"
+                                android:layout_marginLeft="8dp"
+                                android:layout_weight="1"
+                                android:gravity="center"
+                                android:text="每2小时"
+                                android:textColor="#CCCCCC"
                                 android:textSize="14sp"
-                                android:backgroundTint="@color/accent"
-                                android:textColor="#FFFFFF" />
+                                android:focusable="true"
+                                android:clickable="true"
+                                android:background="@drawable/bg_search" />
+
+                            <TextView
+                                android:id="@+id/epgRefreshDaily"
+                                android:layout_width="0dp"
+                                android:layout_height="40dp"
+                                android:layout_marginLeft="8dp"
+                                android:layout_weight="1"
+                                android:gravity="center"
+                                android:text="每天"
+                                android:textColor="#CCCCCC"
+                                android:textSize="14sp"
+                                android:focusable="true"
+                                android:clickable="true"
+                                android:background="@drawable/bg_search" />
                         </LinearLayout>
 
-                        <!-- 直接播放 -->
-                        <TextView
+                        <!-- 清除缓存 -->
+                        <Button
+                            android:id="@+id/btnClearEpgCache"
                             android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
+                            android:layout_height="46dp"
                             android:layout_marginTop="18dp"
-                            android:text="直接播放流地址"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="14sp" />
-
-                        <EditText
-                            android:id="@+id/inputDirectUrl"
-                            android:layout_width="match_parent"
-                            android:layout_height="46dp"
-                            android:layout_marginTop="6dp"
-                            android:background="@drawable/bg_search"
-                            android:paddingLeft="14dp"
-                            android:paddingRight="14dp"
-                            android:gravity="center_vertical"
-                            android:textColor="#FFFFFF"
-                            android:textColorHint="@color/text_secondary"
-                            android:textSize="15sp"
-                            android:inputType="textUri"
-                            android:hint="http://example.com/live.m3u8" />
-
-                        <Button
-                            android:id="@+id/btnPlayDirect"
-                            android:layout_width="match_parent"
-                            android:layout_height="46dp"
-                            android:layout_marginTop="8dp"
-                            android:text="播放"
-                            android:textSize="14sp"
-                            android:backgroundTint="@color/accent"
-                            android:textColor="#FFFFFF" />
-
-                        <!-- 状态 -->
-                        <TextView
-                            android:id="@+id/tvSourceStatus"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="12dp"
-                            android:background="@color/bg_item"
-                            android:padding="12dp"
-                            android:textColor="#FFFFFF"
-                            android:textSize="13sp"
-                            android:lineSpacingExtra="3dp"
-                            android:text="" />
-
-                        <!-- 扫码 -->
-                        <Button
-                            android:id="@+id/btnScanManage"
-                            android:layout_width="match_parent"
-                            android:layout_height="46dp"
-                            android:layout_marginTop="10dp"
-                            android:text="手机扫码管理（局域网）"
+                            android:text="清除节目单缓存"
                             android:textSize="14sp"
                             android:backgroundTint="@color/bg_item"
-                            android:textColor="@color/accent_soft" />
+                            android:textColor="#FFFFFF" />
                     </LinearLayout>
 
-                    <!-- ===== 分区：画面比例（展开式，上下键选择） ===== -->
+<!-- ===== 分区：画面比例（展开式，上下键选择） ===== -->
                     <LinearLayout
                         android:id="@+id/sectionRatio"
                         android:layout_width="match_parent"

@@ -239,6 +239,26 @@ class PlaylistRepository(private val context: Context) {
         get() = safeGetLong("epg_updated_at", 0)
         set(value) = safeApply { putLong("epg_updated_at", value) }
 
+    /** 节目单（EPG）显示开关（默认开） */
+    var epgEnabled: Boolean
+        get() = safeGetBoolean("epg_enabled", true)
+        set(value) = safeApply { putBoolean("epg_enabled", value) }
+
+    /** 节目单刷新频率（小时，默认 2；24 = 每天） */
+    var epgRefreshHours: Int
+        get() = safeGetLong("epg_refresh_hours", 2).toInt()
+        set(value) = safeApply { putLong("epg_refresh_hours", value.toLong()) }
+
+    /** 清除节目单本地缓存（v1.14.0） */
+    fun clearEpgCache() {
+        try {
+            val f = File(context.filesDir, "epg_cache.json")
+            if (f.exists()) f.delete()
+            epgUpdatedAt = 0
+            epgProgramCount = 0
+        } catch (ignored: Throwable) {}
+    }
+
     // ---------- 播放偏好 ----------
 
     /** 画面比例：fit / fill / zoom / 16:9 / 4:3 */

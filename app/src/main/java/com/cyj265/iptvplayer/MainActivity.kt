@@ -583,7 +583,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             val sources = repository.getSources()
             if (sources.isEmpty()) {
                 val tv = TextView(this).apply {
-                    text = "暂无直播源，请在下方添加"
+                    text = "暂无直播源，请在下方添加（长按可删除）"
                     setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_secondary))
                     textSize = 13f
                     setPadding(16, 12, 8, 12)
@@ -657,39 +657,17 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                         ).show()
                     }
                 }
-                val delBtn = Button(this).apply {
-                    text = "删除"
-                    textSize = 12f
-                    setPadding(20, 0, 20, 0)
-                    isFocusable = true
-                    isClickable = true
-                    setBackgroundColor(0x00000000)
-                    setTextColor(0xFFFF6B6B.toInt())
-                    layoutParams = LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.WRAP_CONTENT,
-                        LinearLayout.LayoutParams.MATCH_PARENT
-                    )
-                    // 焦点样式：红色背景 + 白字
-                    onFocusChangeListener = View.OnFocusChangeListener { _, focused ->
-                        if (focused) {
-                            setBackgroundColor(0xFFFF6B6B.toInt())
-                            setTextColor(0xFFFFFFFF.toInt())
-                        } else {
-                            setBackgroundColor(0x00000000)
-                            setTextColor(0xFFFF6B6B.toInt())
-                        }
-                    }
-                }
-                delBtn.setOnClickListener {
+                // 长按删除（遥控器长按 OK 键）
+                info.setOnLongClickListener {
                     android.app.AlertDialog.Builder(this@MainActivity)
                         .setTitle("删除直播源")
                         .setMessage("确定删除源 " + (i + 1) + "（" + sourceLabel(url) + "）吗？")
                         .setPositiveButton("删除") { _, _ -> deleteSource(i) }
                         .setNegativeButton("取消", null)
                         .show()
+                    true
                 }
                 row.addView(info)
-                row.addView(delBtn)
                 binding.sourceListContainer.addView(row)
             }
         } catch (ignored: Throwable) {
@@ -783,8 +761,8 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                         epg.split("\n", "\r\n").map { it.trim() }.filter { it.isNotEmpty() }
                     )
                 }
-                binding.inputPlaylistUrl.setText(sources.joinToString("\n"))
-                binding.inputEpgUrl.setText(repository.getEpgUrls().joinToString("\n"))
+                refreshSettingsSourceInput()
+                refreshEpgUrlDisplay()
                 currentChannel = null
                 adapter.setSelected(null)
                 updateSourceBar()
@@ -812,6 +790,136 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                 .toString()
         } catch (e: Exception) {
             "{}"
+        }
+    }
+
+    /** 弹出添加直播源对话框（替代布局内 EditText，遥控器更易操作） */
+    private fun showAddSourceDialog() {
+        val et = android.widget.EditText(this).apply {
+            hint = "https://example.com/list.m3u"
+            setTextColor(0xFFFFFFFF.toInt())
+            setHintTextColor(0xFF999999.toInt())
+            setPadding(40, 30, 40, 30)
+            setBackgroundColor(0xFF1A1A2E.toInt())
+        }
+        android.app.AlertDialog.Builder(this)
+            .setTitle("添加直播源")
+            .setMessage("输入 M3U/TXT 播放列表 URL（每行一个，支持多个）")
+            .setView(et)
+            .setPositiveButton("添加") { _, _ ->
+                val url = et.text.toString().trim()
+                if (url.isNotEmpty()) {
+                    addSourceFromText(url)
+                }
+            }
+            .setNegativeButton("取消", null)
+            .show()
+    }
+
+    /** 从文本添加源（支持多行 URL），供弹窗调用 */
+    private fun addSourceFromText(text: String) {
+        val urls = text.lines().map { it.trim() }.filter { it.isNotEmpty() }
+        if (urls.isEmpty()) {
+            Toast.makeText(this, "请输入有效的 URL", Toast.LENGTH_SHORT).show()
+            return
+        }
+        urls.forEach { repository.addSource(it) }
+        refreshSourceUI()
+        refreshSettingsSourceInput()
+        updateSourceOptions()
+        reloadPlaylist(true)
+        Toast.makeText(this, "已添加 ${urls.size} 个直播源", Toast.LENGTH_SHORT).show()
+    }
+
+    /** 弹出节目单地址编辑对话框 */
+    private fun showEpgUrlDialog() {
+        val current = repository.getEpgUrls().joinToString("\n")
+        val et = android.widget.EditText(this).apply {
+            hint = "https://example.com/epg.xml（可选，每行一个）"
+            setText(current)
+            setTextColor(0xFFFFFFFF.toInt())
+            setHintTextColor(0xFF999999.toInt())
+            setPadding(40, 30, 40, 30)
+            setBackgroundColor(0xFF1A1A2E.toInt())
+        }
+        android.app.AlertDialog.Builder(this)
+            .setTitle("节目单地址（EPG）")
+            .setMessage("输入 EPG XML/XML.GZ 地址（可选，每行一个，自动降级）")
+            .setView(et)
+            .setPositiveButton("保存并加载") { _, _ ->
+                val text = et.text.toString().trim()
+                val urls = if (text.isEmpty()) emptyList() else text.lines().map { it.trim() }.filter { it.isNotEmpty() }
+                repository.setEpgUrls(urls)
+                refreshSettingsSourceInput()
+                if (urls.isNotEmpty()) {
+                    loadEpgIfConfigured()
+                    Toast.makeText(this, "节目单已保存，正在加载...", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, "已清除节目单地址", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("取消", null)
+            .show()
+    }
+
+    /** 节目单分类的控件初始化与监听器 */
+    private fun setupEpgSettings() {
+        // 显示当前 EPG URL
+        refreshEpgUrlDisplay()
+        // 启用开关
+        updateEpgEnabledUI()
+        binding.tvEpgEnabled.setOnClickListener {
+            repository.epgEnabled = !repository.epgEnabled
+            updateEpgEnabledUI()
+            if (repository.epgEnabled) loadEpgIfConfigured()
+        }
+        // 刷新频率
+        updateEpgRefreshUI()
+        binding.epgRefresh1h.setOnClickListener { setEpgRefreshHours(1) }
+        binding.epgRefresh2h.setOnClickListener { setEpgRefreshHours(2) }
+        binding.epgRefreshDaily.setOnClickListener { setEpgRefreshHours(24) }
+        // 清除缓存
+        binding.btnClearEpgCache.setOnClickListener {
+            repository.clearEpgCache()
+            Toast.makeText(this, "节目单缓存已清除", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun refreshEpgUrlDisplay() {
+        val urls = repository.getEpgUrls()
+        binding.tvEpgUrl.text = if (urls.isEmpty()) "未设置（按 OK 输入）" else urls.joinToString("  |  ")
+    }
+
+    private fun updateEpgEnabledUI() {
+        if (repository.epgEnabled) {
+            binding.tvEpgEnabled.text = "开"
+            binding.tvEpgEnabled.setTextColor(0xFF4CAF50.toInt())
+        } else {
+            binding.tvEpgEnabled.text = "关"
+            binding.tvEpgEnabled.setTextColor(0xFF9E9E9E.toInt())
+        }
+    }
+
+    private fun setEpgRefreshHours(hours: Int) {
+        repository.epgRefreshHours = hours
+        updateEpgRefreshUI()
+        Toast.makeText(this, "节目单刷新频率：${if (hours >= 24) "每天" else "每${hours}小时"}", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun updateEpgRefreshUI() {
+        val h = repository.epgRefreshHours
+        val activeBg = 0xFF3D8BFF.toInt()
+        val activeText = 0xFFFFFFFF.toInt()
+        val normalBg = 0x00000000.toInt()
+        val normalText = 0xFFCCCCCC.toInt()
+        listOf(binding.epgRefresh1h to 1, binding.epgRefresh2h to 2, binding.epgRefreshDaily to 24).forEach { (v, hh) ->
+            if (h == hh) {
+                v.setBackgroundColor(activeBg)
+                v.setTextColor(activeText)
+            } else {
+                v.setBackgroundColor(normalBg)
+                v.setTextColor(normalText)
+            }
         }
     }
 
@@ -887,7 +995,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
 
     /** 导航列 ID 集合（单独处理选中样式，不应用通用焦点样式） */
     private val navViewIds = setOf(
-        R.id.navLineup, R.id.navRatio, R.id.navDecoder, R.id.navTimeout,
+        R.id.navLineup, R.id.navEpg, R.id.navRatio, R.id.navDecoder, R.id.navTimeout,
         R.id.navPrefs, R.id.navUpdate, R.id.navDebug, R.id.navAbout, R.id.navExit
     )
 
@@ -985,13 +1093,13 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     }
 
     private fun settingsNavs(): List<View> = listOf(
-        binding.navLineup, binding.navRatio, binding.navDecoder,
+        binding.navLineup, binding.navEpg, binding.navRatio, binding.navDecoder,
         binding.navTimeout, binding.navPrefs, binding.navUpdate,
         binding.navDebug, binding.navAbout, binding.navExit
     )
 
     private fun settingsSections(): List<View> = listOf(
-        binding.sectionLineup, binding.sectionRatio, binding.sectionDecoder,
+        binding.sectionLineup, binding.sectionEpg, binding.sectionRatio, binding.sectionDecoder,
         binding.sectionTimeout, binding.sectionPrefs, binding.sectionUpdate,
         binding.sectionDebug, binding.sectionAbout, binding.sectionExit
     )
@@ -1023,7 +1131,10 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     private fun focusValueInSettingsSection(index: Int) {
         try {
             when (index) {
-                1 -> { // 画面比例
+                1 -> { // 节目单：定位到地址行
+                    binding.tvEpgUrl.requestFocus()
+                }
+                2 -> { // 画面比例
                     val id = when (repository.aspectRatio) {
                         "16:9" -> R.id.ratio169
                         "4:3" -> R.id.ratio43
@@ -1033,7 +1144,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                     }
                     binding.root.findViewById<View>(id)?.requestFocus()
                 }
-                2 -> { // 播放解码
+                3 -> { // 播放解码
                     val id = when (playback.currentDecoderMode()) {
                         "hardware" -> R.id.decoderHard
                         "software" -> R.id.decoderSoft
@@ -1041,7 +1152,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                     }
                     binding.root.findViewById<View>(id)?.requestFocus()
                 }
-                3 -> { // 超时换源
+                4 -> { // 超时换源
                     val id = when (repository.switchTimeoutSec) {
                         5 -> R.id.timeout5
                         10 -> R.id.timeout10
@@ -1053,7 +1164,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                     }
                     binding.root.findViewById<View>(id)?.requestFocus()
                 }
-                6 -> { // 调试：定位到清空日志
+                7 -> { // 调试：定位到清空日志
                     binding.btnClearCrashLog.requestFocus()
                 }
                 else -> {
@@ -1093,7 +1204,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                 ).show()
             }
         }
-        binding.btnLoadPlaylist.setOnClickListener { addSourceFromInput() }
+        binding.btnAddSource.setOnClickListener { showAddSourceDialog() }
 
         // 一键测速
         binding.btnCheckAllSources.setOnClickListener {
@@ -1144,14 +1255,19 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             updateAutoSelectFastestUI()
             Toast.makeText(this, if (repository.autoSelectFastest) "已开启自动优选" else "已关闭自动优选", Toast.LENGTH_SHORT).show()
         }
-        binding.btnNextSource.setOnClickListener {
+        binding.tvCurrentSource.setOnClickListener {
             switchToNextSource()
             refreshSourceUI()
+            refreshSettingsSourceInput()
         }
-        binding.btnLoadEpg.setOnClickListener { saveAndLoadEpg() }
-        binding.btnPlayDirect.setOnClickListener { playDirectFromPanel() }
+        binding.tvEpgUrl.setOnClickListener { showEpgUrlDialog() }
+        // 直接播放流地址已移到诊断分类（btnPlayDirect 已从布局移除）
         binding.btnCloseSettings.setOnClickListener { hideSettingsPanel() }
         binding.btnScanManage.setOnClickListener { showScanDialog() }
+
+        // ===== 节目单（EPG）分类 =====
+        setupEpgSettings()
+
         binding.btnClearFavorites.setOnClickListener {
             favorites.clear()
             repository.setFavorites(favorites)
@@ -1256,12 +1372,9 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         selectSettingsTab(0)
     }
 
-    private fun refreshSettingsSourceInput() {
+        private fun refreshSettingsSourceInput() {
         try {
-            // 添加源输入框保持清空（不再把所有源拼进大文本框）
-            binding.inputPlaylistUrl.setText("")
-            binding.inputEpgUrl.setText(repository.getEpgUrls().joinToString("\n"))
-            refreshSourceUI()
+            refreshEpgUrlDisplay()
         } catch (ignored: Throwable) {
         }
     }
@@ -1292,28 +1405,6 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         }
     }
 
-    /** 从输入框添加单个直播源 */
-    private fun addSourceFromInput() {
-        val url = binding.inputPlaylistUrl.text.toString().trim()
-        if (url.isEmpty()) {
-            Toast.makeText(this, "请输入直播源地址", Toast.LENGTH_SHORT).show()
-            return
-        }
-        val sources = repository.getSources().toMutableList()
-        if (sources.contains(url)) {
-            Toast.makeText(this, "该直播源已存在", Toast.LENGTH_SHORT).show()
-            return
-        }
-        sources.add(url)
-        repository.saveSources(sources)
-        repository.activeSourceIndex = sources.size - 1
-        binding.inputPlaylistUrl.setText("")
-        currentChannel = null
-        adapter.setSelected(null)
-        refreshSourceUI()
-        reloadPlaylist(true)
-        Toast.makeText(this, "已添加并切换到直播源 " + sources.size, Toast.LENGTH_SHORT).show()
-    }
 
     /** 删除指定源 */
     private fun deleteSource(index: Int) {
@@ -1336,14 +1427,6 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         Toast.makeText(this, "已删除直播源", Toast.LENGTH_SHORT).show()
     }
 
-    /** 保存并加载 EPG */
-    private fun saveAndLoadEpg() {
-        val urls = binding.inputEpgUrl.text.toString()
-            .split("\n", "\r\n").map { it.trim() }.filter { it.isNotEmpty() }
-        repository.setEpgUrls(urls)
-        loadEpgIfConfigured()
-        Toast.makeText(this, if (urls.isEmpty()) "已清空节目指南" else "正在加载节目指南（${urls.size} 个地址）", Toast.LENGTH_SHORT).show()
-    }
 
     private fun updateAutoSelectFastestUI() {
         try {
@@ -1381,7 +1464,9 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             )
             val count = repository.epgProgramCount
             if (count > 0) sb.append("（已加载 ").append(count).append(" 条节目）")
-            binding.tvSourceStatus.text = sb.toString()
+            // 状态信息改为 toast 提示（布局中已移除 tvSourceStatus）
+            val statusMsg = sb.toString()
+            if (statusMsg.isNotEmpty()) Toast.makeText(this, statusMsg, Toast.LENGTH_LONG).show()
         } catch (ignored: Throwable) {
         }
     }
@@ -1818,30 +1903,6 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
 
     // ---------- 播放列表加载 ----------
 
-    private fun saveAndReload() {
-        val text = binding.inputPlaylistUrl.text.toString().trim()
-        val sources = text
-            .split("\n", "\r\n")
-            .map { it.trim() }
-            .filter { it.isNotEmpty() }
-        if (sources.isEmpty()) {
-            Toast.makeText(this, R.string.load_failed, Toast.LENGTH_SHORT).show()
-            return
-        }
-        repository.saveSources(sources)
-        repository.setEpgUrls(
-            binding.inputEpgUrl.text.toString()
-                .split("\n", "\r\n").map { it.trim() }.filter { it.isNotEmpty() }
-        )
-        currentChannel = null
-        adapter.setSelected(null)
-        updateSourceBar()
-        updateSourceStatus()
-        updateSourceOptions()
-        reloadPlaylist(true)
-        loadEpgIfConfigured()
-        Toast.makeText(this, R.string.loading_playlist, Toast.LENGTH_SHORT).show()
-    }
 
     private fun reloadPlaylist(forceRefresh: Boolean = false) {
         val url = repository.getActiveSource()
@@ -1953,15 +2014,6 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         }.start()
     }
 
-    private fun playDirectFromPanel() {
-        val url = binding.inputDirectUrl.text.toString().trim()
-        if (!url.startsWith("http")) {
-            Toast.makeText(this, R.string.load_failed, Toast.LENGTH_SHORT).show()
-            return
-        }
-        playDirect(url, url)
-        hideSettingsPanel()
-    }
 
     // ---------- 频道筛选 ----------
 
@@ -2078,6 +2130,13 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     // ---------- EPG（支持多个地址，全部加载合并） ----------
 
     private fun loadEpgIfConfigured() {
+        // v1.14.0：节目单开关（设置里可关闭）
+        if (!repository.epgEnabled) {
+            epgLoadState = EpgLoadState.NOT_CONFIGURED
+            epgPrograms = emptyMap()
+            updateNowPlaying()
+            return
+        }
         val epgUrls = repository.getEpgUrls()
         if (epgUrls.isEmpty()) {
             epgLoadState = EpgLoadState.NOT_CONFIGURED
@@ -2092,7 +2151,8 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         // 缓存过期或不存在才后台重新获取；加载完成后再写回缓存。
         val cachedAge = nowMs - repository.epgUpdatedAt
         val epgCache = repository.loadEpgCache()
-        if (cachedAge in 0 until 2 * 3600_000L && epgCache != null) {
+        val cacheThresholdMs = repository.epgRefreshHours * 3600_000L
+        if (cachedAge in 0 until cacheThresholdMs && epgCache != null) {
             val channelsSnapshot = allChannels
             epgPrograms = indexEpgWithChannels(epgCache, channelsSnapshot)
             epgLoadState = EpgLoadState.READY
