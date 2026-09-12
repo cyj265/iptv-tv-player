@@ -8,19 +8,19 @@ Daemon will be stopped at the end of the build
 > Task :app:generateReleaseResValues FROM-CACHE
 > Task :app:generateReleaseResources
 > Task :app:packageReleaseResources
-> Task :app:generateReleaseBuildConfig
-> Task :app:parseReleaseLocalResources
-> Task :app:mapReleaseSourceSetPaths
-> Task :app:createReleaseCompatibleScreenManifests
-> Task :app:checkReleaseAarMetadata
-> Task :app:extractDeepLinksRelease FROM-CACHE
 > Task :app:mergeReleaseResources
-> Task :app:processReleaseMainManifest
+> Task :app:generateReleaseBuildConfig FROM-CACHE
+> Task :app:mapReleaseSourceSetPaths
+> Task :app:checkReleaseAarMetadata
+> Task :app:createReleaseCompatibleScreenManifests
+> Task :app:extractDeepLinksRelease FROM-CACHE
+> Task :app:parseReleaseLocalResources
+> Task :app:processReleaseMainManifest FROM-CACHE
 > Task :app:dataBindingGenBaseClassesRelease
-> Task :app:processReleaseManifest
+> Task :app:processReleaseManifest FROM-CACHE
+> Task :app:processReleaseManifestForPackage FROM-CACHE
 > Task :app:javaPreCompileRelease FROM-CACHE
 > Task :app:extractProguardFiles
-> Task :app:processReleaseManifestForPackage
 > Task :app:mergeReleaseJniLibFolders
 > Task :app:mergeReleaseNativeLibs NO-SOURCE
 > Task :app:stripReleaseDebugSymbols NO-SOURCE
@@ -40,20 +40,14 @@ Daemon will be stopped at the end of the build
 > Task :app:extractReleaseVersionControlInfo
 > Task :app:collectReleaseDependencies
 > Task :app:sdkReleaseDependencyData
-> Task :app:optimizeReleaseResources
 > Task :app:validateSigningRelease
 > Task :app:writeReleaseAppMetadata
+> Task :app:optimizeReleaseResources
 > Task :app:writeReleaseSigningConfigVersions
 
 > Task :app:compileReleaseKotlin FAILED
-e: file:///home/runner/work/lanxing-tv/lanxing-tv/app/src/main/java/com/cyj265/iptvplayer/MainActivity.kt:595:41 Unresolved reference: getSourceHealth
-e: file:///home/runner/work/lanxing-tv/lanxing-tv/app/src/main/java/com/cyj265/iptvplayer/MainActivity.kt:596:33 'when' expression must be exhaustive, add necessary 'else' branch
-e: file:///home/runner/work/lanxing-tv/lanxing-tv/app/src/main/java/com/cyj265/iptvplayer/MainActivity.kt:597:21 Comparison of incompatible enums '[Error type: Error property type]' and 'SourceHealthChecker.SourceHealth.Status' is always unsuccessful
-e: file:///home/runner/work/lanxing-tv/lanxing-tv/app/src/main/java/com/cyj265/iptvplayer/MainActivity.kt:598:21 Comparison of incompatible enums '[Error type: Error property type]' and 'SourceHealthChecker.SourceHealth.Status' is always unsuccessful
-e: file:///home/runner/work/lanxing-tv/lanxing-tv/app/src/main/java/com/cyj265/iptvplayer/MainActivity.kt:599:21 Comparison of incompatible enums '[Error type: Error property type]' and 'SourceHealthChecker.SourceHealth.Status' is always unsuccessful
-e: file:///home/runner/work/lanxing-tv/lanxing-tv/app/src/main/java/com/cyj265/iptvplayer/MainActivity.kt:600:21 Comparison of incompatible enums '[Error type: Error property type]' and 'SourceHealthChecker.SourceHealth.Status' is always unsuccessful
-e: file:///home/runner/work/lanxing-tv/lanxing-tv/app/src/main/java/com/cyj265/iptvplayer/MainActivity.kt:1096:32 Unresolved reference: setSourceHealth
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_3-1789138157698.json
+e: file:///home/runner/work/lanxing-tv/lanxing-tv/app/src/main/java/com/cyj265/iptvplayer/MainActivity.kt:78:34 Unresolved reference: EpgListAdapter
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_3-1789182667865.json
 
 FAILURE: Build failed with an exception.
 
@@ -68,5 +62,5 @@ Execution failed for task ':app:compileReleaseKotlin'.
 > Run with --scan to get full insights.
 > Get more help at https://help.gradle.org.
 
-BUILD FAILED in 35s
-37 actionable tasks: 31 executed, 6 from cache
+BUILD FAILED in 21s
+37 actionable tasks: 27 executed, 10 from cache
