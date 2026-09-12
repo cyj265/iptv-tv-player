@@ -492,6 +492,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         binding.settingsPanel.alpha = 0f
         binding.settingsPanel.animate().alpha(1f).setDuration(160).start()
         refreshSettingsSourceInput()
+        updateCurrentSourceLabel()
         updateSourceStatus()
         refreshCrashLog()
         updateSourceOptions()
