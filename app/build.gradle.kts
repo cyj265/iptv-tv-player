@@ -11,8 +11,8 @@ android {
         applicationId = "com.cyj265.iptvplayer"
         minSdk = 21
         targetSdk = 34
-        versionCode = 52
-        versionName = "1.12.7"
+        versionCode = 53
+        versionName = "1.13.0"
     }
 
     buildTypes {
@@ -61,14 +61,16 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4")
 
     // Media3 (ExoPlayer) 播放内核
-    // 1.4.1 = 影视仓/TVBox 系播放器同代内核，行为最接近，Amlogic T1 兼容性最好
-    // （影视仓 EXO 硬解在 T1 上 4K HEVC 全流畅）。1.8.0 曾出现 HEVC 硬解
-    // DECODER_INIT_FAILED（解码器支持但创建失败），故固定此版本。
+    // 1.11.0（2026-08 稳定版）：升级以获取 HLS/H.265 时间戳容错修复。
+    // 历史：1.4.1 曾长期固定（影视仓同代内核，T1 兼容性最好）；
+    // 1.8.0 曾出现 HEVC 硬解 DECODER_INIT_FAILED，故回退 1.4.1。
+    // 本次升级目标：解决甘肃移动 IPTV H.265 HLS 流 SampleQueue.commitSample
+    // 时间戳非单调递增导致的播放失败（4K/极清频道）。
     // 注：v1.5.0 曾尝试 libVLC 3.5.1 内核（83MB），T1 实测仅 1080P 正常、
     // 4K 花屏/720P 黑屏，且体积过大，已回退纯 EXO 方案。
-    implementation("androidx.media3:media3-exoplayer:1.4.1")
-    implementation("androidx.media3:media3-exoplayer-hls:1.4.1")
-    implementation("androidx.media3:media3-ui:1.4.1")
+    implementation("androidx.media3:media3-exoplayer:1.11.0")
+    implementation("androidx.media3:media3-exoplayer-hls:1.11.0")
+    implementation("androidx.media3:media3-ui:1.11.0")
 
     // 扫码局域网管理：轻量 HTTP 服务 + 二维码编码（体积小，无额外权限）
     implementation("org.nanohttpd:nanohttpd:2.3.1")
