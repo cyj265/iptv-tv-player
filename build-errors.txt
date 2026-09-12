@@ -1,0 +1,204 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.9/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+> Task :app:buildKotlinToolingMetadata
+> Task :app:checkKotlinGradlePluginConfigurationErrors
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preReleaseBuild UP-TO-DATE
+> Task :app:dataBindingMergeDependencyArtifactsRelease
+> Task :app:generateReleaseResValues FROM-CACHE
+> Task :app:generateReleaseResources FROM-CACHE
+> Task :app:packageReleaseResources FROM-CACHE
+> Task :app:parseReleaseLocalResources FROM-CACHE
+> Task :app:generateReleaseBuildConfig
+> Task :app:mapReleaseSourceSetPaths
+> Task :app:checkReleaseAarMetadata FAILED
+> Task :app:mergeReleaseResources
+> Task :app:createReleaseCompatibleScreenManifests
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_3-1789187911665.json
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:checkReleaseAarMetadata'.
+> A failure occurred while executing com.android.build.gradle.internal.tasks.CheckAarMetadataWorkAction
+   > 9 issues were found when checking AAR metadata:
+     
+       1.  Dependency 'androidx.media3:media3-exoplayer-hls:1.11.0' requires libraries and applications that
+           depend on it to compile against version 36 or later of the
+           Android APIs.
+     
+           :app is currently compiled against android-35.
+     
+           Also, the maximum recommended compile SDK version for Android Gradle
+           plugin 8.7.3 is 35.
+     
+           Recommended action: Update this project's version of the Android Gradle
+           plugin to one that supports 36, then update this project to use
+           compileSdk of at least 36.
+     
+           Note that updating a library or application's compileSdk (which
+           allows newer APIs to be used) can be done separately from updating
+           targetSdk (which opts the app in to new runtime behavior) and
+           minSdk (which determines which devices the app can be installed
+           on).
+     
+       2.  Dependency 'androidx.media3:media3-exoplayer:1.11.0' requires libraries and applications that
+           depend on it to compile against version 36 or later of the
+           Android APIs.
+     
+           :app is currently compiled against android-35.
+     
+           Also, the maximum recommended compile SDK version for Android Gradle
+           plugin 8.7.3 is 35.
+     
+           Recommended action: Update this project's version of the Android Gradle
+           plugin to one that supports 36, then update this project to use
+           compileSdk of at least 36.
+     
+           Note that updating a library or application's compileSdk (which
+           allows newer APIs to be used) can be done separately from updating
+           targetSdk (which opts the app in to new runtime behavior) and
+           minSdk (which determines which devices the app can be installed
+           on).
+     
+       3.  Dependency 'androidx.media3:media3-extractor:1.11.0' requires libraries and applications that
+           depend on it to compile against version 36 or later of the
+           Android APIs.
+     
+           :app is currently compiled against android-35.
+     
+           Also, the maximum recommended compile SDK version for Android Gradle
+           plugin 8.7.3 is 35.
+     
+           Recommended action: Update this project's version of the Android Gradle
+           plugin to one that supports 36, then update this project to use
+           compileSdk of at least 36.
+     
+           Note that updating a library or application's compileSdk (which
+           allows newer APIs to be used) can be done separately from updating
+           targetSdk (which opts the app in to new runtime behavior) and
+           minSdk (which determines which devices the app can be installed
+           on).
+     
+       4.  Dependency 'androidx.media3:media3-container:1.11.0' requires libraries and applications that
+           depend on it to compile against version 36 or later of the
+           Android APIs.
+     
+           :app is currently compiled against android-35.
+     
+           Also, the maximum recommended compile SDK version for Android Gradle
+           plugin 8.7.3 is 35.
+     
+           Recommended action: Update this project's version of the Android Gradle
+           plugin to one that supports 36, then update this project to use
+           compileSdk of at least 36.
+     
+           Note that updating a library or application's compileSdk (which
+           allows newer APIs to be used) can be done separately from updating
+           targetSdk (which opts the app in to new runtime behavior) and
+           minSdk (which determines which devices the app can be installed
+           on).
+     
+       5.  Dependency 'androidx.media3:media3-datasource:1.11.0' requires libraries and applications that
+           depend on it to compile against version 36 or later of the
+           Android APIs.
+     
+           :app is currently compiled against android-35.
+     
+           Also, the maximum recommended compile SDK version for Android Gradle
+           plugin 8.7.3 is 35.
+     
+           Recommended action: Update this project's version of the Android Gradle
+           plugin to one that supports 36, then update this project to use
+           compileSdk of at least 36.
+     
+           Note that updating a library or application's compileSdk (which
+           allows newer APIs to be used) can be done separately from updating
+           targetSdk (which opts the app in to new runtime behavior) and
+           minSdk (which determines which devices the app can be installed
+           on).
+     
+       6.  Dependency 'androidx.media3:media3-decoder:1.11.0' requires libraries and applications that
+           depend on it to compile against version 36 or later of the
+           Android APIs.
+     
+           :app is currently compiled against android-35.
+     
+           Also, the maximum recommended compile SDK version for Android Gradle
+           plugin 8.7.3 is 35.
+     
+           Recommended action: Update this project's version of the Android Gradle
+           plugin to one that supports 36, then update this project to use
+           compileSdk of at least 36.
+     
+           Note that updating a library or application's compileSdk (which
+           allows newer APIs to be used) can be done separately from updating
+           targetSdk (which opts the app in to new runtime behavior) and
+           minSdk (which determines which devices the app can be installed
+           on).
+     
+       7.  Dependency 'androidx.media3:media3-database:1.11.0' requires libraries and applications that
+           depend on it to compile against version 36 or later of the
+           Android APIs.
+     
+           :app is currently compiled against android-35.
+     
+           Also, the maximum recommended compile SDK version for Android Gradle
+           plugin 8.7.3 is 35.
+     
+           Recommended action: Update this project's version of the Android Gradle
+           plugin to one that supports 36, then update this project to use
+           compileSdk of at least 36.
+     
+           Note that updating a library or application's compileSdk (which
+           allows newer APIs to be used) can be done separately from updating
+           targetSdk (which opts the app in to new runtime behavior) and
+           minSdk (which determines which devices the app can be installed
+           on).
+     
+       8.  Dependency 'androidx.media3:media3-common:1.11.0' requires libraries and applications that
+           depend on it to compile against version 36 or later of the
+           Android APIs.
+     
+           :app is currently compiled against android-35.
+     
+           Also, the maximum recommended compile SDK version for Android Gradle
+           plugin 8.7.3 is 35.
+     
+           Recommended action: Update this project's version of the Android Gradle
+           plugin to one that supports 36, then update this project to use
+           compileSdk of at least 36.
+     
+           Note that updating a library or application's compileSdk (which
+           allows newer APIs to be used) can be done separately from updating
+           targetSdk (which opts the app in to new runtime behavior) and
+           minSdk (which determines which devices the app can be installed
+           on).
+     
+       9.  Dependency 'androidx.media3:media3-ui:1.11.0' requires libraries and applications that
+           depend on it to compile against version 36 or later of the
+           Android APIs.
+     
+           :app is currently compiled against android-35.
+     
+           Also, the maximum recommended compile SDK version for Android Gradle
+           plugin 8.7.3 is 35.
+     
+           Recommended action: Update this project's version of the Android Gradle
+           plugin to one that supports 36, then update this project to use
+           compileSdk of at least 36.
+     
+           Note that updating a library or application's compileSdk (which
+           allows newer APIs to be used) can be done separately from updating
+           targetSdk (which opts the app in to new runtime behavior) and
+           minSdk (which determines which devices the app can be installed
+           on).
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 22s
+12 actionable tasks: 8 executed, 4 from cache
