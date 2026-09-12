@@ -338,7 +338,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             Handler(Looper.getMainLooper()).post {
                 if (!healthy && !isFinishing) {
                     Toast.makeText(
-                        this,
+                        applicationContext,
                         "检测到硬解解码器异常：如播放黑屏/无声，请重启机顶盒",
                         Toast.LENGTH_LONG
                     ).show()
@@ -362,7 +362,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         val brief = log.lineSequence().take(6).joinToString("\n")
         runOnUiThread {
             Toast.makeText(
-                this,
+                applicationContext,
                 "上次运行崩溃（可在 设置-调试 中导出）：\n$brief",
                 Toast.LENGTH_LONG
             ).show()
@@ -657,7 +657,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                         refreshSourceUI()
                         reloadPlaylist(true)
                         Toast.makeText(
-                            this,
+                            applicationContext,
                             getString(R.string.switch_source) + "：源 " + (i + 1),
                             Toast.LENGTH_SHORT
                         ).show()
@@ -692,7 +692,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         updateSourceStatus()
         reloadPlaylist(true)
         Toast.makeText(
-            this,
+            applicationContext,
             getString(R.string.switch_source) + "：" + sourceLabel(next),
             Toast.LENGTH_SHORT
         ).show()
@@ -710,7 +710,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         updateSourceStatus()
         reloadPlaylist(true)
         Toast.makeText(
-            this,
+            applicationContext,
             getString(R.string.switch_source) + "：" + sourceLabel(prev),
             Toast.LENGTH_SHORT
         ).show()
@@ -777,7 +777,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                 reloadPlaylist(true)
                 loadEpgIfConfigured()
                 Toast.makeText(
-                    this,
+                    applicationContext,
                     "手机已保存 " + sources.size + " 个直播源，正在刷新…",
                     Toast.LENGTH_LONG
                 ).show()
@@ -1213,7 +1213,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                 openDocument.launch(arrayOf("*/*"))
             } catch (e: Exception) {
                 Toast.makeText(
-                    this,
+                    applicationContext,
                     "无法打开文件选择器（系统无文件管理），请改用播放列表 URL 加载",
                     Toast.LENGTH_LONG
                 ).show()
@@ -2310,13 +2310,13 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                     updateSourceStatus()
                     if (finalState == EpgLoadState.FAILED) {
                         Toast.makeText(
-                            this,
+                            applicationContext,
                             "节目指南加载失败" + (if (err != null) "：" + err else ""),
                             Toast.LENGTH_LONG
                         ).show()
                     } else if (finalState == EpgLoadState.READY && totalPrograms > 0) {
                         Toast.makeText(
-                            this,
+                            applicationContext,
                             "节目指南加载成功（" + totalPrograms + " 条节目）",
                             Toast.LENGTH_SHORT
                         ).show()
