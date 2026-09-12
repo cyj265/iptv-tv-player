@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 揽星TV 启动背景：深蓝→深紫渐变 + 星星点缀 -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 主渐变：深蓝 → 深紫 → 深蓝黑 -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="135"
+                android:startColor="#0D1B2A"
+                android:centerColor="#1A1A3E"
+                android:endColor="#0A0A14"
+                android:type="linear" />
+        </shape>
+    </item>
+    <!-- 大星星（左上） -->
+    <item android:left="60dp" android:top="80dp">
+        <shape android:shape="oval">
+            <solid android:color="#40FFFFFF" />
+            <size android:width="4dp" android:height="4dp" />
+        </shape>
+    </item>
+    <!-- 中星星（右上） -->
+    <item android:left="300dp" android:top="60dp">
+        <shape android:shape="oval">
+            <solid android:color="#60FFFFFF" />
+            <size android:width="3dp" android:height="3dp" />
+        </shape>
+    </item>
+    <!-- 小星星（右中） -->
+    <item android:left="340dp" android:top="200dp">
+        <shape android:shape="oval">
+            <solid android:color="#30FFFFFF" />
+            <size android:width="2dp" android:height="2dp" />
+        </shape>
+    </item>
+    <!-- 中星星（左下） -->
+    <item android:left="40dp" android:top="300dp">
+        <shape android:shape="oval">
+            <solid android:color="#50FFFFFF" />
+            <size android:width="3dp" android:height="3dp" />
+        </shape>
+    </item>
+    <!-- 小星星（中下） -->
+    <item android:left="200dp" android:top="380dp">
+        <shape android:shape="oval">
+            <solid android:color="#25FFFFFF" />
+            <size android:width="2dp" android:height="2dp" />
+        </shape>
+    </item>
+    <!-- 大星星（右下） -->
+    <item android:left="320dp" android:top="350dp">
+        <shape android:shape="oval">
+            <solid android:color="#45FFFFFF" />
+            <size android:width="4dp" android:height="4dp" />
+        </shape>
+    </item>
+    <!-- 底部光晕（蓝色） -->
+    <item android:gravity="bottom">
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="90"
+                android:startColor="#001565C0"
+                android:centerColor="#151565C0"
+                android:endColor="#001565C0"
+                android:type="linear" />
+            <size android:height="120dp" />
+        </shape>
+    </item>
+</layer-list>

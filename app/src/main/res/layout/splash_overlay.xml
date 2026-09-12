@@ -4,7 +4,7 @@
     android:id="@+id/splashOverlay"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/splash_bg"
+    android:background="@drawable/bg_splash"
     android:clickable="true"
     android:focusable="true"
     android:visibility="visible">
