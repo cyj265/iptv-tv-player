@@ -660,7 +660,7 @@
                     android:focusable="true"
                     android:clickable="true"
                     android:background="@drawable/bg_nav_item"
-                    android:text="⏱ 超时换源"
+                    android:text="⏱️ 超时换源"
                     android:textColor="#CCCCCC"
                     android:textSize="16sp" />
 
@@ -673,7 +673,7 @@
                     android:focusable="true"
                     android:clickable="true"
                     android:background="@drawable/bg_nav_item"
-                    android:text="⚙ 偏好设置"
+                    android:text="⚙️ 偏好设置"
                     android:textColor="#CCCCCC"
                     android:textSize="16sp" />
 
@@ -712,7 +712,7 @@
                     android:focusable="true"
                     android:clickable="true"
                     android:background="@drawable/bg_nav_item"
-                    android:text="ℹ 关于"
+                    android:text="ℹ️ 关于"
                     android:textColor="#CCCCCC"
                     android:textSize="16sp" />
 

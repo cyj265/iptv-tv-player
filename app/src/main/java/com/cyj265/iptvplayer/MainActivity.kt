@@ -942,6 +942,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         }
         val content = LinearLayout(this)
         content.orientation = LinearLayout.VERTICAL
+        content.gravity = android.view.Gravity.CENTER_HORIZONTAL
         content.setPadding(48, 24, 48, 24)
         val qrView = ImageView(this)
         qrView.setPadding(0, 0, 0, 16)
@@ -953,8 +954,9 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         tv.setTextColor(0xFF333333.toInt())
         tv.textSize = 15f
         tv.setLineSpacing(4f, 1f)
+        tv.gravity = android.view.Gravity.CENTER_HORIZONTAL
         tv.text = "请用手机（与机顶盒同一 Wi-Fi）扫描：\n$url\n\n可添加/切换直播源、设置节目指南、直接播放"
-        content.addView(tv)
+        content.addView(tv, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
         AlertDialog.Builder(this)
             .setTitle(R.string.scan_qr_title)
             .setView(content)
