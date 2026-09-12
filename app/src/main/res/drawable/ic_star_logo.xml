@@ -1,0 +1,25 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+    <!-- 外发光效果（半透明大圆） -->
+    <path
+        android:fillColor="#334FC3F7"
+        android:pathData="M60,10 m-50,0 a50,50 0 1,0 100,0 a50,50 0 1,0 -100,0" />
+    <!-- 星星主体 -->
+    <path
+        android:fillColor="#4FC3F7"
+        android:pathData="M60,25 L68.5,47.5 L92.5,49 L73.5,64.5 L79.5,88 L60,74 L40.5,88 L46.5,64.5 L27.5,49 L51.5,47.5 Z" />
+    <!-- 星星高光 -->
+    <path
+        android:fillColor="#81D4FA"
+        android:pathData="M60,25 L68.5,47.5 L60,55 L51.5,47.5 Z" />
+    <!-- 小星星装饰 -->
+    <path
+        android:fillColor="#B3E5FC"
+        android:pathData="M88,30 L90,35 L95,35 L91,38 L93,43 L88,40 L83,43 L85,38 L81,35 L86,35 Z" />
+    <path
+        android:fillColor="#B3E5FC"
+        android:pathData="M30,75 L31.5,78.5 L35,78.5 L32.5,81 L33.5,84.5 L30,82.5 L26.5,84.5 L27.5,81 L25,78.5 L28.5,78.5 Z" />
+</vector>

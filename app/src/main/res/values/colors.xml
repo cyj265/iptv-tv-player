@@ -14,4 +14,9 @@
     <color name="bg_overlay">#CC0E1116</color>
     <color name="bg_overlay_strong">#F20E1116</color>
     <color name="ic_launcher_background">#0E1116</color>
+    <!-- 启动图片 -->
+    <color name="splash_bg">#0A0D12</color>
+    <color name="splash_text">#F2F4F8</color>
+    <color name="splash_text_dim">#6B7280</color>
+    <color name="splash_accent">#4FC3F7</color>
 </resources>

@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 揽星TV 启动图片覆盖层：深色背景 + 星星图标 + 名称 + 加载动画 -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/splashOverlay"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/splash_bg"
+    android:clickable="true"
+    android:focusable="true"
+    android:visibility="visible">
+
+    <!-- 居中内容：星星图标 + 名称 -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:gravity="center"
+        android:orientation="vertical">
+
+        <!-- 星星图标（发光效果） -->
+        <ImageView
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:src="@drawable/ic_star_logo"
+            android:contentDescription="揽星TV" />
+
+        <!-- 名称 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="揽星TV"
+            android:textColor="@color/splash_text"
+            android:textSize="42sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.1" />
+
+        <!-- 副标题 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Android TV 播放器"
+            android:textColor="@color/splash_text_dim"
+            android:textSize="16sp" />
+
+    </LinearLayout>
+
+    <!-- 底部加载动画 -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="80dp"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <ProgressBar
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:indeterminateTint="@color/splash_accent"
+            android:indeterminateTintMode="src_in" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:text="正在加载…"
+            android:textColor="@color/splash_text_dim"
+            android:textSize="16sp" />
+
+    </LinearLayout>
+
+</FrameLayout>

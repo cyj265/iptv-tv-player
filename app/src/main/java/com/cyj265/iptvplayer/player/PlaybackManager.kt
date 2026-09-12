@@ -1,6 +1,11 @@
 package com.cyj265.iptvplayer.player
 import android.content.Context
+import android.app.ActivityManager
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkInfo
 import android.net.Uri
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import androidx.annotation.OptIn
@@ -79,6 +84,7 @@ class PlaybackManager(
     private var autoTryStartIndex = 0
     private var retryCount = 0
     private var decoderInitRetryCount = 0
+    private var renderRetryCount = 0
     /** 当前线路是否曾成功起播（STATE_READY）。用于区分"起播失败"和"播放中途失败" */
     private var hasStartedPlaying = false
     private val retryHandler = Handler(Looper.getMainLooper())
@@ -114,16 +120,8 @@ class PlaybackManager(
             listener.onPlaybackStateChanged(player?.isPlaying == true)
         }
         override fun onPlayerError(error: PlaybackException) {
-            // 诊断日志：完整堆栈写入 crash.log（设置→调试 可查看，便于真机定位解码问题）
-            try {
-                val sw = StringWriter()
-                error.printStackTrace(PrintWriter(sw))
-                File(context.filesDir, "crash.log").appendText(
-                    "\n--- 播放错误 " + System.currentTimeMillis() + " ---\n" +
-                            "errorCode=" + error.errorCodeName + "\n" + sw.toString() + "\n"
-                )
-            } catch (ignored: Exception) {
-            }
+            // 诊断日志：丰富的上下文信息写入 crash.log（设置→调试 可查看，便于真机定位问题）
+            writeCrashLog(error)
             val url = currentUrl
             val isDecoderError =
                 error.errorCode == PlaybackException.ERROR_CODE_DECODER_INIT_FAILED ||
@@ -152,6 +150,17 @@ class PlaybackManager(
                     val name = currentChannelName
                     listener.onPlaybackError("解码器初始化失败，500ms 后自动重试…")
                     retryHandler.postDelayed({ retryPlay(url, name ?: url) }, 500)
+                    return
+                }
+                // v1.14.4：解码失败（DECODING_FAILED）自动重试 2 次（延迟800ms）。
+                // 启动时 Surface 未就绪导致视频渲染失败（有声音黑屏），
+                // 重试几次后 Surface 就绪即可正常播放（用户实测双击OK键能进入）。
+                if (error.errorCode == PlaybackException.ERROR_CODE_DECODING_FAILED
+                    && renderRetryCount < 2 && url != null) {
+                    renderRetryCount++
+                    val name = currentChannelName
+                    listener.onPlaybackError("视频渲染失败，${renderRetryCount}/2 自动重试…")
+                    retryHandler.postDelayed({ retryPlay(url, name ?: url) }, 800)
                     return
                 }
                 // 已降级过软解仍失败：说明软解也放不了（N1 软解 4K HEVC 撑不住），
@@ -393,6 +402,7 @@ class PlaybackManager(
         autoTryStartIndex = 0
         retryCount = 0
         decoderInitRetryCount = 0
+        renderRetryCount = 0
         degradedToSoftware = false
         playCurrentSource()
     }
@@ -520,6 +530,87 @@ class PlaybackManager(
             p.playWhenReady = true
         }
     }
+    /**
+     * 丰富的崩溃日志记录：包含设备信息、播放状态、视频格式、网络、内存等，
+     * 便于真机定位解码/渲染/网络问题。
+     */
+    private fun writeCrashLog(error: PlaybackException) {
+        try {
+            val sb = StringBuilder()
+            sb.append("\n========== 播放错误 ").append(java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())).append(" ==========\n")
+            try {
+                val pi = context.packageManager.getPackageInfo(context.packageName, 0)
+                sb.append("[App] versionName=").append(pi.versionName).append(" versionCode=").append(pi.versionCode).append("\n")
+            } catch (ignored: Exception) {}
+            sb.append("[Device] model=").append(Build.MODEL)
+                .append(" brand=").append(Build.BRAND)
+                .append(" android=").append(Build.VERSION.RELEASE)
+                .append(" sdk=").append(Build.VERSION.SDK_INT)
+                .append("\n")
+            sb.append("[Playback] channel=").append(currentChannelName ?: "null")
+                .append(" decoderMode=").append(decoderMode)
+                .append(" degraded=").append(degradedToSoftware)
+                .append(" retry=").append(retryCount)
+                .append(" initRetry=").append(decoderInitRetryCount)
+                .append(" renderRetry=").append(renderRetryCount)
+                .append(" started=").append(hasStartedPlaying)
+                .append(" src=").append(currentSourceIndex).append("/").append(currentSources.size)
+                .append("\n")
+            try {
+                val p = player
+                if (p != null) {
+                    sb.append("[Player] state=").append(p.playbackState)
+                        .append(" playing=").append(p.isPlaying)
+                        .append(" loading=").append(p.isLoading)
+                        .append(" pos=").append(p.currentPosition)
+                        .append(" buffered=").append(p.bufferedPosition)
+                        .append("\n")
+                    val vf = p.videoFormat
+                    if (vf != null) {
+                        sb.append("[Video] mime=").append(vf.sampleMimeType)
+                            .append(" ").append(vf.width).append("x").append(vf.height)
+                            .append(" fps=").append(vf.frameRate)
+                            .append("\n")
+                    }
+                }
+            } catch (ignored: Exception) {}
+            try {
+                val cause = error.cause
+                if (cause is androidx.media3.exoplayer.mediacodec.MediaCodecRenderer.DecoderInitializationException) {
+                    sb.append("[Decoder] codec=").append(cause.codecName)
+                        .append(" mime=").append(cause.mimeType)
+                        .append("\n")
+                }
+            } catch (ignored: Exception) {}
+            try {
+                val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+                val ni = cm.activeNetworkInfo
+                sb.append("[Network] connected=").append(ni?.isConnected ?: false)
+                    .append(" type=").append(ni?.typeName ?: "null")
+                    .append("\n")
+            } catch (ignored: Exception) {}
+            try {
+                val am = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+                val mi = ActivityManager.MemoryInfo()
+                am.getMemoryInfo(mi)
+                val rt = Runtime.getRuntime()
+                sb.append("[Memory] avail=").append(mi.availMem / 1024 / 1024).append("MB")
+                    .append(" total=").append(mi.totalMem / 1024 / 1024).append("MB")
+                    .append(" low=").append(mi.lowMemory)
+                    .append(" heap=").append((rt.totalMemory() - rt.freeMemory()) / 1024 / 1024).append("MB")
+                    .append("\n")
+            } catch (ignored: Exception) {}
+            sb.append("[Error] code=").append(error.errorCodeName)
+                .append(" msg=").append(error.message ?: "null")
+                .append("\n")
+            val sw = StringWriter()
+            error.printStackTrace(PrintWriter(sw))
+            sb.append("[Stack]\n").append(sw.toString()).append("\n")
+            sb.append("========== 结束 ==========\n")
+            java.io.File(context.filesDir, "crash.log").appendText(sb.toString())
+        } catch (ignored: Exception) {}
+    }
+
     fun release() {
         retryHandler.removeCallbacksAndMessages(null)
         sourceTimeoutHandler.removeCallbacksAndMessages(null)

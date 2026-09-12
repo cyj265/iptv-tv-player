@@ -11,8 +11,8 @@ android {
         applicationId = "com.cyj265.iptvplayer"
         minSdk = 23
         targetSdk = 34
-        versionCode = 58
-        versionName = "1.14.3"
+        versionCode = 59
+        versionName = "1.14.4"
     }
 
     buildTypes {

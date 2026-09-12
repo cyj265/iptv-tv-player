@@ -12,6 +12,7 @@
         android:layout_height="match_parent"
         android:focusable="false"
         app:use_controller="false"
+        app:use_texture_view="true"
         app:resize_mode="fit" />
 
     <!-- ===== 顶部：当前频道信息（覆盖层） ===== -->
@@ -1638,4 +1639,7 @@
             </ScrollView>
         </LinearLayout>
     </LinearLayout>
+    <!-- 启动图片覆盖层（揽星TV 风格） -->
+    <include layout="@layout/splash_overlay" />
+
 </FrameLayout>
