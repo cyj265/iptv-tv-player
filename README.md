@@ -116,7 +116,7 @@ gradle assembleRelease
 
 ## 技术栈
 
-- Kotlin 2.0.20 + AndroidX (AppCompat / RecyclerView / ViewBinding)
+- Kotlin 2.2.10 + AndroidX (AppCompat / RecyclerView / ViewBinding)
 - **Media3 ExoPlayer 1.11.0**（HLS 专业支持，H.265/HEVC 硬解）
 - **NanoHTTPD**（局域网管理服务）+ **ZXing**（二维码）
 - minSdk 23（Android 6.0）/ targetSdk 34 / compileSdk 36
