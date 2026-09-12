@@ -2119,7 +2119,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                 }, 5000)
             } else {
                 logStartup("SurfaceView not found, fallback to delayed resume")
-                window.decorView.postDelayed({ resumeLastChannel() }, 500)
+                surfaceResumeHandler.postDelayed({ resumeLastChannel() }, 500)
             }
         } catch (e: Exception) {
             logStartup("waitForSurfaceAndResume exception: ${e.message}")
@@ -2771,8 +2771,10 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     }
 
     override fun onDestroy() {
-        overlayHandler.removeCallbacks(overlayHideRunnable)
-        clockHandler.removeCallbacks(clockRunnable)
+        overlayHandler.removeCallbacksAndMessages(null)
+        clockHandler.removeCallbacksAndMessages(null)
+        previewHandler.removeCallbacksAndMessages(null)
+        surfaceResumeHandler.removeCallbacksAndMessages(null)
         try {
             remoteServer?.stop()
         } catch (ignored: Exception) {
