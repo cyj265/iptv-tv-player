@@ -1,4 +1,4 @@
-package com.cyj265.iptvplayer
+﻿package com.cyj265.iptvplayer
 
 import android.app.AlertDialog
 import android.content.ActivityNotFoundException
@@ -2228,7 +2228,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                 binding.tvInfoChannel.text = "未选择频道"
                 binding.tvInfoNow.text = "请先选择频道"
                 binding.tvInfoNowTime.text = ""
-                binding.infoProgressBar.visibility = android.view.View.GONE
+                binding.infoProgressBar.visibility = View.GONE
                 binding.tvInfoDesc.text = ""
                 epgListAdapter.submitPrograms(emptyList(), null)
                 binding.tvInfoMeta.text = ""
@@ -2250,9 +2250,9 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                 if (duration > 0) {
                     val progress = ((now - current.start) * 100 / duration).toInt().coerceIn(0, 100)
                     binding.infoProgressBar.progress = progress
-                    binding.infoProgressBar.visibility = android.view.View.VISIBLE
+                    binding.infoProgressBar.visibility = View.VISIBLE
                 } else {
-                    binding.infoProgressBar.visibility = android.view.View.GONE
+                    binding.infoProgressBar.visibility = View.GONE
                 }
                 // 节目描述
                 binding.tvInfoDesc.text = if (current.description.isNotEmpty()) current.description else ""
@@ -2264,7 +2264,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                     EpgLoadState.READY -> "该时段暂无节目"
                 }
                 binding.tvInfoNowTime.text = ""
-                binding.infoProgressBar.visibility = android.view.View.GONE
+                binding.infoProgressBar.visibility = View.GONE
                 binding.tvInfoDesc.text = ""
             }
             // 今日节目单：从当前时间开始，取接下来 12 个节目
@@ -2339,19 +2339,42 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     /** 仅更新 EPG 进度条（每秒调用，不更新文字，避免频繁重绘） */
     private fun updateEpgProgressOnly() {
         try {
-            val ch = currentChannel ?: return
-            val programs = epgPrograms[ch.id] ?: return
             val now = System.currentTimeMillis()
-            val current = programs.firstOrNull { now in it.start until it.end }
-            if (current != null) {
-                val duration = current.end - current.start
-                if (duration > 0) {
-                    val progress = ((now - current.start) * 100 / duration).toInt().coerceIn(0, 100)
-                    binding.epgProgressBar.progress = progress
-                    binding.epgProgressBar.visibility = View.VISIBLE
+            // 顶部信息栏进度条（当前播放频道）
+            val ch = currentChannel
+            if (ch != null) {
+                val programs = epgPrograms[ch.id]
+                if (programs != null) {
+                    val current = programs.firstOrNull { now in it.start until it.end }
+                    if (current != null) {
+                        val duration = current.end - current.start
+                        if (duration > 0) {
+                            val progress = ((now - current.start) * 100 / duration).toInt().coerceIn(0, 100)
+                            binding.epgProgressBar.progress = progress
+                            binding.epgProgressBar.visibility = View.VISIBLE
+                        }
+                    } else {
+                        binding.epgProgressBar.visibility = View.GONE
+                    }
                 }
-            } else {
-                binding.epgProgressBar.visibility = View.GONE
+            }
+            // 第三栏节目详情进度条（当前焦点频道，频道列表可见时才更新）
+            if (binding.channelPanel.visibility == View.VISIBLE) {
+                val focusCh = lastFocusedChannel ?: currentChannel
+                if (focusCh != null) {
+                    val focusPrograms = epgPrograms[focusCh.id]
+                    if (focusPrograms != null) {
+                        val focusCurrent = focusPrograms.firstOrNull { now in it.start until it.end }
+                        if (focusCurrent != null) {
+                            val fduration = focusCurrent.end - focusCurrent.start
+                            if (fduration > 0) {
+                                val fprogress = ((now - focusCurrent.start) * 100 / fduration).toInt().coerceIn(0, 100)
+                                binding.infoProgressBar.progress = fprogress
+                                binding.infoProgressBar.visibility = View.VISIBLE
+                            }
+                        }
+                    }
+                }
             }
         } catch (ignored: Throwable) {
         }
