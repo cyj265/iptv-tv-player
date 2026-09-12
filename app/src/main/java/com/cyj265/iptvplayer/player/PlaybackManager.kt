@@ -126,6 +126,28 @@ class PlaybackManager(
             val isDecoderError =
                 error.errorCode == PlaybackException.ERROR_CODE_DECODER_INIT_FAILED ||
                         error.errorCode == PlaybackException.ERROR_CODE_DECODING_FAILED
+            // 检测是否为 H.265 HLS 流时间戳异常（SampleQueue.commitSample 抛 IllegalArgumentException）。
+            // 部分 IPTV 源的 H.265 流时间戳不标准，导致 ExoPlayer 内部校验失败。
+            // 这种错误是间歇性的（重启盒子/网络波动后可能恢复），自动重试当前线路可能成功。
+            val isTimestampError = run {
+                var cause: Throwable? = error
+                while (cause != null) {
+                    if (cause is IllegalArgumentException &&
+                        cause.stackTrace.any { it.methodName == "commitSample" }) {
+                        return@run true
+                    }
+                    cause = cause.cause
+                }
+                false
+            }
+            if (isTimestampError && retryCount < 2 && url != null) {
+                retryCount++
+                val delay = 1500L * retryCount
+                val name = currentChannelName
+                listener.onPlaybackError("流数据异常，${retryCount} 秒后自动重试…")
+                retryHandler.postDelayed({ retryPlay(url, name ?: url) }, delay)
+                return
+            }
             // 多线路 + 非解码类错误：
             // - 起播失败（从未 STATE_READY）：自动切下一条线路（换线路通常能解决）
             // - 播放中途失败（曾成功起播）：直接报错停止，避免"黑屏→切线路→再黑屏"反复循环
