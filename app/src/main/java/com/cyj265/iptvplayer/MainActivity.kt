@@ -2698,7 +2698,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     private fun initSplashOverlay() {
         // 播放器准备完成（第一帧渲染）后隐藏启动图片
         // 超时 3 秒后也隐藏，避免一直显示
-        splashHandler.postDelayed({ hideSplashOverlay() }, 3000)
+        splashHandler.postDelayed({ hideSplashOverlay() }, 5000)
     }
 
     /** 播放器开始播放时调用，淡出启动图片 */
