@@ -15,6 +15,7 @@ import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.hls.HlsMediaSource
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.mediacodec.MediaCodecInfo
 import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
 import androidx.media3.exoplayer.mediacodec.MediaCodecUtil
@@ -126,28 +127,6 @@ class PlaybackManager(
             val isDecoderError =
                 error.errorCode == PlaybackException.ERROR_CODE_DECODER_INIT_FAILED ||
                         error.errorCode == PlaybackException.ERROR_CODE_DECODING_FAILED
-            // 检测是否为 H.265 HLS 流时间戳异常（SampleQueue.commitSample 抛 IllegalArgumentException）。
-            // 部分 IPTV 源的 H.265 流时间戳不标准，导致 ExoPlayer 内部校验失败。
-            // 这种错误是间歇性的（重启盒子/网络波动后可能恢复），自动重试当前线路可能成功。
-            val isTimestampError = run {
-                var cause: Throwable? = error
-                while (cause != null) {
-                    if (cause is IllegalArgumentException &&
-                        cause.stackTrace.any { it.methodName == "commitSample" }) {
-                        return@run true
-                    }
-                    cause = cause.cause
-                }
-                false
-            }
-            if (isTimestampError && retryCount < 2 && url != null) {
-                retryCount++
-                val delay = 1500L * retryCount
-                val name = currentChannelName
-                listener.onPlaybackError("流数据异常，${retryCount} 秒后自动重试…")
-                retryHandler.postDelayed({ retryPlay(url, name ?: url) }, delay)
-                return
-            }
             // 多线路 + 非解码类错误：
             // - 起播失败（从未 STATE_READY）：自动切下一条线路（换线路通常能解决）
             // - 播放中途失败（曾成功起播）：直接报错停止，避免"黑屏→切线路→再黑屏"反复循环
@@ -514,14 +493,11 @@ class PlaybackManager(
             .setUri(Uri.parse(url))
             .setMediaId(channelName)
             .build()
-        val type = Util.inferContentType(Uri.parse(url))
-        return when (type) {
-            C.CONTENT_TYPE_HLS -> HlsMediaSource.Factory(dataSourceFactory)
-                // 时间戳调整器初始化超时从 5s 增加到 10s，兼容慢响应源
-                .setTimestampAdjusterInitializationTimeoutMs(10_000)
-                .createMediaSource(mediaItem)
-            else -> ProgressiveMediaSource.Factory(dataSourceFactory).createMediaSource(mediaItem)
-        }
+        // 使用 DefaultMediaSourceFactory：内部对 HLS/DASH/SS 等流媒体有更好的默认容错处理，
+        // 包括 HLS 时间戳调整器初始化、分段边界处理等，比手动创建 HlsMediaSource 更稳定。
+        val mediaSourceFactory = DefaultMediaSourceFactory(context)
+            .setDataSourceFactory(dataSourceFactory)
+        return mediaSourceFactory.createMediaSource(mediaItem)
     }
     fun togglePlayPause() {
         val p = player ?: return
