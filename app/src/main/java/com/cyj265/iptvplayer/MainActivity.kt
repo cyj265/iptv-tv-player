@@ -1474,9 +1474,8 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             )
             val count = repository.epgProgramCount
             if (count > 0) sb.append("（已加载 ").append(count).append(" 条节目）")
-            // 状态信息改为 toast 提示（布局中已移除 tvSourceStatus）
-            val statusMsg = sb.toString()
-            if (statusMsg.isNotEmpty()) Toast.makeText(this, statusMsg, Toast.LENGTH_LONG).show()
+            // v1.14.5：移除启动时的直播源状态 Toast，避免影响观感
+            // 状态信息已在 tvStatus 中显示，用户可在设置中查看详细直播源信息
         } catch (ignored: Throwable) {
         }
     }
