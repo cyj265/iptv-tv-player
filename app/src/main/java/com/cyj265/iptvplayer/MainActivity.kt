@@ -1176,7 +1176,14 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                 }
                 else -> {
                     val section = settingsSections()[index.coerceIn(0, settingsSections().size - 1)]
-                    firstFocusableChild(section)?.requestFocus()
+                    val target = firstFocusableChild(section)
+                    if (target != null) {
+                        target.requestFocus()
+                    } else {
+                        // 详情区无可聚焦项：回退到导航列，避免焦点丢失
+                        val navs = settingsNavs()
+                        navs[index.coerceIn(0, navs.size - 1)].requestFocus()
+                    }
                 }
             }
         } catch (ignored: Throwable) {
@@ -2620,7 +2627,9 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                 KeyEvent.KEYCODE_DPAD_RIGHT -> {
                     // 焦点在导航列 -> 进入详情区并定位到当前值
                     if (settingsNavs().any { it.hasFocus() }) {
-                        focusValueInSettingsSection(currentSettingsTab); true
+                        focusValueInSettingsSection(currentSettingsTab)
+                        // 如果焦点仍在导航列（详情区无可聚焦项），也算处理完成，避免 super 乱跳
+                        true
                     } else {
                         super.onKeyDown(keyCode, event)
                     }
