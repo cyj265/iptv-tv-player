@@ -2713,7 +2713,8 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         if (splashHidden) return
         splashHidden = true
         try {
-            val splash = binding.splashOverlay
+            // ViewBinding 的 include 字段类型是 SplashOverlayBinding，需 .root 取 View
+            val splash = binding.splashOverlay.root
             splash.animate()
                 .alpha(0f)
                 .setDuration(300)

@@ -576,7 +576,7 @@ class PlaybackManager(
             try {
                 val cause = error.cause
                 if (cause is androidx.media3.exoplayer.mediacodec.MediaCodecRenderer.DecoderInitializationException) {
-                    sb.append("[Decoder] codec=").append(cause.codecName)
+                    sb.append("[Decoder] codec=").append(cause.decoderName)
                         .append(" mime=").append(cause.mimeType)
                         .append("\n")
                 }
