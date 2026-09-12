@@ -426,7 +426,7 @@ class PlaybackManager(
         // 修复：手动切换后重置自动换源起始位置，避免 autoFail 提前判定"全部失败"
         autoTryStartIndex = currentSourceIndex
         playCurrentSource()
-        android.widget.Toast.makeText(context, "已切换到线路 ${currentSourceIndex + 1}/${currentSources.size}", android.widget.Toast.LENGTH_SHORT).show()
+        android.widget.Toast.makeText(context.applicationContext, "已切换到线路 ${currentSourceIndex + 1}/${currentSources.size}", android.widget.Toast.LENGTH_SHORT).show()
         return true
     }
 
@@ -436,7 +436,7 @@ class PlaybackManager(
         currentSourceIndex = (currentSourceIndex - 1 + currentSources.size) % currentSources.size
         autoTryStartIndex = currentSourceIndex
         playCurrentSource()
-        android.widget.Toast.makeText(context, "已切换到线路 ${currentSourceIndex + 1}/${currentSources.size}", android.widget.Toast.LENGTH_SHORT).show()
+        android.widget.Toast.makeText(context.applicationContext, "已切换到线路 ${currentSourceIndex + 1}/${currentSources.size}", android.widget.Toast.LENGTH_SHORT).show()
         return true
     }
     /** 自动失败换源：一圈全部失败则报错停止 */

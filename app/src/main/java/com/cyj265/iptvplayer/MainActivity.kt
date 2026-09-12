@@ -547,7 +547,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     private fun switchToNextLine() {
         val switched = playback.switchToNextLine()
         if (!switched) {
-            Toast.makeText(this, "当前频道只有 1 条线路", Toast.LENGTH_SHORT).show()
+            Toast.makeText(applicationContext, "当前频道只有 1 条线路", Toast.LENGTH_SHORT).show()
             return
         }
         updateLineupLabel()
@@ -558,7 +558,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     private fun switchToPrevLine() {
         val switched = playback.switchToPrevLine()
         if (!switched) {
-            Toast.makeText(this, "当前频道只有 1 条线路", Toast.LENGTH_SHORT).show()
+            Toast.makeText(applicationContext, "当前频道只有 1 条线路", Toast.LENGTH_SHORT).show()
             return
         }
         updateLineupLabel()
@@ -685,7 +685,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     private fun switchToNextSource() {
         val next = repository.switchToNextSource()
         if (next == null) {
-            Toast.makeText(this, "未配置直播源，请在设置中添加", Toast.LENGTH_SHORT).show()
+            Toast.makeText(applicationContext, "未配置直播源，请在设置中添加", Toast.LENGTH_SHORT).show()
             return
         }
         currentChannel = null
@@ -703,7 +703,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     private fun switchToPrevSource() {
         val prev = repository.switchToPrevSource()
         if (prev == null) {
-            Toast.makeText(this, "未配置直播源，请在设置中添加", Toast.LENGTH_SHORT).show()
+            Toast.makeText(applicationContext, "未配置直播源，请在设置中添加", Toast.LENGTH_SHORT).show()
             return
         }
         currentChannel = null
@@ -828,7 +828,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     private fun addSourceFromText(text: String) {
         val urls = text.lines().map { it.trim() }.filter { it.isNotEmpty() }
         if (urls.isEmpty()) {
-            Toast.makeText(this, "请输入有效的 URL", Toast.LENGTH_SHORT).show()
+            Toast.makeText(applicationContext, "请输入有效的 URL", Toast.LENGTH_SHORT).show()
             return
         }
         urls.forEach { repository.addSource(it) }
@@ -836,7 +836,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         refreshSettingsSourceInput()
         updateSourceOptions()
         reloadPlaylist(true)
-        Toast.makeText(this, "已添加 ${urls.size} 个直播源", Toast.LENGTH_SHORT).show()
+        Toast.makeText(applicationContext, "已添加 ${urls.size} 个直播源", Toast.LENGTH_SHORT).show()
     }
 
     /** 弹出节目单地址编辑对话框 */
@@ -861,9 +861,9 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                 refreshSettingsSourceInput()
                 if (urls.isNotEmpty()) {
                     loadEpgIfConfigured()
-                    Toast.makeText(this, "节目单已保存，正在加载...", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(applicationContext, "节目单已保存，正在加载...", Toast.LENGTH_SHORT).show()
                 } else {
-                    Toast.makeText(this, "已清除节目单地址", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(applicationContext, "已清除节目单地址", Toast.LENGTH_SHORT).show()
                 }
             }
             .setNegativeButton("取消", null)
@@ -889,7 +889,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         // 清除缓存
         binding.btnClearEpgCache.setOnClickListener {
             repository.clearEpgCache()
-            Toast.makeText(this, "节目单缓存已清除", Toast.LENGTH_SHORT).show()
+            Toast.makeText(applicationContext, "节目单缓存已清除", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -911,7 +911,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     private fun setEpgRefreshHours(hours: Int) {
         repository.epgRefreshHours = hours
         updateEpgRefreshUI()
-        Toast.makeText(this, "节目单刷新频率：${if (hours >= 24) "每天" else "每${hours}小时"}", Toast.LENGTH_SHORT).show()
+        Toast.makeText(applicationContext, "节目单刷新频率：${if (hours >= 24) "每天" else "每${hours}小时"}", Toast.LENGTH_SHORT).show()
     }
 
     private fun updateEpgRefreshUI() {
@@ -934,12 +934,12 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     private fun showScanDialog() {
         val ip = localIpAddress()
         if (ip == null) {
-            Toast.makeText(this, R.string.scan_no_wifi, Toast.LENGTH_LONG).show()
+            Toast.makeText(applicationContext, R.string.scan_no_wifi, Toast.LENGTH_LONG).show()
             return
         }
         val server = remoteServer
         if (server == null) {
-            Toast.makeText(this, R.string.scan_server_off, Toast.LENGTH_LONG).show()
+            Toast.makeText(applicationContext, R.string.scan_server_off, Toast.LENGTH_LONG).show()
             return
         }
         val url = "http://$ip:19090/"
@@ -1220,7 +1220,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         binding.btnCheckAllSources.setOnClickListener {
             val sources = repository.getSources()
             if (sources.isEmpty()) {
-                Toast.makeText(this, "暂无直播源", Toast.LENGTH_SHORT).show()
+                Toast.makeText(applicationContext, "暂无直播源", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
             binding.btnCheckAllSources.text = "检测中..."
@@ -1245,13 +1245,13 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                                 adapter.setSelected(null)
                                 refreshSourceUI()
                                 reloadPlaylist(true)
-                                Toast.makeText(this, "已自动切换到最快源（源${fastestIdx + 1}）", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(applicationContext, "已自动切换到最快源（源${fastestIdx + 1}）", Toast.LENGTH_SHORT).show()
                             } else {
-                                Toast.makeText(this, "测速完成，当前已是最快源", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(applicationContext, "测速完成，当前已是最快源", Toast.LENGTH_SHORT).show()
                             }
                         } else {
                             val available = results.count { it.available }
-                            Toast.makeText(this, "测速完成：${available}/${results.size} 个源可用", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(applicationContext, "测速完成：${available}/${results.size} 个源可用", Toast.LENGTH_SHORT).show()
                         }
                     }
                 }
@@ -1263,7 +1263,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         binding.tvAutoSelectFastest.setOnClickListener {
             repository.autoSelectFastest = !repository.autoSelectFastest
             updateAutoSelectFastestUI()
-            Toast.makeText(this, if (repository.autoSelectFastest) "已开启自动优选" else "已关闭自动优选", Toast.LENGTH_SHORT).show()
+            Toast.makeText(applicationContext, if (repository.autoSelectFastest) "已开启自动优选" else "已关闭自动优选", Toast.LENGTH_SHORT).show()
         }
         binding.tvCurrentSource.setOnClickListener {
             switchToNextSource()
@@ -1283,7 +1283,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             repository.setFavorites(favorites)
             adapter.favorites = favorites
             updateFavCount()
-            Toast.makeText(this, R.string.cleared, Toast.LENGTH_SHORT).show()
+            Toast.makeText(applicationContext, R.string.cleared, Toast.LENGTH_SHORT).show()
         }
 
         // 直播源切换列表（多播放列表）
@@ -1354,7 +1354,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             crashFile().delete()
             rememberGroupPrefs().edit().putBoolean("crash_prompted", false).apply()
             binding.tvCrashLog.text = "无"
-            Toast.makeText(this, R.string.cleared_crash_log, Toast.LENGTH_SHORT).show()
+            Toast.makeText(applicationContext, R.string.cleared_crash_log, Toast.LENGTH_SHORT).show()
         }
 
         // 退出
@@ -1434,7 +1434,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         adapter.setSelected(null)
         refreshSourceUI()
         if (sources.isNotEmpty()) reloadPlaylist(true)
-        Toast.makeText(this, "已删除直播源", Toast.LENGTH_SHORT).show()
+        Toast.makeText(applicationContext, "已删除直播源", Toast.LENGTH_SHORT).show()
     }
 
 
@@ -1499,7 +1499,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
 
     private fun launchCrashExport() {
         if (!crashFile().exists()) {
-            Toast.makeText(this, R.string.export_empty, Toast.LENGTH_SHORT).show()
+            Toast.makeText(applicationContext, R.string.export_empty, Toast.LENGTH_SHORT).show()
             return
         }
         val name = "crash-log-" +
@@ -1510,7 +1510,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             // TV 设备无文件管理器，降级到直接写入应用外部目录
             exportCrashLogToExternal(name)
         } catch (e: Exception) {
-            Toast.makeText(this, "无法打开保存窗口：${e.message}", Toast.LENGTH_LONG).show()
+            Toast.makeText(applicationContext, "无法打开保存窗口：${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -1520,9 +1520,9 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             val dir = getExternalFilesDir(null) ?: filesDir
             val outFile = java.io.File(dir, name)
             crashFile().copyTo(outFile, overwrite = true)
-            Toast.makeText(this, "已导出到：${outFile.absolutePath}", Toast.LENGTH_LONG).show()
+            Toast.makeText(applicationContext, "已导出到：${outFile.absolutePath}", Toast.LENGTH_LONG).show()
         } catch (e: Exception) {
-            Toast.makeText(this, "导出失败：${e.message}", Toast.LENGTH_LONG).show()
+            Toast.makeText(applicationContext, "导出失败：${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -1532,15 +1532,15 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             if (!f.exists()) return
             val os = contentResolver.openOutputStream(uri)
             if (os == null) {
-                Toast.makeText(this, "无法写入目标位置，请重试或选择其他位置", Toast.LENGTH_LONG).show()
+                Toast.makeText(applicationContext, "无法写入目标位置，请重试或选择其他位置", Toast.LENGTH_LONG).show()
                 return
             }
             os.use { out ->
                 out.write(f.readBytes())
             }
-            Toast.makeText(this, R.string.exported, Toast.LENGTH_SHORT).show()
+            Toast.makeText(applicationContext, R.string.exported, Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
-            Toast.makeText(this, "导出失败：${e.message}", Toast.LENGTH_LONG).show()
+            Toast.makeText(applicationContext, "导出失败：${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -1555,7 +1555,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         repository.switchTimeoutSec = next
         playback.setSourceTimeoutMs(next * 1000L)
         updateTimeoutSelection()
-        Toast.makeText(this, getString(R.string.switch_timeout) + "：" + next + " 秒", Toast.LENGTH_SHORT).show()
+        Toast.makeText(applicationContext, getString(R.string.switch_timeout) + "：" + next + " 秒", Toast.LENGTH_SHORT).show()
     }
 
     private fun updateTimeoutSelection() {
@@ -1590,7 +1590,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                 repository.switchTimeoutSec = sec
                 playback.setSourceTimeoutMs(sec * 1000L)
                 updateTimeoutSelection()
-                Toast.makeText(this, "换源超时：$sec 秒", Toast.LENGTH_SHORT).show()
+                Toast.makeText(applicationContext, "换源超时：$sec 秒", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -1803,7 +1803,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             }
             startActivity(intent)
         } catch (e: Exception) {
-            Toast.makeText(this, "无法打开安装器：${e.message}", Toast.LENGTH_LONG).show()
+            Toast.makeText(applicationContext, "无法打开安装器：${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -1852,7 +1852,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             view.setOnClickListener {
                 playback.applyDecoderMode(key)
                 updateDecoderSelection()
-                Toast.makeText(this, getString(R.string.decoder_mode) + "：" + labelForMode(key), Toast.LENGTH_SHORT).show()
+                Toast.makeText(applicationContext, getString(R.string.decoder_mode) + "：" + labelForMode(key), Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -1905,7 +1905,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                     "fill" -> "填充"
                     else -> "适应"
                 }
-                Toast.makeText(this, "画面比例：$label", Toast.LENGTH_SHORT).show()
+                Toast.makeText(applicationContext, "画面比例：$label", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -1958,7 +1958,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                             binding.tvStatus.text = getString(R.string.load_failed) + "（已用缓存）"
                         } else {
                             binding.tvStatus.text = getString(R.string.load_failed) + "：" + detail
-                            Toast.makeText(this, R.string.load_failed, Toast.LENGTH_SHORT).show()
+                            Toast.makeText(applicationContext, R.string.load_failed, Toast.LENGTH_SHORT).show()
                         }
                     } catch (e2: Throwable) {
                         binding.tvStatus.text =
@@ -2004,7 +2004,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                 }
                 val channels = PlaylistParser.parseAuto(text)
                 if (channels.isEmpty()) {
-                    runOnUiThread { Toast.makeText(this, R.string.no_channels, Toast.LENGTH_SHORT).show() }
+                    runOnUiThread { Toast.makeText(applicationContext, R.string.no_channels, Toast.LENGTH_SHORT).show() }
                     return@Thread
                 }
                 repository.saveLocalChannels(channels)
@@ -2012,13 +2012,13 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                     try {
                         onChannelsLoaded(channels)
                         hideSettingsPanel()
-                        Toast.makeText(this, R.string.importing, Toast.LENGTH_SHORT).show()
+                        Toast.makeText(applicationContext, R.string.importing, Toast.LENGTH_SHORT).show()
                     } catch (e: Throwable) {
-                        Toast.makeText(this, R.string.load_failed, Toast.LENGTH_SHORT).show()
+                        Toast.makeText(applicationContext, R.string.load_failed, Toast.LENGTH_SHORT).show()
                     }
                 }
             } catch (e: Exception) {
-                runOnUiThread { Toast.makeText(this, R.string.load_failed, Toast.LENGTH_SHORT).show() }
+                runOnUiThread { Toast.makeText(applicationContext, R.string.load_failed, Toast.LENGTH_SHORT).show() }
             }
         }.start()
     }
@@ -2141,13 +2141,23 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     }
 
     private fun resumeLastChannel() {
-        val lastId = repository.lastChannelId ?: return
-        val ch = allChannels.firstOrNull { it.id == lastId } ?: return
+        val lastId = repository.lastChannelId
+        if (lastId == null) {
+            logStartup("resumeLastChannel: lastChannelId is null, skip")
+            return
+        }
+        val ch = allChannels.firstOrNull { it.id == lastId }
+        if (ch == null) {
+            logStartup("resumeLastChannel: channel not found for id=$lastId, channels=${allChannels.size}, skip")
+            return
+        }
+        logStartup("resumeLastChannel: playing channel=${ch.name} sources=${ch.sources.size}")
         currentChannel = ch
         adapter.setSelected(ch.id)
         playback.play(ch.sources.ifEmpty { listOf(ch.url) }, ch.name)
         updateNowPlaying()
         updateLineupLabel()
+        logStartup("resumeLastChannel: playback.play() called")
     }
 
     private fun playDirect(url: String, name: String) {
@@ -2743,7 +2753,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                     showExitDialog()
                 } else {
                     lastBackPressTime = now
-                    Toast.makeText(this, "再按一次返回键退出", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(applicationContext, "再按一次返回键退出", Toast.LENGTH_SHORT).show()
                 }
                 true
             }
