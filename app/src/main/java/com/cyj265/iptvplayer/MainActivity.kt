@@ -902,13 +902,18 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                 if (view !is TextView) return
                 if (view is android.widget.EditText) return  // 输入框保持原样
                 if (view.id in navViewIds) {
-                    // 导航项焦点态：使用选中态 drawable + 白字加粗
+                    // 导航项焦点态：使用选中态 drawable + 白字加粗 + 切换 tab
                     val navNormalColor = (view as TextView).currentTextColor
                     view.onFocusChangeListener = View.OnFocusChangeListener { _, focused ->
                         if (focused) {
                             view.setBackgroundResource(R.drawable.bg_nav_item_selected)
                             view.setTextColor(Color.WHITE)
                             view.setTypeface(view.typeface, Typeface.BOLD)
+                            // 焦点时自动切换到对应 tab（修复被覆盖导致不能切换的问题）
+                            val navIdx = settingsNavs().indexOf(view)
+                            if (navIdx >= 0 && navIdx != currentSettingsTab) {
+                                selectSettingsTab(navIdx)
+                            }
                         } else {
                             // 失焦时恢复：如果是当前选中 tab 则保持选中态，否则恢复普通态
                             val navIndex = settingsNavs().indexOf(view)
