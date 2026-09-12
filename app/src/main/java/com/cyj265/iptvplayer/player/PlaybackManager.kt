@@ -307,7 +307,7 @@ class PlaybackManager(
         // 故 v1.6.2 恢复与 v1.4.0 完全一致的配置。
         val trackSelector = DefaultTrackSelector(context)
         trackSelector.setParameters(
-            DefaultTrackSelector.Parameters.Builder(context)
+            DefaultTrackSelector.Parameters.Builder()
                 .setForceHighestSupportedBitrate(true)
                 .setExceedRendererCapabilitiesIfNecessary(true)
                 .build()
