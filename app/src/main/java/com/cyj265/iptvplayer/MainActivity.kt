@@ -1060,11 +1060,11 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                 val normalTextColor = view.currentTextColor
                 view.onFocusChangeListener = View.OnFocusChangeListener { _, focused ->
                     if (focused) {
-                        view.setBackgroundColor(0xFF3D8BFF.toInt())
+                        view.setBackgroundResource(R.drawable.bg_item_focused)
                         view.setTextColor(0xFFFFFFFF.toInt())
                         view.setTypeface(view.typeface, Typeface.BOLD)
                     } else {
-                        view.setBackgroundColor(0x00000000)
+                        view.setBackgroundResource(0)
                         view.setTextColor(normalTextColor)
                         view.setTypeface(view.typeface, Typeface.NORMAL)
                     }
@@ -1079,7 +1079,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     private fun applyOptionFocus(view: TextView, refreshFn: () -> Unit) {
         view.onFocusChangeListener = View.OnFocusChangeListener { _, focused ->
             if (focused) {
-                view.setBackgroundColor(0xFF3D8BFF.toInt())
+                view.setBackgroundResource(R.drawable.bg_item_focused)
                 view.setTextColor(0xFFFFFFFF.toInt())
                 view.paint.isFakeBoldText = true
             } else {
@@ -2847,15 +2847,15 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
                 if (isSelected) 0xFF3D8BFF.toInt() else 0xFFCCCCCC.toInt()
             )
             holder.tvName.paint.isFakeBoldText = isSelected
-            // 焦点样式：亮蓝背景 + 白字加粗；焦点移动即切换分组（无需 OK）
+            // 焦点样式：圆角亮蓝背景 + 白字加粗；焦点移动即切换分组（无需 OK）
             holder.tvName.onFocusChangeListener = View.OnFocusChangeListener { _, focused ->
                 if (focused) {
-                    holder.tvName.setBackgroundColor(0xFF3D8BFF.toInt())
+                    holder.tvName.setBackgroundResource(R.drawable.bg_item_focused)
                     holder.tvName.setTextColor(0xFFFFFFFF.toInt())
                     holder.tvName.paint.isFakeBoldText = true
                     onGroupFocused(group)
                 } else {
-                    holder.tvName.setBackgroundColor(0x00000000)
+                    holder.tvName.setBackgroundResource(0)
                     holder.tvName.setTextColor(
                         if (isSelected) 0xFF3D8BFF.toInt() else 0xFFCCCCCC.toInt()
                     )

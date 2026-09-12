@@ -556,7 +556,7 @@
         android:layout_height="match_parent"
         android:layout_gravity="right"
         android:orientation="vertical"
-        android:background="@color/bg_overlay_strong"
+        android:background="@drawable/bg_settings_panel"
         android:visibility="gone">
 
         <!-- 标题栏 -->
