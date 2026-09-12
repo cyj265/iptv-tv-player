@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingLeft="6dp"
+    android:paddingRight="6dp"
+    android:paddingTop="5dp"
+    android:paddingBottom="5dp">
+
+    <TextView
+        android:id="@+id/tvEpgTime"
+        android:layout_width="48dp"
+        android:layout_height="wrap_content"
+        android:textColor="#9AA3B0"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:maxLines="1" />
+
+    <TextView
+        android:id="@+id/tvEpgTitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginLeft="8dp"
+        android:textColor="#C8CDD6"
+        android:textSize="12sp"
+        android:maxLines="2"
+        android:ellipsize="end"
+        android:lineSpacingExtra="1dp" />
+</LinearLayout>

@@ -75,6 +75,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
     private val sourceHealthChecker = SourceHealthChecker()
     private lateinit var playback: PlaybackManager
     private lateinit var adapter: ChannelAdapter
+    private val epgListAdapter = EpgListAdapter()
     private var remoteServer: LanRemoteServer? = null
 
     private var allChannels: List<Channel> = emptyList()
@@ -182,6 +183,9 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         adapter.setCollapsedGroups(repository.getCollapsedGroups())
         binding.channelList.layoutManager = LinearLayoutManager(this)
         binding.channelList.adapter = adapter
+        // 第三栏：今日节目单列表
+        binding.epgListView.layoutManager = LinearLayoutManager(this)
+        binding.epgListView.adapter = epgListAdapter
         // 双栏模式：右侧纯频道列表（带序号），不显示分组头
         adapter.showGroupHeaders = false
 
@@ -2215,35 +2219,56 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
         return map
     }
 
-    /** 更新右侧节目信息栏（EPG 当前/下一个节目）。ch 为空时用当前播放频道。 */
+    /** 更新右侧节目详情栏（EPG 当前节目+进度+描述+今日节目单）。ch 为空时用当前播放频道。 */
     private fun updateProgramInfo(ch: Channel? = null) {
         try {
             val target = ch ?: currentChannel
             if (target == null) {
                 binding.tvInfoChannel.text = "未选择频道"
-                binding.tvInfoNow.text = "请先选择频道，或在设置中添加节目指南地址"
-                binding.tvInfoNext.text = ""
+                binding.tvInfoNow.text = "请先选择频道"
+                binding.tvInfoNowTime.text = ""
+                binding.infoProgressBar.visibility = android.view.View.GONE
+                binding.tvInfoDesc.text = ""
+                epgListAdapter.submitPrograms(emptyList(), null)
                 binding.tvInfoMeta.text = ""
                 return
             }
             binding.tvInfoChannel.text = target.name
-            val epgText = adapter.epgNow[target.id] ?: ""
-            if (epgText.isNotEmpty()) {
-                binding.tvInfoNow.text = epgText
-            } else {
-                binding.tvInfoNow.text = when (epgLoadState) {
-                    EpgLoadState.NOT_CONFIGURED -> "暂无节目单（请在设置-直播源中添加节目指南）"
-                    EpgLoadState.LOADING -> "节目指南加载中…"
-                    EpgLoadState.FAILED -> "节目指南加载失败（请检查地址/网络）"
-                    EpgLoadState.READY -> "该频道暂无节目信息（EPG 未匹配此频道）"
-                }
-            }
-            // 下一个节目：从 EPG 数据里找
             val programs = epgPrograms[target.id] ?: emptyList()
             val now = System.currentTimeMillis()
-            val next = programs.firstOrNull { it.start >= now }
-            binding.tvInfoNext.text =
-                if (next != null) "稍后播放: " + next.title + "  " + formatTime(next.start) else "—"
+            val current = programs.firstOrNull { now in it.start until it.end }
+            if (current != null) {
+                binding.tvInfoNow.text = current.title
+                val startStr = formatTime(current.start)
+                val endStr = formatTime(current.end)
+                val remainingMin = ((current.end - now) / 60000).toInt()
+                val remainingStr = if (remainingMin > 0) "剩余${remainingMin}分钟" else "即将结束"
+                binding.tvInfoNowTime.text = "$startStr-$endStr · $remainingStr"
+                // 进度条
+                val duration = current.end - current.start
+                if (duration > 0) {
+                    val progress = ((now - current.start) * 100 / duration).toInt().coerceIn(0, 100)
+                    binding.infoProgressBar.progress = progress
+                    binding.infoProgressBar.visibility = android.view.View.VISIBLE
+                } else {
+                    binding.infoProgressBar.visibility = android.view.View.GONE
+                }
+                // 节目描述
+                binding.tvInfoDesc.text = if (current.description.isNotEmpty()) current.description else ""
+            } else {
+                binding.tvInfoNow.text = when (epgLoadState) {
+                    EpgLoadState.NOT_CONFIGURED -> "暂无节目单（请在设置中添加节目指南）"
+                    EpgLoadState.LOADING -> "节目指南加载中…"
+                    EpgLoadState.FAILED -> "节目指南加载失败"
+                    EpgLoadState.READY -> "该时段暂无节目"
+                }
+                binding.tvInfoNowTime.text = ""
+                binding.infoProgressBar.visibility = android.view.View.GONE
+                binding.tvInfoDesc.text = ""
+            }
+            // 今日节目单：从当前时间开始，取接下来 12 个节目
+            val upcoming = programs.filter { it.end >= now }.take(12)
+            epgListAdapter.submitPrograms(upcoming, current?.start)
             // 元信息：分组 + 线路数
             val lineCount = playback.sourceCount()
             binding.tvInfoMeta.text = (target.group ?: "") + if (lineCount > 1) " · ${lineCount}条线路" else ""
