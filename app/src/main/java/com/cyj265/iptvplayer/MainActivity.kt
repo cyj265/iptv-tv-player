@@ -2137,8 +2137,7 @@ class MainActivity : AppCompatActivity(), PlaybackManager.Listener {
             val file = crashFile()
             val timestamp = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", java.util.Locale.getDefault()).format(java.util.Date())
             val existing = if (file.exists()) file.readText(Charsets.UTF_8) else ""
-            file.writeText("$existing
-[$timestamp][Startup] $msg", Charsets.UTF_8)
+            file.writeText("$existing\n[$timestamp][Startup] $msg", Charsets.UTF_8)
         } catch (ignored: Exception) {}
     }
 
